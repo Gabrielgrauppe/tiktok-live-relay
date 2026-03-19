@@ -96,14 +96,16 @@ app.get('/overlay/:roomId/edits/:scene', (req, res) => {
 
 // Coins ranking overlay
 app.get('/overlay/:roomId/ranking/coins', (req, res) => {
+  const bg = req.query.bg || 'transparent';
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.send(getRankingHTML(req.params.roomId, 'coins'));
+  res.send(getRankingHTML(req.params.roomId, 'coins', bg));
 });
 
 // Likes ranking overlay
 app.get('/overlay/:roomId/ranking/likes', (req, res) => {
+  const bg = req.query.bg || 'transparent';
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.send(getRankingHTML(req.params.roomId, 'likes'));
+  res.send(getRankingHTML(req.params.roomId, 'likes', bg));
 });
 
 // ============================================
@@ -359,12 +361,13 @@ function getEditsHTML(roomId, scene) {
 </html>`;
 }
 
-function getRankingHTML(roomId, type) {
+function getRankingHTML(roomId, type, bgColor) {
   const title = type === 'coins' ? '\\u{1FA99} Ranking de Moedas' : '\\u2764\\uFE0F Ranking de Likes';
   const sseUrl = `/sse/${roomId}/ranking/${type}`;
   const valueKey = type === 'coins' ? 'coins' : 'likes';
   const valueIcon = type === 'coins' ? '\\u{1FA99}' : '\\u2764\\uFE0F';
   const accentColor = type === 'coins' ? '#f1c40f' : '#e74c3c';
+  const bg = bgColor || 'transparent';
 
   return `<!DOCTYPE html>
 <html>
@@ -373,7 +376,7 @@ function getRankingHTML(roomId, type) {
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
-    background: transparent;
+    background: ${bg};
     font-family: 'Segoe UI', -apple-system, sans-serif;
     color: white;
     padding: 16px;
@@ -405,18 +408,35 @@ function getRankingHTML(roomId, type) {
   .pos-3 { background: linear-gradient(135deg, #e67e22, #d35400); color: #1a1a2e; }
   .pos-other { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.6); }
   .avatar {
-    width: 36px; height: 36px; border-radius: 50%;
+    width: 42px; height: 42px; border-radius: 50%;
     background: rgba(255,255,255,0.1); overflow: hidden; flex-shrink: 0;
     display: flex; align-items: center; justify-content: center; font-size: 16px;
   }
   .avatar img { width: 100%; height: 100%; object-fit: cover; }
-  .user-info { flex: 1; min-width: 0; }
-  .user-name { font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .user-id { font-size: 10px; color: rgba(255,255,255,0.4); }
-  .value {
-    font-size: 15px; font-weight: 800; color: ${accentColor};
-    flex-shrink: 0; text-shadow: 0 0 8px ${accentColor}40;
+  .avatar-frame-1 {
+    border: 3px solid #f1c40f;
+    box-shadow: 0 0 12px rgba(241, 196, 15, 0.5), 0 0 4px rgba(241, 196, 15, 0.3);
   }
+  .avatar-frame-2 {
+    border: 3px solid #bdc3c7;
+    box-shadow: 0 0 10px rgba(189, 195, 199, 0.4);
+  }
+  .avatar-frame-3 {
+    border: 3px solid #e67e22;
+    box-shadow: 0 0 10px rgba(230, 126, 34, 0.4);
+  }
+  .user-info { flex: 1; min-width: 0; }
+  .user-name {
+    font-size: 14px; font-weight: 700;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .user-value {
+    font-size: 13px; font-weight: 800; color: ${accentColor};
+    text-shadow: 0 0 6px ${accentColor}40;
+    flex-shrink: 0;
+  }
+  .user-id { font-size: 10px; color: rgba(255,255,255,0.4); }
   .empty { text-align: center; color: rgba(255,255,255,0.3); padding: 40px; font-size: 14px; }
 </style>
 </head>
@@ -446,16 +466,17 @@ function getRankingHTML(roomId, type) {
     list.innerHTML = sorted.map((user, i) => {
       const pos = i + 1;
       const posClass = pos <= 3 ? 'pos-' + pos : 'pos-other';
+      const frameClass = pos <= 3 ? 'avatar-frame-' + pos : '';
       const avatar = user.profilePictureUrl
         ? '<img src="' + user.profilePictureUrl + '" onerror="this.parentElement.innerHTML=\\'\\u{1F464}\\'">'
         : '\\u{1F464}';
       const val = user.${valueKey}.toLocaleString();
       return '<div class="ranking-item">' +
         '<div class="pos ' + posClass + '">' + pos + '</div>' +
-        '<div class="avatar">' + avatar + '</div>' +
-        '<div class="user-info"><div class="user-name">' + esc(user.nickname) + '</div>' +
-        '<div class="user-id">@' + esc(user.id) + '</div></div>' +
-        '<div class="value">${valueIcon} ' + val + '</div></div>';
+        '<div class="avatar ' + frameClass + '">' + avatar + '</div>' +
+        '<div class="user-info"><div class="user-name">' + esc(user.nickname) +
+        ' <span class="user-value">${valueIcon} ' + val + '</span></div>' +
+        '<div class="user-id">@' + esc(user.id) + '</div></div></div>';
     }).join('');
   }
 
