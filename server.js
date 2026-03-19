@@ -620,8 +620,8 @@ function getCharactersHTML(roomId) {
     margin-bottom: 20px;
   }
   .evo-char {
-    width: 150px;
-    height: 200px;
+    width: 350px;
+    height: 450px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -684,8 +684,8 @@ function getCharactersHTML(roomId) {
   #appear-container.active { display: flex; }
 
   .appear-char {
-    width: 120px;
-    height: 160px;
+    width: 350px;
+    height: 450px;
     animation: bounceIn 0.6s ease-out;
   }
   .appear-char img {
