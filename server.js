@@ -317,7 +317,7 @@ wss.on('connection', (ws) => {
 
       // Jar gift event
       if (msg.type === 'jar-gift') {
-        const event = JSON.stringify({ type: 'gift', giftImage: msg.giftImage, giftName: msg.giftName, count: msg.count || 1 });
+        const event = JSON.stringify({ type: 'gift', giftImage: msg.giftImage, giftName: msg.giftName, count: msg.count || 1, coins: msg.coins || 0 });
         room.sseClients.jar.forEach(client => {
           try { client.write(`data: ${event}\n\n`); } catch (e) {}
         });
@@ -1418,32 +1418,19 @@ function getJarHTML(roomId) {
     transition: box-shadow 0.3s;
   }
 
-  /* Counter */
-  .gift-counter {
-    position: absolute;
-    bottom: 430px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-family: 'Orbitron', sans-serif;
-    font-size: 22px;
-    font-weight: 900;
-    color: #fff;
-    text-shadow: 0 0 15px rgba(255,215,0,0.8), 0 2px 6px rgba(0,0,0,0.6);
-    z-index: 20;
-    white-space: nowrap;
-    letter-spacing: 1px;
+  /* Big gift (1000+ coins) */
+  .gift-item.gift-big {
+    width: 60px;
+    height: 60px;
   }
-
-  .gift-counter .count-num {
-    color: #ffd700;
-    font-size: 28px;
+  .gift-item.gift-big img {
+    filter: drop-shadow(0 0 8px rgba(255,215,0,0.6)) drop-shadow(0 2px 4px rgba(0,0,0,0.4));
   }
 </style>
 </head>
 <body>
 
 <div class="jar-scene">
-  <div class="gift-counter"><span class="count-num" id="counter">0</span> presentes</div>
   <div class="jar">
     <div class="jar-neck">
       <div class="jar-rim"></div>
@@ -1461,8 +1448,6 @@ function getJarHTML(roomId) {
   const jarGifts = document.getElementById('jar-gifts');
   const jarOverflow = document.getElementById('jar-overflow');
   const jarBody = document.getElementById('jar-body');
-  const counterEl = document.getElementById('counter');
-
   let totalGifts = 0;
   let insideGifts = [];
   const JAR_WIDTH = 240; // inner width
@@ -1479,17 +1464,18 @@ function getJarHTML(roomId) {
     return { x, y };
   }
 
-  function addGift(giftImage, giftName, count) {
+  function addGift(giftImage, giftName, count, coins) {
+    const isBig = coins >= 1000;
+    const itemSize = isBig ? 60 : 36;
     for (let c = 0; c < Math.min(count, 5); c++) {
       totalGifts++;
-      counterEl.textContent = totalGifts;
 
       // Pulse effect
       jarBody.classList.add('pulse');
       setTimeout(() => jarBody.classList.remove('pulse'), 400);
 
       const el = document.createElement('div');
-      el.className = 'gift-item';
+      el.className = 'gift-item' + (isBig ? ' gift-big' : '');
       el.innerHTML = '<img src="' + giftImage + '" alt="" onerror="this.src=\\'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 36 36%22><text y=%2228%22 font-size=%2228%22>🎁</text></svg>\\'">';
 
       if (insideGifts.length < MAX_INSIDE) {
@@ -1532,7 +1518,7 @@ function getJarHTML(roomId) {
   evtSource.onmessage = (e) => {
     const msg = JSON.parse(e.data);
     if (msg.type === 'gift') {
-      addGift(msg.giftImage, msg.giftName, msg.count || 1);
+      addGift(msg.giftImage, msg.giftName, msg.count || 1, msg.coins || 0);
     }
     if (msg.type === 'reset') {
       resetJar();
