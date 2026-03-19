@@ -21,7 +21,9 @@ function getRoom(roomId) {
         coins: [], likes: []
       },
       coinsRanking: {},
-      likesRanking: {}
+      likesRanking: {},
+      coinsConfig: { bg: 'transparent', side: 'left' },
+      likesConfig: { bg: 'transparent', side: 'left' }
     };
   }
   return rooms[roomId];
@@ -96,18 +98,14 @@ app.get('/overlay/:roomId/edits/:scene', (req, res) => {
 
 // Coins ranking overlay
 app.get('/overlay/:roomId/ranking/coins', (req, res) => {
-  const bg = req.query.bg || 'transparent';
-  const side = req.query.side || 'left';
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.send(getRankingHTML(req.params.roomId, 'coins', bg, side));
+  res.send(getRankingHTML(req.params.roomId, 'coins'));
 });
 
 // Likes ranking overlay
 app.get('/overlay/:roomId/ranking/likes', (req, res) => {
-  const bg = req.query.bg || 'transparent';
-  const side = req.query.side || 'left';
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.send(getRankingHTML(req.params.roomId, 'likes', bg, side));
+  res.send(getRankingHTML(req.params.roomId, 'likes'));
 });
 
 // ============================================
@@ -140,6 +138,7 @@ app.get('/sse/:roomId/ranking/coins', (req, res) => {
     'Cache-Control': 'no-cache',
     'Connection': 'keep-alive'
   });
+  res.write(`data: ${JSON.stringify({ type: 'config', ...room.coinsConfig })}\n\n`);
   res.write(`data: ${JSON.stringify({ type: 'full', data: room.coinsRanking })}\n\n`);
   room.sseClients.coins.push(res);
   req.on('close', () => {
@@ -154,6 +153,7 @@ app.get('/sse/:roomId/ranking/likes', (req, res) => {
     'Cache-Control': 'no-cache',
     'Connection': 'keep-alive'
   });
+  res.write(`data: ${JSON.stringify({ type: 'config', ...room.likesConfig })}\n\n`);
   res.write(`data: ${JSON.stringify({ type: 'full', data: room.likesRanking })}\n\n`);
   room.sseClients.likes.push(res);
   req.on('close', () => {
@@ -221,6 +221,19 @@ wss.on('connection', (ws) => {
         room.likesRanking = msg.data;
         const event = JSON.stringify({ type: 'full', data: msg.data });
         room.sseClients.likes.forEach(client => {
+          try { client.write(`data: ${event}\n\n`); } catch (e) {}
+        });
+      }
+
+      // Ranking config update (bg color, side)
+      if (msg.type === 'ranking-config') {
+        const target = msg.ranking; // 'coins' or 'likes'
+        const config = { bg: msg.bg || 'transparent', side: msg.side || 'left' };
+        if (target === 'coins') room.coinsConfig = config;
+        if (target === 'likes') room.likesConfig = config;
+        const event = JSON.stringify({ type: 'config', ...config });
+        const clients = room.sseClients[target] || [];
+        clients.forEach(client => {
           try { client.write(`data: ${event}\n\n`); } catch (e) {}
         });
       }
@@ -363,16 +376,12 @@ function getEditsHTML(roomId, scene) {
 </html>`;
 }
 
-function getRankingHTML(roomId, type, bgColor, side) {
+function getRankingHTML(roomId, type) {
   const title = type === 'coins' ? '\\u{1FA99} Ranking de Moedas' : '\\u2764\\uFE0F Ranking de Likes';
   const sseUrl = `/sse/${roomId}/ranking/${type}`;
   const valueKey = type === 'coins' ? 'coins' : 'likes';
   const valueIcon = type === 'coins' ? '\\u{1FA99}' : '\\u2764\\uFE0F';
   const accentColor = type === 'coins' ? '#f1c40f' : '#e74c3c';
-  const bg = bgColor || 'transparent';
-  const isRight = side === 'right';
-  const textAlign = isRight ? 'right' : 'left';
-  const flexDir = isRight ? 'row-reverse' : 'row';
 
   return `<!DOCTYPE html>
 <html>
@@ -381,11 +390,12 @@ function getRankingHTML(roomId, type, bgColor, side) {
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
-    background: ${bg};
+    background: transparent;
     font-family: 'Segoe UI', -apple-system, sans-serif;
     color: white;
     padding: 16px;
     overflow-y: auto;
+    transition: background 0.3s;
   }
   .ranking-title {
     font-size: 20px; font-weight: 800; text-align: center;
@@ -395,13 +405,13 @@ function getRankingHTML(roomId, type, bgColor, side) {
   .ranking-list { display: flex; flex-direction: column; gap: 6px; }
   .ranking-item {
     display: flex; align-items: center; gap: 10px;
-    flex-direction: ${flexDir};
+    flex-direction: row;
     background: rgba(20, 25, 40, 0.85); border-radius: 12px;
     padding: 8px 14px; border: 1px solid rgba(255,255,255,0.08);
     backdrop-filter: blur(8px); animation: slideIn 0.3s ease-out;
   }
   @keyframes slideIn {
-    from { opacity: 0; transform: translateX(${isRight ? '20px' : '-20px'}); }
+    from { opacity: 0; transform: translateX(-20px); }
     to { opacity: 1; transform: translateX(0); }
   }
   .pos {
@@ -431,7 +441,7 @@ function getRankingHTML(roomId, type, bgColor, side) {
     border: 3px solid #e67e22;
     box-shadow: 0 0 10px rgba(230, 126, 34, 0.4);
   }
-  .user-info { flex: 1; min-width: 0; text-align: ${textAlign}; }
+  .user-info { flex: 1; min-width: 0; text-align: left; }
   .user-name {
     font-size: 14px; font-weight: 700;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -449,13 +459,37 @@ function getRankingHTML(roomId, type, bgColor, side) {
 <script>
   const list = document.getElementById('list');
   const evtSource = new EventSource('${sseUrl}');
+  let currentSide = 'left';
 
   evtSource.onmessage = (e) => {
     const msg = JSON.parse(e.data);
     if (msg.type === 'full') renderRanking(msg.data);
+    if (msg.type === 'config') applyConfig(msg);
   };
 
+  function applyConfig(cfg) {
+    if (cfg.bg !== undefined) {
+      document.body.style.background = cfg.bg;
+    }
+    if (cfg.side !== undefined) {
+      currentSide = cfg.side;
+      const isRight = cfg.side === 'right';
+      document.querySelectorAll('.ranking-item').forEach(item => {
+        item.style.flexDirection = isRight ? 'row-reverse' : 'row';
+      });
+      document.querySelectorAll('.user-info').forEach(el => {
+        el.style.textAlign = isRight ? 'right' : 'left';
+      });
+      // Update animation
+      const style = document.getElementById('dynamic-style');
+      if (style) {
+        style.textContent = '@keyframes slideIn { from { opacity: 0; transform: translateX(' + (isRight ? '20px' : '-20px') + '); } to { opacity: 1; transform: translateX(0); } }';
+      }
+    }
+  }
+
   function renderRanking(data) {
+    const isRight = currentSide === 'right';
     const sorted = Object.entries(data)
       .map(([id, d]) => ({ id, ...d }))
       .sort((a, b) => b.${valueKey} - a.${valueKey})
@@ -474,10 +508,10 @@ function getRankingHTML(roomId, type, bgColor, side) {
         ? '<img src="' + user.profilePictureUrl + '" onerror="this.parentElement.innerHTML=\\'\\u{1F464}\\'">'
         : '\\u{1F464}';
       const val = user.${valueKey}.toLocaleString();
-      return '<div class="ranking-item">' +
+      return '<div class="ranking-item" style="flex-direction:' + (isRight ? 'row-reverse' : 'row') + '">' +
         '<div class="pos ' + posClass + '">' + pos + '</div>' +
         '<div class="avatar ' + frameClass + '">' + avatar + '</div>' +
-        '<div class="user-info">' +
+        '<div class="user-info" style="text-align:' + (isRight ? 'right' : 'left') + '">' +
         '<div class="user-name">' + esc(user.nickname) + '</div>' +
         '<div class="user-value">${valueIcon} ' + val + '</div>' +
         '</div></div>';
@@ -489,6 +523,11 @@ function getRankingHTML(roomId, type, bgColor, side) {
     d.textContent = s;
     return d.innerHTML;
   }
+
+  // Add dynamic style element for animations
+  const dynStyle = document.createElement('style');
+  dynStyle.id = 'dynamic-style';
+  document.head.appendChild(dynStyle);
 </script>
 </body>
 </html>`;
