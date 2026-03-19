@@ -6,12 +6,12 @@ const app = express();
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000;
 
 // ============================================
 // ROOMS - each user has a unique room
 // ============================================
-const rooms = {}; // { roomId: { sseClients: { edits: [], coins: [], likes: [] }, coinsRanking: {}, likesRanking: {} } }
+const rooms = {};
 
 function getRoom(roomId) {
   if (!rooms[roomId]) {
@@ -23,6 +23,21 @@ function getRoom(roomId) {
   }
   return rooms[roomId];
 }
+
+// ============================================
+// MEDIA STORAGE (in-memory, temporary)
+// ============================================
+const mediaStore = {}; // { mediaId: { data: Buffer, mimeType: string, createdAt: number } }
+
+// Clean up media older than 10 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [id, media] of Object.entries(mediaStore)) {
+    if (now - media.createdAt > 10 * 60 * 1000) {
+      delete mediaStore[id];
+    }
+  }
+}, 60 * 1000);
 
 // Clean up empty rooms every 30 minutes
 setInterval(() => {
@@ -57,31 +72,41 @@ app.get('/ping', (req, res) => {
 });
 
 // ============================================
+// MEDIA ENDPOINT - serve uploaded media files
+// ============================================
+app.get('/media/:id', (req, res) => {
+  const media = mediaStore[req.params.id];
+  if (!media) {
+    res.status(404).send('Media not found');
+    return;
+  }
+  res.setHeader('Content-Type', media.mimeType);
+  res.setHeader('Cache-Control', 'public, max-age=600');
+  res.send(media.data);
+});
+
+// ============================================
 // OVERLAY PAGES
 // ============================================
 
-// Edits overlay
 app.get('/overlay/:roomId/edits', (req, res) => {
   const { roomId } = req.params;
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.send(getEditsHTML(roomId));
 });
 
-// Same with extra param for compatibility
 app.get('/overlay/:roomId/edits/:screen', (req, res) => {
   const { roomId } = req.params;
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.send(getEditsHTML(roomId));
 });
 
-// Coins ranking overlay
 app.get('/overlay/:roomId/ranking/coins', (req, res) => {
   const { roomId } = req.params;
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.send(getRankingHTML(roomId, 'coins'));
 });
 
-// Likes ranking overlay
 app.get('/overlay/:roomId/ranking/likes', (req, res) => {
   const { roomId } = req.params;
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -144,7 +169,6 @@ wss.on('connection', (ws) => {
     try {
       const msg = JSON.parse(raw);
 
-      // Join room
       if (msg.type === 'join') {
         roomId = msg.roomId;
         getRoom(roomId);
@@ -155,12 +179,25 @@ wss.on('connection', (ws) => {
       if (!roomId) return;
       const room = getRoom(roomId);
 
-      // Edit trigger
+      // Media upload - store in memory and return URL
+      if (msg.type === 'media') {
+        const buffer = Buffer.from(msg.data, 'base64');
+        mediaStore[msg.id] = {
+          data: buffer,
+          mimeType: msg.mimeType,
+          createdAt: Date.now()
+        };
+        // Confirm media stored
+        ws.send(JSON.stringify({ type: 'media-ready', id: msg.id }));
+      }
+
+      // Edit trigger - send media URL to overlay
       if (msg.type === 'edit') {
+        const mediaUrl = `/media/${msg.mediaId}`;
         const event = JSON.stringify({
           type: 'play',
           giftName: msg.giftName,
-          mediaUrl: msg.mediaUrl,
+          mediaUrl: mediaUrl,
           duration: msg.duration,
           isGif: msg.isGif
         });
@@ -183,20 +220,6 @@ wss.on('connection', (ws) => {
         room.likesRanking = msg.data;
         const event = JSON.stringify({ type: 'full', data: msg.data });
         room.sseClients.likes.forEach(client => {
-          try { client.write(`data: ${event}\n\n`); } catch (e) {}
-        });
-      }
-
-      // Serve media file (base64 pass-through for edit files)
-      if (msg.type === 'media') {
-        // Broadcast the media data to edits SSE clients
-        const event = JSON.stringify({
-          type: 'media-data',
-          id: msg.id,
-          data: msg.data,
-          mimeType: msg.mimeType
-        });
-        room.sseClients.edits.forEach(client => {
           try { client.write(`data: ${event}\n\n`); } catch (e) {}
         });
       }
@@ -279,23 +302,12 @@ function getEditsHTML(roomId) {
   const toast = document.getElementById('toast');
   let hideTimeout = null;
 
-  // Store media blobs by ID
-  const mediaBlobs = {};
-
   const evtSource = new EventSource('/sse/${roomId}/edits');
 
   evtSource.onmessage = (e) => {
     const data = JSON.parse(e.data);
     if (data.type === 'play') {
       playMedia(data);
-    }
-    if (data.type === 'media-data') {
-      // Convert base64 to blob URL
-      const binary = atob(data.data);
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-      const blob = new Blob([bytes], { type: data.mimeType });
-      mediaBlobs[data.id] = URL.createObjectURL(blob);
     }
   };
 
@@ -312,8 +324,7 @@ function getEditsHTML(roomId) {
 
     container.classList.add('active');
 
-    // Use blob URL if available, otherwise use mediaUrl
-    const src = data.mediaId && mediaBlobs[data.mediaId] ? mediaBlobs[data.mediaId] : data.mediaUrl;
+    const src = data.mediaUrl;
 
     if (data.isGif) {
       gif.src = src;
