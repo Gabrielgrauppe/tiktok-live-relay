@@ -19,7 +19,8 @@ function getRoom(roomId) {
       sseClients: {
         edits1: [], edits2: [], edits3: [],
         coins: [], likes: [],
-        characters: []
+        characters: [],
+        jar: []
       },
       coinsRanking: {},
       likesRanking: {},
@@ -48,7 +49,7 @@ setInterval(() => {
   for (const [id, room] of Object.entries(rooms)) {
     const s = room.sseClients;
     const hasClients = s.edits1.length > 0 || s.edits2.length > 0 || s.edits3.length > 0 ||
-                       s.coins.length > 0 || s.likes.length > 0 || s.characters.length > 0;
+                       s.coins.length > 0 || s.likes.length > 0 || s.characters.length > 0 || s.jar.length > 0;
     const hasData = Object.keys(room.coinsRanking).length > 0 ||
                     Object.keys(room.likesRanking).length > 0;
     if (!hasClients && !hasData) delete rooms[id];
@@ -115,6 +116,12 @@ app.get('/overlay/:roomId/characters', (req, res) => {
   res.send(getCharactersHTML(req.params.roomId));
 });
 
+// Jar overlay
+app.get('/overlay/:roomId/jar', (req, res) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(getJarHTML(req.params.roomId));
+});
+
 // ============================================
 // SSE ENDPOINTS
 // ============================================
@@ -165,6 +172,21 @@ app.get('/sse/:roomId/ranking/likes', (req, res) => {
   room.sseClients.likes.push(res);
   req.on('close', () => {
     room.sseClients.likes = room.sseClients.likes.filter(c => c !== res);
+  });
+});
+
+// Jar SSE
+app.get('/sse/:roomId/jar', (req, res) => {
+  const room = getRoom(req.params.roomId);
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive'
+  });
+  res.write('data: {"type":"connected"}\n\n');
+  room.sseClients.jar.push(res);
+  req.on('close', () => {
+    room.sseClients.jar = room.sseClients.jar.filter(c => c !== res);
   });
 });
 
@@ -256,6 +278,22 @@ wss.on('connection', (ws) => {
         const event = JSON.stringify({ type: 'config', ...config });
         const clients = room.sseClients[target] || [];
         clients.forEach(client => {
+          try { client.write(`data: ${event}\n\n`); } catch (e) {}
+        });
+      }
+
+      // Jar gift event
+      if (msg.type === 'jar-gift') {
+        const event = JSON.stringify({ type: 'gift', giftImage: msg.giftImage, giftName: msg.giftName, count: msg.count || 1 });
+        room.sseClients.jar.forEach(client => {
+          try { client.write(`data: ${event}\n\n`); } catch (e) {}
+        });
+      }
+
+      // Jar reset
+      if (msg.type === 'jar-reset') {
+        const event = JSON.stringify({ type: 'reset' });
+        room.sseClients.jar.forEach(client => {
           try { client.write(`data: ${event}\n\n`); } catch (e) {}
         });
       }
@@ -899,6 +937,320 @@ function getCharactersHTML(roomId) {
     d.textContent = s;
     return d.innerHTML;
   }
+</script>
+</body>
+</html>`;
+}
+
+// ============================================
+// JAR OVERLAY HTML
+// ============================================
+function getJarHTML(roomId) {
+  const sseUrl = `/sse/${roomId}/jar`;
+  return `<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: transparent;
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    font-family: 'Orbitron', sans-serif;
+  }
+
+  .jar-scene {
+    position: relative;
+    width: 500px;
+    height: 100vh;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+  }
+
+  /* Jar body - glass effect */
+  .jar {
+    position: relative;
+    width: 280px;
+    height: 400px;
+    margin-bottom: 20px;
+    z-index: 10;
+  }
+
+  .jar-body {
+    position: absolute;
+    bottom: 0;
+    left: 20px;
+    right: 20px;
+    height: 340px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 50%, rgba(255,255,255,0.08) 100%);
+    border: 3px solid rgba(255,255,255,0.25);
+    border-bottom: 4px solid rgba(255,255,255,0.35);
+    border-radius: 0 0 30px 30px;
+    overflow: visible;
+    backdrop-filter: blur(2px);
+    box-shadow:
+      inset 0 0 40px rgba(100,200,255,0.05),
+      inset -15px 0 30px rgba(255,255,255,0.03),
+      0 0 30px rgba(100,200,255,0.1),
+      0 10px 40px rgba(0,0,0,0.3);
+  }
+
+  /* Glass shine */
+  .jar-body::before {
+    content: '';
+    position: absolute;
+    left: 8px;
+    top: 10px;
+    width: 20px;
+    height: 80%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.15), rgba(255,255,255,0.02));
+    border-radius: 10px;
+    pointer-events: none;
+  }
+
+  .jar-body::after {
+    content: '';
+    position: absolute;
+    right: 12px;
+    top: 20px;
+    width: 8px;
+    height: 60%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.08), transparent);
+    border-radius: 5px;
+    pointer-events: none;
+  }
+
+  /* Jar neck/rim */
+  .jar-neck {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 180px;
+    height: 60px;
+    z-index: 11;
+  }
+
+  .jar-rim {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 20px;
+    background: linear-gradient(180deg, #8ec8e8, #6ab0d6, #4a96c4);
+    border: 2px solid rgba(255,255,255,0.4);
+    border-radius: 8px 8px 0 0;
+    box-shadow: 0 -2px 10px rgba(100,200,255,0.3), inset 0 2px 4px rgba(255,255,255,0.3);
+  }
+
+  .jar-rim-bottom {
+    position: absolute;
+    top: 18px;
+    left: -10px;
+    right: -10px;
+    height: 15px;
+    background: linear-gradient(180deg, #7bbdd9, #5aa5c8);
+    border: 2px solid rgba(255,255,255,0.3);
+    border-radius: 0 0 5px 5px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+  }
+
+  .jar-neck-body {
+    position: absolute;
+    top: 32px;
+    left: 5px;
+    right: 5px;
+    height: 30px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+    border-left: 3px solid rgba(255,255,255,0.2);
+    border-right: 3px solid rgba(255,255,255,0.2);
+  }
+
+  /* Gift container inside jar */
+  .jar-gifts {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 340px;
+    overflow: hidden;
+    border-radius: 0 0 27px 27px;
+  }
+
+  /* Overflow area outside jar */
+  .jar-overflow {
+    position: absolute;
+    bottom: 0;
+    left: -120px;
+    right: -120px;
+    height: 80px;
+    z-index: 5;
+    overflow: hidden;
+  }
+
+  /* Individual gift item */
+  .gift-item {
+    position: absolute;
+    width: 36px;
+    height: 36px;
+    pointer-events: none;
+    transition: none;
+  }
+  .gift-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 1px 3px rgba(0,0,0,0.3));
+  }
+
+  /* Falling animation */
+  @keyframes giftFall {
+    0% { transform: translateY(-100px) rotate(0deg) scale(0.5); opacity: 0; }
+    15% { opacity: 1; scale: 1; }
+    70% { transform: translateY(var(--fall-y)) rotate(var(--rot)) scale(1); }
+    85% { transform: translateY(calc(var(--fall-y) - 8px)) rotate(var(--rot)); }
+    100% { transform: translateY(var(--fall-y)) rotate(var(--rot2)); opacity: 1; }
+  }
+
+  /* Glow pulse on jar when gift arrives */
+  .jar-body.pulse {
+    box-shadow:
+      inset 0 0 40px rgba(100,200,255,0.05),
+      inset -15px 0 30px rgba(255,255,255,0.03),
+      0 0 50px rgba(255,200,50,0.4),
+      0 0 80px rgba(255,150,50,0.2),
+      0 10px 40px rgba(0,0,0,0.3);
+    transition: box-shadow 0.3s;
+  }
+
+  /* Counter */
+  .gift-counter {
+    position: absolute;
+    bottom: 430px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 22px;
+    font-weight: 900;
+    color: #fff;
+    text-shadow: 0 0 15px rgba(255,215,0,0.8), 0 2px 6px rgba(0,0,0,0.6);
+    z-index: 20;
+    white-space: nowrap;
+    letter-spacing: 1px;
+  }
+
+  .gift-counter .count-num {
+    color: #ffd700;
+    font-size: 28px;
+  }
+</style>
+</head>
+<body>
+
+<div class="jar-scene">
+  <div class="gift-counter"><span class="count-num" id="counter">0</span> presentes</div>
+  <div class="jar">
+    <div class="jar-neck">
+      <div class="jar-rim"></div>
+      <div class="jar-rim-bottom"></div>
+      <div class="jar-neck-body"></div>
+    </div>
+    <div class="jar-body" id="jar-body">
+      <div class="jar-gifts" id="jar-gifts"></div>
+    </div>
+  </div>
+  <div class="jar-overflow" id="jar-overflow"></div>
+</div>
+
+<script>
+  const jarGifts = document.getElementById('jar-gifts');
+  const jarOverflow = document.getElementById('jar-overflow');
+  const jarBody = document.getElementById('jar-body');
+  const counterEl = document.getElementById('counter');
+
+  let totalGifts = 0;
+  let insideGifts = [];
+  const JAR_WIDTH = 240; // inner width
+  const JAR_HEIGHT = 340;
+  const GIFT_SIZE = 36;
+  const MAX_INSIDE = 120; // max gifts visible inside before overflow
+  const COLS = Math.floor(JAR_WIDTH / GIFT_SIZE);
+
+  function getNextInsidePos() {
+    const row = Math.floor(insideGifts.length / COLS);
+    const col = insideGifts.length % COLS;
+    const x = 8 + col * (GIFT_SIZE + 2) + (Math.random() * 4 - 2);
+    const y = JAR_HEIGHT - GIFT_SIZE - 4 - row * (GIFT_SIZE - 4) + (Math.random() * 3 - 1);
+    return { x, y };
+  }
+
+  function addGift(giftImage, giftName, count) {
+    for (let c = 0; c < Math.min(count, 5); c++) {
+      totalGifts++;
+      counterEl.textContent = totalGifts;
+
+      // Pulse effect
+      jarBody.classList.add('pulse');
+      setTimeout(() => jarBody.classList.remove('pulse'), 400);
+
+      const el = document.createElement('div');
+      el.className = 'gift-item';
+      el.innerHTML = '<img src="' + giftImage + '" alt="" onerror="this.src=\\'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 36 36%22><text y=%2228%22 font-size=%2228%22>🎁</text></svg>\\'">';
+
+      if (insideGifts.length < MAX_INSIDE) {
+        // Inside jar
+        const pos = getNextInsidePos();
+        const rot = Math.random() * 40 - 20;
+        const rot2 = rot + (Math.random() * 10 - 5);
+        el.style.setProperty('--fall-y', pos.y + 'px');
+        el.style.setProperty('--rot', rot + 'deg');
+        el.style.setProperty('--rot2', rot2 + 'deg');
+        el.style.left = pos.x + 'px';
+        el.style.animation = 'giftFall 0.8s ease-out forwards';
+        el.style.animationDelay = (c * 150) + 'ms';
+        jarGifts.appendChild(el);
+        insideGifts.push(el);
+      } else {
+        // Overflow outside jar
+        const x = Math.random() * 460 - 80;
+        const y = Math.random() * 50;
+        el.style.left = x + 'px';
+        el.style.bottom = y + 'px';
+        el.style.transform = 'rotate(' + (Math.random() * 60 - 30) + 'deg)';
+        el.style.opacity = '0';
+        el.style.transition = 'opacity 0.3s';
+        jarOverflow.appendChild(el);
+        setTimeout(() => { el.style.opacity = '1'; }, c * 150 + 50);
+      }
+    }
+  }
+
+  function resetJar() {
+    jarGifts.innerHTML = '';
+    jarOverflow.innerHTML = '';
+    insideGifts = [];
+    totalGifts = 0;
+    counterEl.textContent = '0';
+  }
+
+  const evtSource = new EventSource('${sseUrl}');
+  evtSource.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    if (msg.type === 'gift') {
+      addGift(msg.giftImage, msg.giftName, msg.count || 1);
+    }
+    if (msg.type === 'reset') {
+      resetJar();
+    }
+  };
 </script>
 </body>
 </html>`;
