@@ -262,7 +262,10 @@ wss.on('connection', (ws) => {
 
       // Character events (evolution + appear)
       if (msg.type === 'character') {
-        const event = JSON.stringify(msg);
+        // msg has type:'character' but also a sub-type from charEvent that overwrites it
+        // Wrap properly so overlay can parse it
+        const subType = msg.evolution ? 'evolution' : (msg.image ? 'appear' : msg.type);
+        const event = JSON.stringify({ ...msg, eventType: subType });
         room.sseClients.characters.forEach(client => {
           try { client.write(`data: ${event}\n\n`); } catch (e) {}
         });
@@ -732,7 +735,7 @@ function getCharactersHTML(roomId) {
   const evtSource = new EventSource('${sseUrl}');
   evtSource.onmessage = (e) => {
     const msg = JSON.parse(e.data);
-    if (msg.type === 'character') {
+    if (msg.eventType || msg.type === 'evolution' || msg.type === 'appear' || msg.type === 'character') {
       queue.push(msg);
       if (!isBusy) processNext();
     }
@@ -742,18 +745,11 @@ function getCharactersHTML(roomId) {
     if (queue.length === 0) { isBusy = false; return; }
     isBusy = true;
     const evt = queue.shift();
+    const subType = evt.eventType || evt.type;
 
-    if (evt.type === 'character' && evt.evolution) {
-      // This is from the WS handler which wraps it as { type: 'character', ...charEvent }
-      // charEvent has type: 'evolution' or 'appear'
-    }
-
-    // The actual sub-type is in the message itself
-    if (evt.evolution || evt.type === 'evolution' ||
-        (evt.type === 'character' && evt.fromLevel !== undefined)) {
+    if (subType === 'evolution' || evt.fromLevel !== undefined) {
       showEvolution(evt);
-    } else if (evt.appear || evt.type === 'appear' ||
-               (evt.type === 'character' && evt.image !== undefined && evt.fromLevel === undefined)) {
+    } else if (subType === 'appear' || evt.image) {
       showAppear(evt);
     } else {
       processNext();
