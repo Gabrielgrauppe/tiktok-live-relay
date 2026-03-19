@@ -16,7 +16,10 @@ const rooms = {};
 function getRoom(roomId) {
   if (!rooms[roomId]) {
     rooms[roomId] = {
-      sseClients: { edits: [], coins: [], likes: [] },
+      sseClients: {
+        edits1: [], edits2: [], edits3: [],
+        coins: [], likes: []
+      },
       coinsRanking: {},
       likesRanking: {}
     };
@@ -27,9 +30,8 @@ function getRoom(roomId) {
 // ============================================
 // MEDIA STORAGE (in-memory, temporary)
 // ============================================
-const mediaStore = {}; // { mediaId: { data: Buffer, mimeType: string, createdAt: number } }
+const mediaStore = {};
 
-// Clean up media older than 10 minutes
 setInterval(() => {
   const now = Date.now();
   for (const [id, media] of Object.entries(mediaStore)) {
@@ -39,17 +41,14 @@ setInterval(() => {
   }
 }, 60 * 1000);
 
-// Clean up empty rooms every 30 minutes
 setInterval(() => {
   for (const [id, room] of Object.entries(rooms)) {
-    const hasClients = room.sseClients.edits.length > 0 ||
-                       room.sseClients.coins.length > 0 ||
-                       room.sseClients.likes.length > 0;
+    const s = room.sseClients;
+    const hasClients = s.edits1.length > 0 || s.edits2.length > 0 || s.edits3.length > 0 ||
+                       s.coins.length > 0 || s.likes.length > 0;
     const hasData = Object.keys(room.coinsRanking).length > 0 ||
                     Object.keys(room.likesRanking).length > 0;
-    if (!hasClients && !hasData) {
-      delete rooms[id];
-    }
+    if (!hasClients && !hasData) delete rooms[id];
   }
 }, 30 * 60 * 1000);
 
@@ -72,14 +71,11 @@ app.get('/ping', (req, res) => {
 });
 
 // ============================================
-// MEDIA ENDPOINT - serve uploaded media files
+// MEDIA ENDPOINT
 // ============================================
 app.get('/media/:id', (req, res) => {
   const media = mediaStore[req.params.id];
-  if (!media) {
-    res.status(404).send('Media not found');
-    return;
-  }
+  if (!media) { res.status(404).send('Media not found'); return; }
   res.setHeader('Content-Type', media.mimeType);
   res.setHeader('Cache-Control', 'public, max-age=600');
   res.send(media.data);
@@ -89,45 +85,47 @@ app.get('/media/:id', (req, res) => {
 // OVERLAY PAGES
 // ============================================
 
-app.get('/overlay/:roomId/edits', (req, res) => {
-  const { roomId } = req.params;
+// Edits overlay - scene 1, 2, or 3
+app.get('/overlay/:roomId/edits/:scene', (req, res) => {
+  const { roomId, scene } = req.params;
+  const sceneNum = parseInt(scene) || 1;
+  if (sceneNum < 1 || sceneNum > 3) { res.status(400).send('Scene must be 1, 2, or 3'); return; }
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.send(getEditsHTML(roomId));
+  res.send(getEditsHTML(roomId, sceneNum));
 });
 
-app.get('/overlay/:roomId/edits/:screen', (req, res) => {
-  const { roomId } = req.params;
-  res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.send(getEditsHTML(roomId));
-});
-
+// Coins ranking overlay
 app.get('/overlay/:roomId/ranking/coins', (req, res) => {
-  const { roomId } = req.params;
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.send(getRankingHTML(roomId, 'coins'));
+  res.send(getRankingHTML(req.params.roomId, 'coins'));
 });
 
+// Likes ranking overlay
 app.get('/overlay/:roomId/ranking/likes', (req, res) => {
-  const { roomId } = req.params;
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.send(getRankingHTML(roomId, 'likes'));
+  res.send(getRankingHTML(req.params.roomId, 'likes'));
 });
 
 // ============================================
 // SSE ENDPOINTS
 // ============================================
 
-app.get('/sse/:roomId/edits', (req, res) => {
-  const room = getRoom(req.params.roomId);
+// Edits SSE per scene
+app.get('/sse/:roomId/edits/:scene', (req, res) => {
+  const { roomId, scene } = req.params;
+  const sceneNum = parseInt(scene) || 1;
+  const key = 'edits' + sceneNum;
+  const room = getRoom(roomId);
+  if (!room.sseClients[key]) { res.status(400).send('Invalid scene'); return; }
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache',
     'Connection': 'keep-alive'
   });
   res.write('data: {"type":"connected"}\n\n');
-  room.sseClients.edits.push(res);
+  room.sseClients[key].push(res);
   req.on('close', () => {
-    room.sseClients.edits = room.sseClients.edits.filter(c => c !== res);
+    room.sseClients[key] = room.sseClients[key].filter(c => c !== res);
   });
 });
 
@@ -160,7 +158,7 @@ app.get('/sse/:roomId/ranking/likes', (req, res) => {
 });
 
 // ============================================
-// WEBSOCKET - Electron app connects here
+// WEBSOCKET
 // ============================================
 wss.on('connection', (ws) => {
   let roomId = null;
@@ -179,20 +177,17 @@ wss.on('connection', (ws) => {
       if (!roomId) return;
       const room = getRoom(roomId);
 
-      // Media upload - store in memory and return URL
+      // Media upload
       if (msg.type === 'media') {
         const buffer = Buffer.from(msg.data, 'base64');
-        mediaStore[msg.id] = {
-          data: buffer,
-          mimeType: msg.mimeType,
-          createdAt: Date.now()
-        };
-        // Confirm media stored
+        mediaStore[msg.id] = { data: buffer, mimeType: msg.mimeType, createdAt: Date.now() };
         ws.send(JSON.stringify({ type: 'media-ready', id: msg.id }));
       }
 
-      // Edit trigger - send media URL to overlay
+      // Edit trigger - route to correct scene
       if (msg.type === 'edit') {
+        const scene = msg.scene || 1;
+        const key = 'edits' + scene;
         const mediaUrl = `/media/${msg.mediaId}`;
         const event = JSON.stringify({
           type: 'play',
@@ -201,12 +196,14 @@ wss.on('connection', (ws) => {
           duration: msg.duration,
           isGif: msg.isGif
         });
-        room.sseClients.edits.forEach(client => {
-          try { client.write(`data: ${event}\n\n`); } catch (e) {}
-        });
+        if (room.sseClients[key]) {
+          room.sseClients[key].forEach(client => {
+            try { client.write(`data: ${event}\n\n`); } catch (e) {}
+          });
+        }
       }
 
-      // Coins ranking update
+      // Coins ranking
       if (msg.type === 'coins') {
         room.coinsRanking = msg.data;
         const event = JSON.stringify({ type: 'full', data: msg.data });
@@ -215,7 +212,7 @@ wss.on('connection', (ws) => {
         });
       }
 
-      // Likes ranking update
+      // Likes ranking
       if (msg.type === 'likes') {
         room.likesRanking = msg.data;
         const event = JSON.stringify({ type: 'full', data: msg.data });
@@ -227,16 +224,14 @@ wss.on('connection', (ws) => {
     } catch (e) {}
   });
 
-  ws.on('close', () => {
-    roomId = null;
-  });
+  ws.on('close', () => { roomId = null; });
 });
 
 // ============================================
 // OVERLAY HTML GENERATORS
 // ============================================
 
-function getEditsHTML(roomId) {
+function getEditsHTML(roomId, scene) {
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -248,23 +243,19 @@ function getEditsHTML(roomId) {
     overflow: hidden;
     width: 100vw;
     height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
   }
   #media-container {
     display: none;
     width: 100%;
     height: 100%;
-    align-items: center;
-    justify-content: center;
   }
-  #media-container.active { display: flex; }
+  #media-container.active { display: block; }
   #media-container video,
   #media-container img {
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
   }
   .gift-toast {
     position: fixed;
@@ -300,19 +291,34 @@ function getEditsHTML(roomId) {
   const video = document.getElementById('video');
   const gif = document.getElementById('gif');
   const toast = document.getElementById('toast');
-  let hideTimeout = null;
 
-  const evtSource = new EventSource('/sse/${roomId}/edits');
+  // Queue system
+  const queue = [];
+  let isPlaying = false;
+
+  const evtSource = new EventSource('/sse/${roomId}/edits/${scene}');
 
   evtSource.onmessage = (e) => {
     const data = JSON.parse(e.data);
     if (data.type === 'play') {
-      playMedia(data);
+      queue.push(data);
+      if (!isPlaying) playNext();
     }
   };
 
-  function playMedia(data) {
-    if (hideTimeout) clearTimeout(hideTimeout);
+  function playNext() {
+    if (queue.length === 0) {
+      isPlaying = false;
+      container.classList.remove('active');
+      toast.classList.remove('active');
+      video.pause();
+      video.src = '';
+      gif.src = '';
+      return;
+    }
+
+    isPlaying = true;
+    const data = queue.shift();
 
     video.style.display = 'none';
     gif.style.display = 'none';
@@ -321,7 +327,6 @@ function getEditsHTML(roomId) {
 
     toast.textContent = '\\u{1F381} ' + data.giftName;
     toast.classList.add('active');
-
     container.classList.add('active');
 
     const src = data.mediaUrl;
@@ -329,19 +334,25 @@ function getEditsHTML(roomId) {
     if (data.isGif) {
       gif.src = src;
       gif.style.display = 'block';
+      setTimeout(() => playNext(), data.duration * 1000);
     } else {
       video.src = src;
       video.style.display = 'block';
       video.play().catch(() => {});
+      // When video ends naturally, play next
+      video.onended = () => playNext();
+      // Fallback timeout in case video is shorter or has issues
+      setTimeout(() => {
+        if (isPlaying && queue.length > 0) playNext();
+        else if (isPlaying && queue.length === 0) {
+          isPlaying = false;
+          container.classList.remove('active');
+          toast.classList.remove('active');
+          video.pause();
+          video.src = '';
+        }
+      }, data.duration * 1000);
     }
-
-    hideTimeout = setTimeout(() => {
-      container.classList.remove('active');
-      toast.classList.remove('active');
-      video.pause();
-      video.src = '';
-      gif.src = '';
-    }, data.duration * 1000);
   }
 </script>
 </body>
