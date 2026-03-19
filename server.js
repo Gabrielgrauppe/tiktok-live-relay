@@ -850,7 +850,25 @@ function getCharactersHTML(roomId) {
     const img = data.image || '';
     if (!img) { processNext(); return; }
 
-    appearChar.innerHTML = '<img src="' + img + '">';
+    const duration = (data.duration || 5) * 1000;
+    const shouldLoop = data.loop !== false;
+
+    // If loop enabled, make img/gif loop by restarting src
+    const imgEl = document.createElement('img');
+    imgEl.src = img;
+    if (shouldLoop) {
+      imgEl.style.cssText = 'width:100%;height:100%;object-fit:contain;';
+      // For GIFs: restart animation on loop interval
+      const gifRestart = setInterval(() => {
+        const src = imgEl.src;
+        imgEl.src = '';
+        imgEl.src = src;
+      }, Math.max(duration / 2, 3000));
+      setTimeout(() => clearInterval(gifRestart), duration + 100);
+    }
+    appearChar.innerHTML = '';
+    appearChar.appendChild(imgEl);
+
     appearName.textContent = esc(data.nickname);
 
     // HP based on level: lv10=200, lv20=450, lv30=700, lv40=900, lv50=1200
@@ -871,7 +889,7 @@ function getCharactersHTML(roomId) {
     setTimeout(() => {
       appearContainer.classList.remove('active');
       processNext();
-    }, 5000);
+    }, duration);
   }
 
   function spawnParticles() {
