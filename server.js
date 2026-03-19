@@ -670,29 +670,35 @@ function getCharactersHTML(roomId) {
     100% { opacity: 0; transform: translateY(-200px) scale(0); }
   }
 
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Orbitron:wght@700;900&display=swap');
+
   /* Character appear */
   #appear-container {
     position: fixed;
-    bottom: 20px;
+    bottom: 0;
     left: 50%;
     transform: translateX(-50%);
     display: none;
     flex-direction: column;
     align-items: center;
     z-index: 50;
+    padding-bottom: 10px;
   }
   #appear-container.active { display: flex; }
 
   .appear-char {
-    width: 350px;
-    height: 450px;
+    width: 400px;
+    height: 500px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
     animation: bounceIn 0.6s ease-out;
   }
   .appear-char img {
-    max-width: 100%;
-    max-height: 100%;
+    width: 100%;
+    height: 100%;
     object-fit: contain;
-    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4));
+    filter: drop-shadow(0 4px 20px rgba(0,0,0,0.6));
   }
   @keyframes bounceIn {
     0% { transform: translateY(100px) scale(0); opacity: 0; }
@@ -700,15 +706,70 @@ function getCharactersHTML(roomId) {
     100% { transform: translateY(0) scale(1); opacity: 1; }
   }
 
+  .appear-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 4px;
+    gap: 3px;
+  }
+
   .appear-name {
-    background: rgba(0,0,0,0.75);
-    color: white;
-    padding: 4px 16px;
-    border-radius: 20px;
-    font-size: 14px;
+    font-family: 'Cinzel', serif;
+    font-size: 26px;
+    font-weight: 900;
+    color: #fff;
+    text-shadow: 0 0 15px rgba(255,215,0,0.8), 0 2px 4px rgba(0,0,0,0.8);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .appear-health {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 2px;
+  }
+  .appear-health-label {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 13px;
     font-weight: 700;
-    margin-top: 6px;
-    white-space: nowrap;
+    color: #ff4444;
+    text-shadow: 0 0 8px rgba(255,68,68,0.6);
+  }
+  .appear-health-bar {
+    width: 180px;
+    height: 14px;
+    background: rgba(0,0,0,0.6);
+    border-radius: 7px;
+    border: 1px solid rgba(255,68,68,0.4);
+    overflow: hidden;
+    position: relative;
+  }
+  .appear-health-fill {
+    height: 100%;
+    border-radius: 7px;
+    background: linear-gradient(90deg, #ff4444, #ff6b6b);
+    box-shadow: 0 0 10px rgba(255,68,68,0.5);
+    transition: width 0.5s ease;
+  }
+  .appear-health-text {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+  }
+
+  .appear-role {
+    font-family: 'Cinzel', serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: #00e5ff;
+    text-shadow: 0 0 12px rgba(0,229,255,0.6), 0 1px 3px rgba(0,0,0,0.6);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-top: 1px;
   }
 </style>
 </head>
@@ -717,7 +778,15 @@ function getCharactersHTML(roomId) {
 <div id="evolution-overlay"></div>
 <div id="appear-container">
   <div class="appear-char" id="appear-char"></div>
-  <div class="appear-name" id="appear-name"></div>
+  <div class="appear-info">
+    <div class="appear-name" id="appear-name"></div>
+    <div class="appear-health">
+      <span class="appear-health-label">HP</span>
+      <div class="appear-health-bar"><div class="appear-health-fill" id="appear-hp"></div></div>
+      <span class="appear-health-text" id="appear-hp-text"></span>
+    </div>
+    <div class="appear-role" id="appear-role"></div>
+  </div>
 </div>
 
 <script>
@@ -783,12 +852,26 @@ function getCharactersHTML(roomId) {
 
     appearChar.innerHTML = '<img src="' + img + '">';
     appearName.textContent = esc(data.nickname);
+
+    // HP based on level: lv10=200, lv20=450, lv30=700, lv40=900, lv50=1200
+    const hpMap = { 10: 200, 20: 450, 30: 700, 40: 900, 50: 1200 };
+    const lvl = data.level || 10;
+    const hp = hpMap[lvl] || 200;
+    const maxHp = 1200;
+    document.getElementById('appear-hp').style.width = ((hp / maxHp) * 100) + '%';
+    document.getElementById('appear-hp-text').textContent = hp + '/' + hp;
+
+    // Role/function
+    const role = data.role || data.charName || '';
+    document.getElementById('appear-role').textContent = role;
+    document.getElementById('appear-role').style.display = role ? 'block' : 'none';
+
     appearContainer.classList.add('active');
 
     setTimeout(() => {
       appearContainer.classList.remove('active');
       processNext();
-    }, 4000);
+    }, 5000);
   }
 
   function spawnParticles() {
