@@ -97,15 +97,17 @@ app.get('/overlay/:roomId/edits/:scene', (req, res) => {
 // Coins ranking overlay
 app.get('/overlay/:roomId/ranking/coins', (req, res) => {
   const bg = req.query.bg || 'transparent';
+  const side = req.query.side || 'left';
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.send(getRankingHTML(req.params.roomId, 'coins', bg));
+  res.send(getRankingHTML(req.params.roomId, 'coins', bg, side));
 });
 
 // Likes ranking overlay
 app.get('/overlay/:roomId/ranking/likes', (req, res) => {
   const bg = req.query.bg || 'transparent';
+  const side = req.query.side || 'left';
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.send(getRankingHTML(req.params.roomId, 'likes', bg));
+  res.send(getRankingHTML(req.params.roomId, 'likes', bg, side));
 });
 
 // ============================================
@@ -361,13 +363,16 @@ function getEditsHTML(roomId, scene) {
 </html>`;
 }
 
-function getRankingHTML(roomId, type, bgColor) {
+function getRankingHTML(roomId, type, bgColor, side) {
   const title = type === 'coins' ? '\\u{1FA99} Ranking de Moedas' : '\\u2764\\uFE0F Ranking de Likes';
   const sseUrl = `/sse/${roomId}/ranking/${type}`;
   const valueKey = type === 'coins' ? 'coins' : 'likes';
   const valueIcon = type === 'coins' ? '\\u{1FA99}' : '\\u2764\\uFE0F';
   const accentColor = type === 'coins' ? '#f1c40f' : '#e74c3c';
   const bg = bgColor || 'transparent';
+  const isRight = side === 'right';
+  const textAlign = isRight ? 'right' : 'left';
+  const flexDir = isRight ? 'row-reverse' : 'row';
 
   return `<!DOCTYPE html>
 <html>
@@ -390,12 +395,13 @@ function getRankingHTML(roomId, type, bgColor) {
   .ranking-list { display: flex; flex-direction: column; gap: 6px; }
   .ranking-item {
     display: flex; align-items: center; gap: 10px;
+    flex-direction: ${flexDir};
     background: rgba(20, 25, 40, 0.85); border-radius: 12px;
     padding: 8px 14px; border: 1px solid rgba(255,255,255,0.08);
     backdrop-filter: blur(8px); animation: slideIn 0.3s ease-out;
   }
   @keyframes slideIn {
-    from { opacity: 0; transform: translateX(-20px); }
+    from { opacity: 0; transform: translateX(${isRight ? '20px' : '-20px'}); }
     to { opacity: 1; transform: translateX(0); }
   }
   .pos {
@@ -425,18 +431,15 @@ function getRankingHTML(roomId, type, bgColor) {
     border: 3px solid #e67e22;
     box-shadow: 0 0 10px rgba(230, 126, 34, 0.4);
   }
-  .user-info { flex: 1; min-width: 0; }
+  .user-info { flex: 1; min-width: 0; text-align: ${textAlign}; }
   .user-name {
     font-size: 14px; font-weight: 700;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    display: flex; align-items: center; gap: 8px;
   }
   .user-value {
     font-size: 13px; font-weight: 800; color: ${accentColor};
     text-shadow: 0 0 6px ${accentColor}40;
-    flex-shrink: 0;
   }
-  .user-id { font-size: 10px; color: rgba(255,255,255,0.4); }
   .empty { text-align: center; color: rgba(255,255,255,0.3); padding: 40px; font-size: 14px; }
 </style>
 </head>
@@ -474,9 +477,10 @@ function getRankingHTML(roomId, type, bgColor) {
       return '<div class="ranking-item">' +
         '<div class="pos ' + posClass + '">' + pos + '</div>' +
         '<div class="avatar ' + frameClass + '">' + avatar + '</div>' +
-        '<div class="user-info"><div class="user-name">' + esc(user.nickname) +
-        ' <span class="user-value">${valueIcon} ' + val + '</span></div>' +
-        '<div class="user-id">@' + esc(user.id) + '</div></div></div>';
+        '<div class="user-info">' +
+        '<div class="user-name">' + esc(user.nickname) + '</div>' +
+        '<div class="user-value">${valueIcon} ' + val + '</div>' +
+        '</div></div>';
     }).join('');
   }
 
