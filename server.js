@@ -262,10 +262,7 @@ wss.on('connection', (ws) => {
 
       // Character events (evolution + appear)
       if (msg.type === 'character') {
-        // msg has type:'character' but also a sub-type from charEvent that overwrites it
-        // Wrap properly so overlay can parse it
-        const subType = msg.evolution ? 'evolution' : (msg.image ? 'appear' : msg.type);
-        const event = JSON.stringify({ ...msg, eventType: subType });
+        const event = JSON.stringify(msg);
         room.sseClients.characters.forEach(client => {
           try { client.write(`data: ${event}\n\n`); } catch (e) {}
         });
