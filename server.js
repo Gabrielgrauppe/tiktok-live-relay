@@ -20,7 +20,8 @@ function getRoom(roomId) {
         edits1: [], edits2: [], edits3: [],
         coins: [], likes: [],
         characters: [],
-        jar: []
+        jar: [],
+        scoreboard: []
       },
       coinsRanking: {},
       likesRanking: {},
@@ -49,7 +50,7 @@ setInterval(() => {
   for (const [id, room] of Object.entries(rooms)) {
     const s = room.sseClients;
     const hasClients = s.edits1.length > 0 || s.edits2.length > 0 || s.edits3.length > 0 ||
-                       s.coins.length > 0 || s.likes.length > 0 || s.characters.length > 0 || s.jar.length > 0;
+                       s.coins.length > 0 || s.likes.length > 0 || s.characters.length > 0 || s.jar.length > 0 || s.scoreboard.length > 0;
     const hasData = Object.keys(room.coinsRanking).length > 0 ||
                     Object.keys(room.likesRanking).length > 0;
     if (!hasClients && !hasData) delete rooms[id];
@@ -116,6 +117,12 @@ app.get('/overlay/:roomId/characters', (req, res) => {
   res.send(getCharactersHTML(req.params.roomId));
 });
 
+// Scoreboard overlay
+app.get('/overlay/:roomId/scoreboard', (req, res) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(getScoreboardHTML(req.params.roomId));
+});
+
 // Jar overlay
 app.get('/overlay/:roomId/jar', (req, res) => {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -172,6 +179,23 @@ app.get('/sse/:roomId/ranking/likes', (req, res) => {
   room.sseClients.likes.push(res);
   req.on('close', () => {
     room.sseClients.likes = room.sseClients.likes.filter(c => c !== res);
+  });
+});
+
+// Scoreboard SSE
+app.get('/sse/:roomId/scoreboard', (req, res) => {
+  const room = getRoom(req.params.roomId);
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive'
+  });
+  // Send current state
+  const sb = room.scoreboard || { left: 0, right: 0, leftName: 'Streamer', rightName: 'Chat', theme: 'neon' };
+  res.write(`data: ${JSON.stringify({ type: 'full', ...sb })}\n\n`);
+  room.sseClients.scoreboard.push(res);
+  req.on('close', () => {
+    room.sseClients.scoreboard = room.sseClients.scoreboard.filter(c => c !== res);
   });
 });
 
@@ -278,6 +302,15 @@ wss.on('connection', (ws) => {
         const event = JSON.stringify({ type: 'config', ...config });
         const clients = room.sseClients[target] || [];
         clients.forEach(client => {
+          try { client.write(`data: ${event}\n\n`); } catch (e) {}
+        });
+      }
+
+      // Scoreboard update
+      if (msg.type === 'scoreboard') {
+        room.scoreboard = { left: msg.left, right: msg.right, leftName: msg.leftName, rightName: msg.rightName, theme: msg.theme };
+        const event = JSON.stringify({ type: 'full', ...room.scoreboard });
+        room.sseClients.scoreboard.forEach(client => {
           try { client.write(`data: ${event}\n\n`); } catch (e) {}
         });
       }
@@ -937,6 +970,260 @@ function getCharactersHTML(roomId) {
     d.textContent = s;
     return d.innerHTML;
   }
+</script>
+</body>
+</html>`;
+}
+
+// ============================================
+// SCOREBOARD OVERLAY HTML
+// ============================================
+function getScoreboardHTML(roomId) {
+  const sseUrl = `/sse/${roomId}/scoreboard`;
+  return `<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Cinzel:wght@700;900&family=Press+Start+2P&family=Russo+One&family=Rajdhani:wght@700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  .scoreboard {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    position: relative;
+  }
+
+  .sb-side {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 28px;
+    min-width: 180px;
+    position: relative;
+  }
+
+  .sb-name {
+    font-size: 18px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .sb-score {
+    font-size: 64px;
+    font-weight: 900;
+    line-height: 1;
+  }
+
+  .sb-vs {
+    font-size: 22px;
+    font-weight: 900;
+    padding: 8px 14px;
+    z-index: 5;
+  }
+
+  /* ===== THEME: NEON ===== */
+  .theme-neon .sb-side.left {
+    background: linear-gradient(135deg, rgba(0,200,255,0.15), rgba(0,100,255,0.25));
+    border: 2px solid #00d4ff;
+    border-radius: 16px 0 0 16px;
+    box-shadow: 0 0 25px rgba(0,212,255,0.3), inset 0 0 20px rgba(0,212,255,0.1);
+  }
+  .theme-neon .sb-side.right {
+    background: linear-gradient(135deg, rgba(255,50,50,0.25), rgba(255,0,80,0.15));
+    border: 2px solid #ff3366;
+    border-radius: 0 16px 16px 0;
+    box-shadow: 0 0 25px rgba(255,51,102,0.3), inset 0 0 20px rgba(255,51,102,0.1);
+  }
+  .theme-neon .sb-name { font-family: 'Orbitron', sans-serif; }
+  .theme-neon .sb-side.left .sb-name { color: #00d4ff; text-shadow: 0 0 15px rgba(0,212,255,0.8); }
+  .theme-neon .sb-side.right .sb-name { color: #ff3366; text-shadow: 0 0 15px rgba(255,51,102,0.8); }
+  .theme-neon .sb-score { font-family: 'Orbitron', sans-serif; color: #fff; text-shadow: 0 0 20px rgba(255,255,255,0.5); }
+  .theme-neon .sb-vs {
+    font-family: 'Orbitron', sans-serif;
+    color: #ffd700;
+    text-shadow: 0 0 15px rgba(255,215,0,0.8);
+    background: rgba(0,0,0,0.6);
+    border-radius: 50%;
+    width: 50px; height: 50px;
+    display: flex; align-items: center; justify-content: center;
+    border: 2px solid #ffd700;
+    box-shadow: 0 0 20px rgba(255,215,0,0.3);
+  }
+
+  /* ===== THEME: MEDIEVAL ===== */
+  .theme-medieval .sb-side.left {
+    background: linear-gradient(135deg, rgba(40,60,120,0.8), rgba(20,30,80,0.9));
+    border: 3px solid #8b7355;
+    border-radius: 12px 0 0 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,215,0,0.2);
+  }
+  .theme-medieval .sb-side.right {
+    background: linear-gradient(135deg, rgba(120,30,30,0.8), rgba(80,10,10,0.9));
+    border: 3px solid #8b7355;
+    border-radius: 0 12px 12px 0;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,215,0,0.2);
+  }
+  .theme-medieval .sb-name { font-family: 'Cinzel', serif; color: #ffd700; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
+  .theme-medieval .sb-score { font-family: 'Cinzel', serif; color: #fff; text-shadow: 0 3px 6px rgba(0,0,0,0.6); }
+  .theme-medieval .sb-vs {
+    font-family: 'Cinzel', serif;
+    color: #ffd700;
+    background: linear-gradient(135deg, #5c4033, #3e2723);
+    border: 3px solid #8b7355;
+    border-radius: 8px;
+    padding: 6px 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+  }
+
+  /* ===== THEME: RETRO/ARCADE ===== */
+  .theme-retro .sb-side.left {
+    background: #111;
+    border: 3px solid #00ff41;
+    border-radius: 4px 0 0 4px;
+    box-shadow: 0 0 10px rgba(0,255,65,0.3), inset 0 0 15px rgba(0,255,65,0.05);
+  }
+  .theme-retro .sb-side.right {
+    background: #111;
+    border: 3px solid #ff00ff;
+    border-radius: 0 4px 4px 0;
+    box-shadow: 0 0 10px rgba(255,0,255,0.3), inset 0 0 15px rgba(255,0,255,0.05);
+  }
+  .theme-retro .sb-name { font-family: 'Press Start 2P', monospace; font-size: 11px; }
+  .theme-retro .sb-side.left .sb-name { color: #00ff41; }
+  .theme-retro .sb-side.right .sb-name { color: #ff00ff; }
+  .theme-retro .sb-score { font-family: 'Press Start 2P', monospace; font-size: 48px; color: #fff; }
+  .theme-retro .sb-vs {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 14px;
+    color: #ffff00;
+    background: #111;
+    border: 2px solid #ffff00;
+    padding: 6px 10px;
+  }
+
+  /* ===== THEME: FIRE ===== */
+  .theme-fire .sb-side.left {
+    background: linear-gradient(180deg, rgba(255,100,0,0.3), rgba(200,50,0,0.5));
+    border: 2px solid #ff6600;
+    border-radius: 14px 0 0 14px;
+    box-shadow: 0 0 30px rgba(255,100,0,0.3), inset 0 -10px 30px rgba(255,50,0,0.2);
+  }
+  .theme-fire .sb-side.right {
+    background: linear-gradient(180deg, rgba(255,100,0,0.3), rgba(200,50,0,0.5));
+    border: 2px solid #ff6600;
+    border-radius: 0 14px 14px 0;
+    box-shadow: 0 0 30px rgba(255,100,0,0.3), inset 0 -10px 30px rgba(255,50,0,0.2);
+  }
+  .theme-fire .sb-name { font-family: 'Russo One', sans-serif; color: #ffd700; text-shadow: 0 0 10px rgba(255,100,0,0.8), 0 2px 4px rgba(0,0,0,0.5); }
+  .theme-fire .sb-score { font-family: 'Russo One', sans-serif; color: #fff; text-shadow: 0 0 15px rgba(255,150,0,0.6); }
+  .theme-fire .sb-vs {
+    font-family: 'Russo One', sans-serif;
+    color: #ffd700;
+    background: rgba(200,50,0,0.7);
+    border: 2px solid #ff6600;
+    border-radius: 50%;
+    width: 48px; height: 48px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 20px rgba(255,100,0,0.5);
+  }
+
+  /* ===== THEME: ICE ===== */
+  .theme-ice .sb-side.left {
+    background: linear-gradient(180deg, rgba(100,200,255,0.2), rgba(50,150,220,0.35));
+    border: 2px solid rgba(150,220,255,0.6);
+    border-radius: 14px 0 0 14px;
+    box-shadow: 0 0 25px rgba(100,200,255,0.2), inset 0 0 20px rgba(200,240,255,0.08);
+  }
+  .theme-ice .sb-side.right {
+    background: linear-gradient(180deg, rgba(100,200,255,0.2), rgba(50,150,220,0.35));
+    border: 2px solid rgba(150,220,255,0.6);
+    border-radius: 0 14px 14px 0;
+    box-shadow: 0 0 25px rgba(100,200,255,0.2), inset 0 0 20px rgba(200,240,255,0.08);
+  }
+  .theme-ice .sb-name { font-family: 'Rajdhani', sans-serif; font-size: 20px; color: #b0e0ff; text-shadow: 0 0 12px rgba(150,220,255,0.7); }
+  .theme-ice .sb-score { font-family: 'Rajdhani', sans-serif; color: #fff; text-shadow: 0 0 20px rgba(150,220,255,0.5); }
+  .theme-ice .sb-vs {
+    font-family: 'Rajdhani', sans-serif;
+    color: #b0e0ff;
+    background: rgba(30,80,120,0.7);
+    border: 2px solid rgba(150,220,255,0.5);
+    border-radius: 50%;
+    width: 48px; height: 48px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 15px rgba(100,200,255,0.3);
+  }
+
+  /* Score change animation */
+  @keyframes scorePop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.3); }
+    100% { transform: scale(1); }
+  }
+  .score-pop { animation: scorePop 0.3s ease-out; }
+</style>
+</head>
+<body>
+
+<div class="scoreboard theme-neon" id="scoreboard">
+  <div class="sb-side left">
+    <div class="sb-name" id="sb-left-name">Streamer</div>
+    <div class="sb-score" id="sb-left-score">0</div>
+  </div>
+  <div class="sb-vs">VS</div>
+  <div class="sb-side right">
+    <div class="sb-name" id="sb-right-name">Chat</div>
+    <div class="sb-score" id="sb-right-score">0</div>
+  </div>
+</div>
+
+<script>
+  const board = document.getElementById('scoreboard');
+  const leftName = document.getElementById('sb-left-name');
+  const rightName = document.getElementById('sb-right-name');
+  const leftScore = document.getElementById('sb-left-score');
+  const rightScore = document.getElementById('sb-right-score');
+
+  function popAnim(el) {
+    el.classList.remove('score-pop');
+    void el.offsetWidth;
+    el.classList.add('score-pop');
+  }
+
+  const evtSource = new EventSource('${sseUrl}');
+  evtSource.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    if (msg.type === 'full') {
+      const oldLeft = leftScore.textContent;
+      const oldRight = rightScore.textContent;
+
+      leftName.textContent = msg.leftName || 'Streamer';
+      rightName.textContent = msg.rightName || 'Chat';
+      leftScore.textContent = msg.left || 0;
+      rightScore.textContent = msg.right || 0;
+
+      if (String(msg.left) !== oldLeft) popAnim(leftScore);
+      if (String(msg.right) !== oldRight) popAnim(rightScore);
+
+      // Apply theme
+      board.className = 'scoreboard theme-' + (msg.theme || 'neon');
+    }
+  };
 </script>
 </body>
 </html>`;
