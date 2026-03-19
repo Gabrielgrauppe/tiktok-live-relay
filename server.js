@@ -851,23 +851,8 @@ function getCharactersHTML(roomId) {
     if (!img) { processNext(); return; }
 
     const duration = (data.duration || 5) * 1000;
-    const shouldLoop = data.loop !== false;
 
-    // If loop enabled, make img/gif loop by restarting src
-    const imgEl = document.createElement('img');
-    imgEl.src = img;
-    if (shouldLoop) {
-      imgEl.style.cssText = 'width:100%;height:100%;object-fit:contain;';
-      // For GIFs: restart animation on loop interval
-      const gifRestart = setInterval(() => {
-        const src = imgEl.src;
-        imgEl.src = '';
-        imgEl.src = src;
-      }, Math.max(duration / 2, 3000));
-      setTimeout(() => clearInterval(gifRestart), duration + 100);
-    }
-    appearChar.innerHTML = '';
-    appearChar.appendChild(imgEl);
+    appearChar.innerHTML = '<img src="' + img + '">';
 
     appearName.textContent = esc(data.nickname);
 
