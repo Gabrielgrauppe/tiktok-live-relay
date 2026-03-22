@@ -21,7 +21,8 @@ function getRoom(roomId) {
         coins: [], likes: [],
         characters: [],
         jar: [],
-        scoreboard: []
+        scoreboard: [],
+        timer: []
       },
       coinsRanking: {},
       likesRanking: {},
@@ -129,6 +130,11 @@ app.get('/overlay/:roomId/jar', (req, res) => {
   res.send(getJarHTML(req.params.roomId));
 });
 
+app.get('/overlay/:roomId/timer', (req, res) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(getTimerHTML(req.params.roomId));
+});
+
 // ============================================
 // SSE ENDPOINTS
 // ============================================
@@ -226,6 +232,21 @@ app.get('/sse/:roomId/characters', (req, res) => {
   room.sseClients.characters.push(res);
   req.on('close', () => {
     room.sseClients.characters = room.sseClients.characters.filter(c => c !== res);
+  });
+});
+
+app.get('/sse/:roomId/timer', (req, res) => {
+  const room = getRoom(req.params.roomId);
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+    'Access-Control-Allow-Origin': '*'
+  });
+  res.write('data: {"type":"connected"}\n\n');
+  room.sseClients.timer.push(res);
+  req.on('close', () => {
+    room.sseClients.timer = room.sseClients.timer.filter(c => c !== res);
   });
 });
 
@@ -327,6 +348,24 @@ wss.on('connection', (ws) => {
       if (msg.type === 'jar-reset') {
         const event = JSON.stringify({ type: 'reset' });
         room.sseClients.jar.forEach(client => {
+          try { client.write(`data: ${event}\n\n`); } catch (e) {}
+        });
+      }
+
+      // Timer update
+      if (msg.type === 'timer') {
+        room.timerState = { seconds: msg.seconds, running: msg.running, theme: msg.theme };
+        const event = JSON.stringify({ type: 'timer', seconds: msg.seconds, running: msg.running });
+        room.sseClients.timer.forEach(client => {
+          try { client.write(`data: ${event}\n\n`); } catch (e) {}
+        });
+      }
+
+      // Timer config
+      if (msg.type === 'timer-config') {
+        room.timerTheme = msg.theme;
+        const event = JSON.stringify({ type: 'config', theme: msg.theme });
+        room.sseClients.timer.forEach(client => {
           try { client.write(`data: ${event}\n\n`); } catch (e) {}
         });
       }
@@ -1527,6 +1566,179 @@ function getJarHTML(roomId) {
 </script>
 </body>
 </html>`;
+}
+
+// ============================================
+// TIMER OVERLAY
+// ============================================
+function getTimerHTML(roomId) {
+  const sseUrl = `/sse/${roomId}/timer`;
+  return `<!DOCTYPE html>
+<html><head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=MedievalSharp&family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: transparent;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    overflow: hidden;
+  }
+  .timer-container {
+    padding: 30px 60px;
+    border-radius: 20px;
+    position: relative;
+    text-align: center;
+  }
+  .timer-time {
+    font-size: 72px;
+    font-weight: 900;
+    letter-spacing: 6px;
+    line-height: 1;
+  }
+  .timer-label {
+    font-size: 14px;
+    margin-top: 8px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    opacity: 0.8;
+  }
+  /* NEON */
+  .theme-neon .timer-container {
+    background: rgba(10,10,30,0.85);
+    border: 2px solid #00d4ff;
+    box-shadow: 0 0 30px rgba(0,212,255,0.3), inset 0 0 30px rgba(0,212,255,0.05);
+  }
+  .theme-neon .timer-time {
+    font-family: 'Orbitron', monospace;
+    color: #00d4ff;
+    text-shadow: 0 0 20px rgba(0,212,255,0.8), 0 0 40px rgba(0,212,255,0.4);
+  }
+  .theme-neon .timer-label { font-family: 'Orbitron', monospace; color: #ff3366; text-shadow: 0 0 10px rgba(255,51,102,0.5); }
+  /* MEDIEVAL */
+  .theme-medieval .timer-container {
+    background: linear-gradient(135deg, rgba(30,20,10,0.9), rgba(50,35,15,0.9));
+    border: 3px solid #c9a44a;
+    box-shadow: 0 0 20px rgba(201,164,74,0.3);
+  }
+  .theme-medieval .timer-time {
+    font-family: 'MedievalSharp', cursive;
+    color: #ffd700;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.8), 0 0 20px rgba(255,215,0,0.3);
+  }
+  .theme-medieval .timer-label { font-family: 'MedievalSharp', cursive; color: #c9a44a; }
+  /* RETRO */
+  .theme-retro .timer-container {
+    background: rgba(0,0,0,0.9);
+    border: 3px solid #39ff14;
+    box-shadow: 0 0 20px rgba(57,255,20,0.3);
+  }
+  .theme-retro .timer-time {
+    font-family: 'Press Start 2P', monospace;
+    color: #39ff14;
+    font-size: 48px;
+    text-shadow: 0 0 10px rgba(57,255,20,0.8), 3px 3px 0 #006400;
+  }
+  .theme-retro .timer-label { font-family: 'Press Start 2P', monospace; color: #39ff14; font-size: 10px; }
+  /* FIRE */
+  .theme-fire .timer-container {
+    background: linear-gradient(180deg, rgba(40,10,0,0.9), rgba(80,20,0,0.9));
+    border: 2px solid #ff6b35;
+    box-shadow: 0 0 30px rgba(255,107,53,0.4), 0 0 60px rgba(255,69,0,0.2);
+  }
+  .theme-fire .timer-time {
+    font-family: 'Orbitron', monospace;
+    background: linear-gradient(180deg, #fff44f, #ff6b35, #ff4500);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 10px rgba(255,69,0,0.6));
+  }
+  .theme-fire .timer-label { font-family: 'Orbitron', monospace; color: #ff6b35; }
+  /* ICE */
+  .theme-ice .timer-container {
+    background: linear-gradient(180deg, rgba(10,20,40,0.9), rgba(20,40,80,0.9));
+    border: 2px solid #87ceeb;
+    box-shadow: 0 0 30px rgba(135,206,235,0.3);
+  }
+  .theme-ice .timer-time {
+    font-family: 'Orbitron', monospace;
+    background: linear-gradient(180deg, #ffffff, #87ceeb, #4fc3f7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 10px rgba(135,206,235,0.5));
+  }
+  .theme-ice .timer-label { font-family: 'Orbitron', monospace; color: #87ceeb; }
+  @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.08); } 100% { transform: scale(1); } }
+  .pulse { animation: pulse 0.5s ease-out; }
+  .low-time .timer-time { animation: blink 1s infinite; }
+  @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+</style>
+</head>
+<body>
+<div id="theme-wrapper" class="theme-neon">
+  <div class="timer-container" id="timer-container">
+    <div class="timer-time" id="timer-time">00:00:00</div>
+    <div class="timer-label">LIVE TIMER</div>
+  </div>
+</div>
+<script>
+  const timerEl = document.getElementById('timer-time');
+  const container = document.getElementById('timer-container');
+  const wrapper = document.getElementById('theme-wrapper');
+  let currentSeconds = 0;
+  let isRunning = false;
+  let localInterval = null;
+
+  function formatTime(secs) {
+    const h = Math.floor(secs / 3600);
+    const m = Math.floor((secs % 3600) / 60);
+    const s = secs % 60;
+    return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+  }
+
+  function updateDisplay() {
+    timerEl.textContent = formatTime(currentSeconds);
+    if (currentSeconds <= 60 && currentSeconds > 0 && isRunning) {
+      wrapper.classList.add('low-time');
+    } else {
+      wrapper.classList.remove('low-time');
+    }
+  }
+
+  function startLocalCountdown() {
+    if (localInterval) clearInterval(localInterval);
+    localInterval = setInterval(() => {
+      if (isRunning && currentSeconds > 0) {
+        currentSeconds--;
+        updateDisplay();
+      }
+    }, 1000);
+  }
+
+  startLocalCountdown();
+
+  const evtSource = new EventSource('${sseUrl}');
+  evtSource.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    if (msg.type === 'timer') {
+      const prevSeconds = currentSeconds;
+      currentSeconds = msg.seconds;
+      isRunning = msg.running;
+      updateDisplay();
+      if (currentSeconds > prevSeconds) {
+        container.classList.add('pulse');
+        setTimeout(() => container.classList.remove('pulse'), 500);
+      }
+    }
+    if (msg.type === 'config') {
+      if (msg.theme) wrapper.className = 'theme-' + msg.theme;
+    }
+  };
+</script>
+</body></html>`;
 }
 
 // ============================================
