@@ -26,8 +26,8 @@ function getRoom(roomId) {
       },
       coinsRanking: {},
       likesRanking: {},
-      coinsConfig: { bg: 'transparent', side: 'left' },
-      likesConfig: { bg: 'transparent', side: 'left' },
+      coinsConfig: { bg: 'transparent', side: 'left', theme: 'clean', customColor: '' },
+      likesConfig: { bg: 'transparent', side: 'left', theme: 'clean', customColor: '' },
       jarTheme: 'clean',
       jarCustomColor: ''
     };
@@ -216,6 +216,7 @@ app.get('/sse/:roomId/jar', (req, res) => {
     'Connection': 'keep-alive'
   });
   res.write('data: {"type":"connected"}\n\n');
+  res.write(`data: ${JSON.stringify({ type: 'config', theme: room.jarTheme || 'clean', customColor: room.jarCustomColor || '' })}\n\n`);
   room.sseClients.jar.push(res);
   req.on('close', () => {
     room.sseClients.jar = room.sseClients.jar.filter(c => c !== res);
