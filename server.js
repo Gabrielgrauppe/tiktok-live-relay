@@ -317,7 +317,7 @@ wss.on('connection', (ws) => {
       // Ranking config update (bg color, side)
       if (msg.type === 'ranking-config') {
         const target = msg.ranking; // 'coins' or 'likes'
-        const config = { bg: msg.bg || 'transparent', side: msg.side || 'left' };
+        const config = { bg: msg.bg || 'transparent', side: msg.side || 'left', theme: msg.theme || 'clean', customColor: msg.customColor || '' };
         if (target === 'coins') room.coinsConfig = config;
         if (target === 'likes') room.likesConfig = config;
         const event = JSON.stringify({ type: 'config', ...config });
@@ -517,16 +517,15 @@ function getEditsHTML(roomId, scene) {
 }
 
 function getRankingHTML(roomId, type) {
-  const title = type === 'coins' ? '\\u{1FA99} Ranking de Moedas' : '\\u2764\\uFE0F Ranking de Likes';
   const sseUrl = `/sse/${roomId}/ranking/${type}`;
   const valueKey = type === 'coins' ? 'coins' : 'likes';
   const valueIcon = type === 'coins' ? '\\u{1FA99}' : '\\u2764\\uFE0F';
-  const accentColor = type === 'coins' ? '#f1c40f' : '#e74c3c';
 
   return `<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=MedievalSharp&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
@@ -537,18 +536,14 @@ function getRankingHTML(roomId, type) {
     overflow-y: auto;
     transition: background 0.3s;
   }
-  .ranking-title {
-    font-size: 20px; font-weight: 800; text-align: center;
-    margin-bottom: 12px; text-shadow: 0 2px 8px rgba(0,0,0,0.6);
-    color: ${accentColor};
-  }
   .ranking-list { display: flex; flex-direction: column; gap: 6px; }
   .ranking-item {
     display: flex; align-items: center; gap: 10px;
     flex-direction: row;
-    background: rgba(20, 25, 40, 0.85); border-radius: 12px;
-    padding: 8px 14px; border: 1px solid rgba(255,255,255,0.08);
-    backdrop-filter: blur(8px); animation: slideIn 0.3s ease-out;
+    background: transparent; border-radius: 12px;
+    padding: 8px 14px;
+    animation: slideIn 0.3s ease-out;
+    transition: all 0.3s;
   }
   @keyframes slideIn {
     from { opacity: 0; transform: translateX(-20px); }
@@ -562,7 +557,7 @@ function getRankingHTML(roomId, type) {
   .pos-1 { background: linear-gradient(135deg, #f1c40f, #e67e22); color: #1a1a2e; }
   .pos-2 { background: linear-gradient(135deg, #bdc3c7, #95a5a6); color: #1a1a2e; }
   .pos-3 { background: linear-gradient(135deg, #e67e22, #d35400); color: #1a1a2e; }
-  .pos-other { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.6); }
+  .pos-other { background: rgba(255,255,255,0.15); color: rgba(255,255,255,0.6); }
   .avatar {
     width: 42px; height: 42px; border-radius: 50%;
     background: rgba(255,255,255,0.1); overflow: hidden; flex-shrink: 0;
@@ -571,7 +566,7 @@ function getRankingHTML(roomId, type) {
   .avatar img { width: 100%; height: 100%; object-fit: cover; }
   .avatar-frame-1 {
     border: 3px solid #f1c40f;
-    box-shadow: 0 0 12px rgba(241, 196, 15, 0.5), 0 0 4px rgba(241, 196, 15, 0.3);
+    box-shadow: 0 0 12px rgba(241, 196, 15, 0.5);
   }
   .avatar-frame-2 {
     border: 3px solid #bdc3c7;
@@ -585,21 +580,100 @@ function getRankingHTML(roomId, type) {
   .user-name {
     font-size: 14px; font-weight: 700;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.8);
   }
   .user-value {
-    font-size: 13px; font-weight: 800; color: ${accentColor};
-    text-shadow: 0 0 6px ${accentColor}40;
+    font-size: 13px; font-weight: 800;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.8);
   }
   .empty { text-align: center; color: rgba(255,255,255,0.3); padding: 40px; font-size: 14px; }
+
+  /* THEME: CLEAN */
+  .theme-clean .ranking-item { background: transparent; }
+  .theme-clean .user-value { color: #f1c40f; }
+
+  /* THEME: NEON */
+  .theme-neon .ranking-item {
+    background: rgba(10,10,30,0.7); border: 1px solid rgba(0,212,255,0.3);
+    box-shadow: 0 0 8px rgba(0,212,255,0.1);
+  }
+  .theme-neon .user-name { color: #00d4ff; text-shadow: 0 0 8px rgba(0,212,255,0.5); }
+  .theme-neon .user-value { color: #ff3366; text-shadow: 0 0 8px rgba(255,51,102,0.5); }
+  .theme-neon .avatar-frame-1 { border-color: #00d4ff; box-shadow: 0 0 15px rgba(0,212,255,0.6); }
+  .theme-neon .avatar-frame-2 { border-color: #ff3366; box-shadow: 0 0 12px rgba(255,51,102,0.4); }
+  .theme-neon .avatar-frame-3 { border-color: #ffd700; box-shadow: 0 0 12px rgba(255,215,0,0.4); }
+
+  /* THEME: MEDIEVAL */
+  .theme-medieval .ranking-item {
+    background: rgba(30,20,10,0.8); border: 1px solid rgba(201,164,74,0.4);
+  }
+  .theme-medieval .ranking-item { font-family: 'MedievalSharp', cursive; }
+  .theme-medieval .user-name { color: #ffd700; }
+  .theme-medieval .user-value { color: #c9a44a; }
+  .theme-medieval .avatar-frame-1 { border-color: #ffd700; box-shadow: 0 0 15px rgba(255,215,0,0.5); }
+  .theme-medieval .avatar-frame-2 { border-color: #c0c0c0; box-shadow: 0 0 12px rgba(192,192,192,0.4); }
+  .theme-medieval .avatar-frame-3 { border-color: #cd7f32; box-shadow: 0 0 12px rgba(205,127,50,0.4); }
+
+  /* THEME: RETRO */
+  .theme-retro .ranking-item {
+    background: rgba(0,0,0,0.85); border: 1px solid #39ff14;
+    font-family: 'Press Start 2P', monospace;
+  }
+  .theme-retro .user-name { color: #39ff14; font-size: 10px; text-shadow: 0 0 6px rgba(57,255,20,0.6); }
+  .theme-retro .user-value { color: #39ff14; font-size: 10px; }
+  .theme-retro .avatar-frame-1 { border-color: #39ff14; box-shadow: 0 0 10px rgba(57,255,20,0.6); }
+  .theme-retro .avatar-frame-2 { border-color: #00ffff; box-shadow: 0 0 8px rgba(0,255,255,0.4); }
+  .theme-retro .avatar-frame-3 { border-color: #ff00ff; box-shadow: 0 0 8px rgba(255,0,255,0.4); }
+
+  /* THEME: FIRE */
+  .theme-fire .ranking-item {
+    background: rgba(40,10,0,0.8); border: 1px solid rgba(255,107,53,0.4);
+  }
+  .theme-fire .user-name { color: #fff44f; }
+  .theme-fire .user-value { color: #ff6b35; text-shadow: 0 0 8px rgba(255,107,53,0.5); }
+  .theme-fire .avatar-frame-1 { border-color: #ff4500; box-shadow: 0 0 15px rgba(255,69,0,0.6), 0 0 30px rgba(255,69,0,0.3); }
+  .theme-fire .avatar-frame-2 { border-color: #ff6b35; box-shadow: 0 0 12px rgba(255,107,53,0.4); }
+  .theme-fire .avatar-frame-3 { border-color: #ffd700; box-shadow: 0 0 10px rgba(255,215,0,0.4); }
+
+  /* THEME: ICE */
+  .theme-ice .ranking-item {
+    background: rgba(10,20,40,0.8); border: 1px solid rgba(135,206,235,0.3);
+  }
+  .theme-ice .user-name { color: #e0f0ff; }
+  .theme-ice .user-value { color: #87ceeb; text-shadow: 0 0 8px rgba(135,206,235,0.5); }
+  .theme-ice .avatar-frame-1 { border-color: #87ceeb; box-shadow: 0 0 15px rgba(135,206,235,0.6); }
+  .theme-ice .avatar-frame-2 { border-color: #b0e0e6; box-shadow: 0 0 12px rgba(176,224,230,0.4); }
+  .theme-ice .avatar-frame-3 { border-color: #4fc3f7; box-shadow: 0 0 10px rgba(79,195,247,0.4); }
+
+  /* THEME: ROYALTY */
+  .theme-royalty .ranking-item {
+    background: linear-gradient(135deg, rgba(50,20,80,0.85), rgba(30,10,60,0.85));
+    border: 1px solid rgba(186,133,255,0.4);
+  }
+  .theme-royalty .user-name { color: #e8d5ff; }
+  .theme-royalty .user-value { color: #ffd700; text-shadow: 0 0 8px rgba(255,215,0,0.5); }
+  .theme-royalty .pos-1 { background: linear-gradient(135deg, #ffd700, #ffaa00); }
+  .theme-royalty .pos-2 { background: linear-gradient(135deg, #e8d5ff, #ba85ff); color: #1a1a2e; }
+  .theme-royalty .pos-3 { background: linear-gradient(135deg, #ff69b4, #ff1493); color: white; }
+  .theme-royalty .avatar-frame-1 { border-color: #ffd700; box-shadow: 0 0 20px rgba(255,215,0,0.6), 0 0 40px rgba(186,133,255,0.3); }
+  .theme-royalty .avatar-frame-2 { border-color: #ba85ff; box-shadow: 0 0 15px rgba(186,133,255,0.5); }
+  .theme-royalty .avatar-frame-3 { border-color: #ff69b4; box-shadow: 0 0 12px rgba(255,105,180,0.4); }
+
+  /* THEME: CUSTOM (just bg color, clean look) */
+  .theme-custom .ranking-item { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); }
+  .theme-custom .user-value { color: #f1c40f; }
 </style>
 </head>
 <body>
-<div class="ranking-title">${title}</div>
+<div id="theme-wrapper" class="theme-clean">
 <div class="ranking-list" id="list"></div>
+</div>
 <script>
   const list = document.getElementById('list');
+  const wrapper = document.getElementById('theme-wrapper');
   const evtSource = new EventSource('${sseUrl}');
   let currentSide = 'left';
+  let currentTheme = 'clean';
 
   evtSource.onmessage = (e) => {
     const msg = JSON.parse(e.data);
@@ -608,7 +682,18 @@ function getRankingHTML(roomId, type) {
   };
 
   function applyConfig(cfg) {
-    if (cfg.bg !== undefined) {
+    if (cfg.theme !== undefined) {
+      currentTheme = cfg.theme;
+      wrapper.className = 'theme-' + cfg.theme;
+      if (cfg.theme === 'custom' && cfg.customColor) {
+        document.body.style.background = cfg.customColor;
+      } else if (cfg.theme === 'clean') {
+        document.body.style.background = 'transparent';
+      } else {
+        document.body.style.background = 'transparent';
+      }
+    }
+    if (cfg.bg !== undefined && currentTheme !== 'custom') {
       document.body.style.background = cfg.bg;
     }
     if (cfg.side !== undefined) {
@@ -620,7 +705,6 @@ function getRankingHTML(roomId, type) {
       document.querySelectorAll('.user-info').forEach(el => {
         el.style.textAlign = isRight ? 'right' : 'left';
       });
-      // Update animation
       const style = document.getElementById('dynamic-style');
       if (style) {
         style.textContent = '@keyframes slideIn { from { opacity: 0; transform: translateX(' + (isRight ? '20px' : '-20px') + '); } to { opacity: 1; transform: translateX(0); } }';
@@ -664,7 +748,6 @@ function getRankingHTML(roomId, type) {
     return d.innerHTML;
   }
 
-  // Add dynamic style element for animations
   const dynStyle = document.createElement('style');
   dynStyle.id = 'dynamic-style';
   document.head.appendChild(dynStyle);
@@ -1208,6 +1291,32 @@ function getScoreboardHTML(roomId) {
     box-shadow: 0 0 15px rgba(100,200,255,0.3);
   }
 
+  /* ===== THEME: ROYALTY ===== */
+  .theme-royalty .sb-side.left {
+    background: linear-gradient(180deg, rgba(80,30,120,0.8), rgba(50,15,80,0.9));
+    border: 2px solid rgba(186,133,255,0.6);
+    border-radius: 14px 0 0 14px;
+    box-shadow: 0 0 25px rgba(186,133,255,0.3), inset 0 0 20px rgba(186,133,255,0.08);
+  }
+  .theme-royalty .sb-side.right {
+    background: linear-gradient(180deg, rgba(120,30,60,0.8), rgba(80,15,40,0.9));
+    border: 2px solid rgba(255,105,180,0.6);
+    border-radius: 0 14px 14px 0;
+    box-shadow: 0 0 25px rgba(255,105,180,0.3), inset 0 0 20px rgba(255,105,180,0.08);
+  }
+  .theme-royalty .sb-name { font-family: 'Rajdhani', sans-serif; font-size: 20px; color: #e8d5ff; text-shadow: 0 0 12px rgba(186,133,255,0.7); }
+  .theme-royalty .sb-score { font-family: 'Rajdhani', sans-serif; color: #ffd700; text-shadow: 0 0 20px rgba(255,215,0,0.5); }
+  .theme-royalty .sb-vs {
+    font-family: 'Rajdhani', sans-serif;
+    color: #ffd700;
+    background: linear-gradient(135deg, rgba(80,30,120,0.8), rgba(50,15,80,0.9));
+    border: 2px solid #ffd700;
+    border-radius: 50%;
+    width: 48px; height: 48px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 20px rgba(255,215,0,0.4);
+  }
+
   /* Score change animation */
   @keyframes scorePop {
     0% { transform: scale(1); }
@@ -1671,6 +1780,22 @@ function getTimerHTML(roomId) {
     filter: drop-shadow(0 0 10px rgba(135,206,235,0.5));
   }
   .theme-ice .timer-label { font-family: 'Orbitron', monospace; color: #87ceeb; }
+
+  /* ROYALTY THEME */
+  .theme-royalty .timer-container {
+    background: linear-gradient(135deg, rgba(50,20,80,0.9), rgba(30,10,60,0.9));
+    border: 2px solid #ba85ff;
+    box-shadow: 0 0 30px rgba(186,133,255,0.3), 0 0 60px rgba(255,215,0,0.15);
+  }
+  .theme-royalty .timer-time {
+    font-family: 'Orbitron', monospace;
+    background: linear-gradient(180deg, #ffd700, #ba85ff, #ffd700);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 15px rgba(255,215,0,0.5));
+  }
+  .theme-royalty .timer-label { font-family: 'Orbitron', monospace; color: #ba85ff; text-shadow: 0 0 10px rgba(186,133,255,0.5); }
+
   @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.08); } 100% { transform: scale(1); } }
   .pulse { animation: pulse 0.5s ease-out; }
   .low-time .timer-time { animation: blink 1s infinite; }
