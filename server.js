@@ -292,7 +292,8 @@ wss.on('connection', (ws) => {
           duration: msg.duration,
           isGif: msg.isGif,
           senderNickname: msg.senderNickname || '',
-          senderPhoto: msg.senderPhoto || ''
+          senderPhoto: msg.senderPhoto || '',
+          volume: msg.volume !== undefined ? msg.volume : 100
         });
         if (room.sseClients[key]) {
           room.sseClients[key].forEach(client => {
@@ -539,6 +540,10 @@ function getEditsHTML(roomId, scene) {
     container.classList.add('active');
 
     const src = data.mediaUrl;
+
+    // Apply volume
+    const vol = (data.volume !== undefined ? data.volume : 100) / 100;
+    video.volume = Math.max(0, Math.min(1, vol));
 
     if (data.isGif) {
       gif.src = src;
