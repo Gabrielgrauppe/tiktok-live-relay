@@ -290,7 +290,9 @@ wss.on('connection', (ws) => {
           giftName: msg.giftName,
           mediaUrl: mediaUrl,
           duration: msg.duration,
-          isGif: msg.isGif
+          isGif: msg.isGif,
+          senderNickname: msg.senderNickname || '',
+          senderPhoto: msg.senderPhoto || ''
         });
         if (room.sseClients[key]) {
           room.sseClients[key].forEach(client => {
@@ -433,18 +435,44 @@ function getEditsHTML(roomId, scene) {
     top: 20px;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(0,0,0,0.75);
+    background: rgba(0,0,0,0.8);
     color: white;
-    padding: 10px 24px;
+    padding: 10px 20px;
     border-radius: 30px;
     font-family: 'Segoe UI', sans-serif;
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 600;
     display: none;
     z-index: 10;
     animation: fadeInDown 0.4s ease-out;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid rgba(255,255,255,0.15);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
   }
-  .gift-toast.active { display: block; }
+  .gift-toast.active { display: flex; }
+  .sender-photo {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #ffd700;
+    flex-shrink: 0;
+  }
+  .sender-info {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+  }
+  .sender-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: #ffd700;
+  }
+  .sender-gift {
+    font-size: 12px;
+    color: rgba(255,255,255,0.7);
+  }
   @keyframes fadeInDown {
     from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
     to { opacity: 1; transform: translateX(-50%) translateY(0); }
@@ -496,7 +524,17 @@ function getEditsHTML(roomId, scene) {
     video.pause();
     video.src = '';
 
-    toast.textContent = '\\u{1F381} ' + data.giftName;
+    // Show sender photo + name + gift
+    let toastHTML = '';
+    if (data.senderPhoto) {
+      toastHTML += '<img class="sender-photo" src="' + data.senderPhoto + '" onerror="this.style.display=\\'none\\'">';
+    }
+    if (data.senderNickname) {
+      toastHTML += '<div class="sender-info"><span class="sender-name">' + data.senderNickname + '</span><span class="sender-gift">\\u{1F381} ' + data.giftName + '</span></div>';
+    } else {
+      toastHTML += '<div class="sender-info"><span class="sender-name">\\u{1F381} ' + data.giftName + '</span></div>';
+    }
+    toast.innerHTML = toastHTML;
     toast.classList.add('active');
     container.classList.add('active');
 
