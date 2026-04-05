@@ -8,6 +8,10 @@ const wss = new WebSocketServer({ server });
 
 const PORT = process.env.PORT || 10000;
 
+// Health check endpoint
+app.get('/', (req, res) => res.send('OK'));
+app.get('/health', (req, res) => res.json({ status: 'ok', uptime: process.uptime(), rooms: Object.keys(rooms).length }));
+
 // ============================================
 // ROOMS - each user has a unique room
 // ============================================
