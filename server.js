@@ -33,7 +33,8 @@ function getRoom(roomId) {
       coinsConfig: { bg: 'transparent', side: 'left', theme: 'clean', customColor: '' },
       likesConfig: { bg: 'transparent', side: 'left', theme: 'clean', customColor: '' },
       jarTheme: 'clean',
-      jarCustomColor: ''
+      jarCustomColor: '',
+      jarCapacity: 1000
     };
   }
   return rooms[roomId];
@@ -220,7 +221,7 @@ app.get('/sse/:roomId/jar', (req, res) => {
     'Connection': 'keep-alive'
   });
   res.write('data: {"type":"connected"}\n\n');
-  res.write(`data: ${JSON.stringify({ type: 'config', theme: room.jarTheme || 'clean', customColor: room.jarCustomColor || '' })}\n\n`);
+  res.write(`data: ${JSON.stringify({ type: 'config', theme: room.jarTheme || 'clean', customColor: room.jarCustomColor || '', capacity: room.jarCapacity || 1000 })}\n\n`);
   room.sseClients.jar.push(res);
   req.on('close', () => {
     room.sseClients.jar = room.sseClients.jar.filter(c => c !== res);
@@ -385,7 +386,10 @@ wss.on('connection', (ws) => {
       if (msg.type === 'jar-config') {
         room.jarTheme = msg.theme || 'clean';
         room.jarCustomColor = msg.customColor || '';
-        const event = JSON.stringify({ type: 'config', theme: msg.theme, customColor: msg.customColor });
+        if (typeof msg.capacity === 'number' && msg.capacity > 0) {
+          room.jarCapacity = msg.capacity;
+        }
+        const event = JSON.stringify({ type: 'config', theme: room.jarTheme, customColor: room.jarCustomColor, capacity: room.jarCapacity });
         room.sseClients.jar.forEach(client => {
           try { client.write(`data: ${event}\n\n`); } catch (e) {}
         });
@@ -1562,27 +1566,37 @@ function getJarHTML(roomId) {
     width: 100vw;
     height: 100vh;
     display: flex;
-    align-items: flex-end;
+    align-items: center;
     justify-content: center;
     font-family: 'Orbitron', sans-serif;
   }
 
   .jar-scene {
     position: relative;
-    width: 500px;
-    height: 100vh;
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
+    width: 600px;
+    height: 600px;
+  }
+
+  /* Physics container - holds all gift elements, ABOVE the jar so gifts overflow visually */
+  .physics-container {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 12;
   }
 
   /* Jar body - glass effect */
   .jar {
-    position: relative;
+    position: absolute;
+    left: 50%;
+    bottom: 20px;
+    transform: translateX(-50%);
     width: 280px;
     height: 400px;
-    margin-bottom: 20px;
     z-index: 10;
+    pointer-events: none;
   }
 
   .jar-body {
@@ -1595,7 +1609,6 @@ function getJarHTML(roomId) {
     border: 3px solid rgba(255,255,255,0.25);
     border-bottom: 4px solid rgba(255,255,255,0.35);
     border-radius: 0 0 30px 30px;
-    overflow: visible;
     backdrop-filter: blur(2px);
     box-shadow:
       inset 0 0 40px rgba(100,200,255,0.05),
@@ -1675,35 +1688,15 @@ function getJarHTML(roomId) {
     border-right: 3px solid rgba(255,255,255,0.2);
   }
 
-  /* Gift container inside jar */
-  .jar-gifts {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 340px;
-    overflow: hidden;
-    border-radius: 0 0 27px 27px;
-  }
-
-  /* Overflow area outside jar */
-  .jar-overflow {
-    position: absolute;
-    bottom: 0;
-    left: -120px;
-    right: -120px;
-    height: 80px;
-    z-index: 5;
-    overflow: hidden;
-  }
-
-  /* Individual gift item */
+  /* Individual gift item - positioned via transform by physics */
   .gift-item {
     position: absolute;
-    width: 36px;
-    height: 36px;
+    left: 0;
+    top: 0;
+    width: 32px;
+    height: 32px;
     pointer-events: none;
-    transition: none;
+    will-change: transform;
   }
   .gift-item img {
     width: 100%;
@@ -1712,13 +1705,13 @@ function getJarHTML(roomId) {
     filter: drop-shadow(0 1px 3px rgba(0,0,0,0.3));
   }
 
-  /* Falling animation */
-  @keyframes giftFall {
-    0% { transform: translateY(-100px) rotate(0deg) scale(0.5); opacity: 0; }
-    15% { opacity: 1; scale: 1; }
-    70% { transform: translateY(var(--fall-y)) rotate(var(--rot)) scale(1); }
-    85% { transform: translateY(calc(var(--fall-y) - 8px)) rotate(var(--rot)); }
-    100% { transform: translateY(var(--fall-y)) rotate(var(--rot2)); opacity: 1; }
+  /* Big gift (1000+ coins) */
+  .gift-item.gift-big {
+    width: 48px;
+    height: 48px;
+  }
+  .gift-item.gift-big img {
+    filter: drop-shadow(0 0 8px rgba(255,215,0,0.6)) drop-shadow(0 2px 4px rgba(0,0,0,0.4));
   }
 
   /* Glow pulse on jar when gift arrives */
@@ -1730,15 +1723,6 @@ function getJarHTML(roomId) {
       0 0 80px rgba(255,150,50,0.2),
       0 10px 40px rgba(0,0,0,0.3);
     transition: box-shadow 0.3s;
-  }
-
-  /* Big gift (1000+ coins) */
-  .gift-item.gift-big {
-    width: 60px;
-    height: 60px;
-  }
-  .gift-item.gift-big img {
-    filter: drop-shadow(0 0 8px rgba(255,215,0,0.6)) drop-shadow(0 2px 4px rgba(0,0,0,0.4));
   }
 
   /* ===== JAR THEMES ===== */
@@ -1826,88 +1810,147 @@ function getJarHTML(roomId) {
 
 <div id="theme-wrapper" class="theme-clean">
 <div class="jar-scene">
+  <div class="physics-container" id="physics"></div>
   <div class="jar">
     <div class="jar-neck">
       <div class="jar-rim"></div>
       <div class="jar-rim-bottom"></div>
       <div class="jar-neck-body"></div>
     </div>
-    <div class="jar-body" id="jar-body">
-      <div class="jar-gifts" id="jar-gifts"></div>
-    </div>
+    <div class="jar-body" id="jar-body"></div>
   </div>
-  <div class="jar-overflow" id="jar-overflow"></div>
 </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/matter-js@0.19.0/build/matter.min.js"></script>
 <script>
-  const jarGifts = document.getElementById('jar-gifts');
-  const jarOverflow = document.getElementById('jar-overflow');
-  const jarBody = document.getElementById('jar-body');
-  let totalGifts = 0;
-  let insideGifts = [];
-  const JAR_WIDTH = 240; // inner width
-  const JAR_HEIGHT = 340;
-  const GIFT_SIZE = 36;
-  const MAX_INSIDE = 120; // max gifts visible inside before overflow
-  const COLS = Math.floor(JAR_WIDTH / GIFT_SIZE);
+  const { Engine, World, Bodies, Body, Events } = Matter;
 
-  function getNextInsidePos() {
-    const row = Math.floor(insideGifts.length / COLS);
-    const col = insideGifts.length % COLS;
-    const x = 8 + col * (GIFT_SIZE + 2) + (Math.random() * 4 - 2);
-    const y = JAR_HEIGHT - GIFT_SIZE - 4 - row * (GIFT_SIZE - 4) + (Math.random() * 3 - 1);
-    return { x, y };
+  const engine = Engine.create({ enableSleeping: true });
+  engine.gravity.y = 1;
+  const world = engine.world;
+
+  const physicsContainer = document.getElementById('physics');
+  const jarBody = document.getElementById('jar-body');
+
+  // Static walls matching the visual jar
+  // Scene is 600x600. Jar centered at x=300, body from y=240 (top) to y=580 (bottom).
+  // Inner jar walls at x=180 and x=420 (jar-body inner edges).
+  const wallOpts = { isStatic: true, friction: 0.6, restitution: 0.1, render: { visible: false } };
+  World.add(world, [
+    Bodies.rectangle(178, 410, 6, 340, wallOpts),  // jar left wall
+    Bodies.rectangle(422, 410, 6, 340, wallOpts),  // jar right wall
+    Bodies.rectangle(300, 583, 244, 8, wallOpts),  // jar floor
+    Bodies.rectangle(90, 595, 180, 10, wallOpts),  // ground left of jar (overflow catch)
+    Bodies.rectangle(510, 595, 180, 10, wallOpts), // ground right of jar (overflow catch)
+    Bodies.rectangle(-5, 300, 10, 600, wallOpts),  // scene left bound
+    Bodies.rectangle(605, 300, 10, 600, wallOpts), // scene right bound
+  ]);
+
+  let activeGifts = [];  // bodies still simulating
+  let pinnedGifts = [];  // bodies converted to static (settled forever)
+  let totalGifts = 0;
+  let maxCapacity = 1000; // updated via config SSE message
+
+  // Map coin value -> physics radius (px). Logarithmic so cheap gifts stay small
+  // and expensive gifts (Lion 30k, Universe 45k) get visibly large without taking
+  // over the jar. Range: ~11px (1 coin) to ~46px (50k+ coins).
+  function radiusForCoins(coins) {
+    const c = Math.max(1, coins || 1);
+    const r = 10 + Math.log10(c + 1) * 8.5;
+    return Math.max(11, Math.min(46, r));
+  }
+
+  function spawnOne(giftImage, coins) {
+    if (totalGifts >= maxCapacity) return;
+    totalGifts++;
+    const radius = radiusForCoins(coins) * (0.9 + Math.random() * 0.2); // ±10% size variation
+    const isBig = coins >= 1000;
+    // Spawn from random position above the jar opening
+    const x = 220 + Math.random() * 160; // within jar mouth area
+    const y = -20 - Math.random() * 60;
+    const body = Bodies.circle(x, y, radius, {
+      friction: 0.2 + Math.random() * 0.4,       // varied friction per gift
+      frictionStatic: 0.1 + Math.random() * 0.3,
+      restitution: 0.3 + Math.random() * 0.3,     // 0.3-0.6: bouncy
+      density: 0.001 + Math.random() * 0.003,
+      sleepThreshold: 60,
+    });
+    // Strong random horizontal throw so they spread out inside the jar
+    const vx = (Math.random() - 0.5) * 8;
+    const vy = 2 + Math.random() * 3;
+    Body.setVelocity(body, { x: vx, y: vy });
+    Body.setAngularVelocity(body, (Math.random() - 0.5) * 0.3);
+    World.add(world, body);
+
+    const el = document.createElement('div');
+    el.className = 'gift-item' + (isBig ? ' gift-big' : '');
+    el.style.width = (radius * 2) + 'px';
+    el.style.height = (radius * 2) + 'px';
+    el.innerHTML = '<img src="' + giftImage + '" alt="" onerror="this.src=\\'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 36 36%22><text y=%2228%22 font-size=%2228%22>🎁</text></svg>\\'">';
+    physicsContainer.appendChild(el);
+
+    body.giftEl = el;
+    body.giftRadius = radius;
+    body.sleepFrames = 0;
+    activeGifts.push(body);
   }
 
   function addGift(giftImage, giftName, count, coins) {
-    const isBig = coins >= 1000;
-    const itemSize = isBig ? 60 : 36;
-    for (let c = 0; c < Math.min(count, 5); c++) {
-      totalGifts++;
-
-      // Pulse effect
-      jarBody.classList.add('pulse');
-      setTimeout(() => jarBody.classList.remove('pulse'), 400);
-
-      const el = document.createElement('div');
-      el.className = 'gift-item' + (isBig ? ' gift-big' : '');
-      el.innerHTML = '<img src="' + giftImage + '" alt="" onerror="this.src=\\'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 36 36%22><text y=%2228%22 font-size=%2228%22>🎁</text></svg>\\'">';
-
-      if (insideGifts.length < MAX_INSIDE) {
-        // Inside jar
-        const pos = getNextInsidePos();
-        const rot = Math.random() * 40 - 20;
-        const rot2 = rot + (Math.random() * 10 - 5);
-        el.style.setProperty('--fall-y', pos.y + 'px');
-        el.style.setProperty('--rot', rot + 'deg');
-        el.style.setProperty('--rot2', rot2 + 'deg');
-        el.style.left = pos.x + 'px';
-        el.style.animation = 'giftFall 0.8s ease-out forwards';
-        el.style.animationDelay = (c * 150) + 'ms';
-        jarGifts.appendChild(el);
-        insideGifts.push(el);
-      } else {
-        // Overflow outside jar
-        const x = Math.random() * 460 - 80;
-        const y = Math.random() * 50;
-        el.style.left = x + 'px';
-        el.style.bottom = y + 'px';
-        el.style.transform = 'rotate(' + (Math.random() * 60 - 30) + 'deg)';
-        el.style.opacity = '0';
-        el.style.transition = 'opacity 0.3s';
-        jarOverflow.appendChild(el);
-        setTimeout(() => { el.style.opacity = '1'; }, c * 150 + 50);
-      }
+    const safeCount = Math.min(count, 5);
+    jarBody.classList.add('pulse');
+    setTimeout(() => jarBody.classList.remove('pulse'), 400);
+    for (let c = 0; c < safeCount; c++) {
+      setTimeout(() => spawnOne(giftImage, coins), c * 130);
     }
   }
 
+  function updateGiftTransform(b) {
+    const el = b.giftEl;
+    if (!el) return;
+    const r = b.giftRadius;
+    el.style.transform = 'translate(' + (b.position.x - r) + 'px, ' + (b.position.y - r) + 'px) rotate(' + b.angle + 'rad)';
+  }
+
+  // After a body has been sleeping for ~90 frames, convert it to a static body.
+  // This keeps it visible forever as a collision surface for new gifts,
+  // while removing it from active dynamic simulation. Gifts are NEVER removed.
+  Events.on(engine, 'beforeUpdate', () => {
+    for (let i = activeGifts.length - 1; i >= 0; i--) {
+      const b = activeGifts[i];
+      if (b.isSleeping) {
+        b.sleepFrames++;
+        if (b.sleepFrames > 90) {
+          Body.setStatic(b, true);
+          updateGiftTransform(b); // freeze final visual position
+          pinnedGifts.push(b);
+          activeGifts.splice(i, 1);
+        }
+      } else {
+        b.sleepFrames = 0;
+      }
+    }
+  });
+
+  function loop() {
+    Engine.update(engine, 1000 / 60);
+    for (const b of activeGifts) updateGiftTransform(b);
+    requestAnimationFrame(loop);
+  }
+  loop();
+
   function resetJar() {
-    jarGifts.innerHTML = '';
-    jarOverflow.innerHTML = '';
-    insideGifts = [];
+    for (const b of activeGifts) {
+      World.remove(world, b);
+      if (b.giftEl) b.giftEl.remove();
+    }
+    for (const b of pinnedGifts) {
+      World.remove(world, b);
+      if (b.giftEl) b.giftEl.remove();
+    }
+    activeGifts = [];
+    pinnedGifts = [];
     totalGifts = 0;
-    counterEl.textContent = '0';
   }
 
   const themeWrapper = document.getElementById('theme-wrapper');
@@ -1928,6 +1971,9 @@ function getJarHTML(roomId) {
     }
     if (msg.type === 'config') {
       applyTheme(msg.theme, msg.customColor);
+      if (typeof msg.capacity === 'number' && msg.capacity > 0) {
+        maxCapacity = msg.capacity;
+      }
     }
   };
 </script>
