@@ -1834,17 +1834,25 @@ function getJarHTML(roomId) {
   const jarBody = document.getElementById('jar-body');
 
   // Static walls matching the visual jar
-  // Scene is 600x600. Jar centered at x=300, body from y=240 (top) to y=580 (bottom).
-  // Inner jar walls at x=180 and x=420 (jar-body inner edges).
+  // Scene 600x600. Jar centered at x=300. Body inner edges: x=180 to x=420.
+  // Jar body bottom at y=580, top of body at y=240, neck opening ~y=200.
+  // Walls extend UP to y=100 as a funnel so every gift enters the jar.
+  // Above the jar rim (y<240), no walls → overflow spills to sides.
   const wallOpts = { isStatic: true, friction: 0.6, restitution: 0.1, render: { visible: false } };
   World.add(world, [
+    // Jar body walls (y=240 to y=580)
     Bodies.rectangle(178, 410, 6, 340, wallOpts),  // jar left wall
     Bodies.rectangle(422, 410, 6, 340, wallOpts),  // jar right wall
-    Bodies.rectangle(300, 583, 244, 8, wallOpts),  // jar floor
-    Bodies.rectangle(90, 595, 180, 10, wallOpts),  // ground left of jar (overflow catch)
-    Bodies.rectangle(510, 595, 180, 10, wallOpts), // ground right of jar (overflow catch)
-    Bodies.rectangle(-5, 300, 10, 600, wallOpts),  // scene left bound
-    Bodies.rectangle(605, 300, 10, 600, wallOpts), // scene right bound
+    Bodies.rectangle(300, 583, 244, 8, wallOpts),   // jar floor
+    // Funnel guides above jar (y=60 to y=240) — angled inward to direct gifts into jar
+    Bodies.fromVertices(155, 150, [{ x: 0, y: 0 }, { x: 6, y: 0 }, { x: 28, y: 180 }, { x: 22, y: 180 }], wallOpts) || Bodies.rectangle(165, 150, 6, 180, wallOpts),
+    Bodies.fromVertices(445, 150, [{ x: 6, y: 0 }, { x: 0, y: 0 }, { x: -22, y: 180 }, { x: -16, y: 180 }], wallOpts) || Bodies.rectangle(435, 150, 6, 180, wallOpts),
+    // Ground outside jar (overflow landing)
+    Bodies.rectangle(90, 595, 180, 10, wallOpts),   // ground left
+    Bodies.rectangle(510, 595, 180, 10, wallOpts),  // ground right
+    // Scene bounds
+    Bodies.rectangle(-5, 300, 10, 700, wallOpts),   // left wall
+    Bodies.rectangle(605, 300, 10, 700, wallOpts),  // right wall
   ]);
 
   let activeGifts = [];  // bodies still simulating
@@ -1864,23 +1872,23 @@ function getJarHTML(roomId) {
   function spawnOne(giftImage, coins) {
     if (totalGifts >= maxCapacity) return;
     totalGifts++;
-    const radius = radiusForCoins(coins) * (0.9 + Math.random() * 0.2); // ±10% size variation
+    const radius = radiusForCoins(coins) * (0.9 + Math.random() * 0.2);
     const isBig = coins >= 1000;
-    // Spawn from random position above the jar opening
-    const x = 220 + Math.random() * 160; // within jar mouth area
-    const y = -20 - Math.random() * 60;
+    // Always spawn centered above jar mouth so funnel guides them in
+    const x = 270 + Math.random() * 60;  // x 270-330 (jar center)
+    const y = -10 - Math.random() * 30;
     const body = Bodies.circle(x, y, radius, {
-      friction: 0.2 + Math.random() * 0.4,       // varied friction per gift
-      frictionStatic: 0.1 + Math.random() * 0.3,
-      restitution: 0.3 + Math.random() * 0.3,     // 0.3-0.6: bouncy
+      friction: 0.3 + Math.random() * 0.3,
+      frictionStatic: 0.2 + Math.random() * 0.3,
+      restitution: 0.15 + Math.random() * 0.2,    // 0.15-0.35: moderate bounce
       density: 0.001 + Math.random() * 0.003,
       sleepThreshold: 60,
     });
-    // Strong random horizontal throw so they spread out inside the jar
-    const vx = (Math.random() - 0.5) * 8;
-    const vy = 2 + Math.random() * 3;
+    // Gentle horizontal throw — walls and other gifts create the spread
+    const vx = (Math.random() - 0.5) * 3;
+    const vy = 1 + Math.random() * 1.5;
     Body.setVelocity(body, { x: vx, y: vy });
-    Body.setAngularVelocity(body, (Math.random() - 0.5) * 0.3);
+    Body.setAngularVelocity(body, (Math.random() - 0.5) * 0.12);
     World.add(world, body);
 
     const el = document.createElement('div');
@@ -1918,6 +1926,11 @@ function getJarHTML(roomId) {
   Events.on(engine, 'beforeUpdate', () => {
     for (let i = activeGifts.length - 1; i >= 0; i--) {
       const b = activeGifts[i];
+      // Safety: if a gift somehow falls below the scene, teleport it back into jar
+      if (b.position.y > 650) {
+        Body.setPosition(b, { x: 300, y: 400 });
+        Body.setVelocity(b, { x: 0, y: 0 });
+      }
       if (b.isSleeping) {
         b.sleepFrames++;
         if (b.sleepFrames > 90) {
