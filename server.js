@@ -37,8 +37,8 @@ function getRoom(roomId) {
       jarTheme: 'clean',
       jarCustomColor: '',
       jarCapacity: 1000,
-      goalCoins: { text: '', target: 2000, current: 0 },
-      goalLikes: { text: '', target: 5000, current: 0 }
+      goalCoins: { text: '', target: 2000, current: 0, theme: 'neon', customColor: '' },
+      goalLikes: { text: '', target: 5000, current: 0, theme: 'neon', customColor: '' }
     };
   }
   return rooms[roomId];
@@ -425,7 +425,7 @@ wss.on('connection', (ws) => {
       // Goal updates
       if (msg.type === 'goal-update') {
         const gt = msg.goalType === 'likes' ? 'goalLikes' : 'goalCoins';
-        room[gt] = { text: msg.text || '', target: msg.target || 2000, current: msg.current || 0 };
+        room[gt] = { text: msg.text || '', target: msg.target || 2000, current: msg.current || 0, theme: msg.theme || 'neon', customColor: msg.customColor || '' };
         const event = JSON.stringify({ type: 'goal', ...room[gt] });
         room.sseClients[gt].forEach(client => {
           try { client.write(`data: ${event}\n\n`); } catch (e) {}
@@ -2272,13 +2272,12 @@ function getTimerHTML(roomId) {
 function getGoalHTML(roomId, goalType) {
   const sseUrl = `/sse/${roomId}/goal/${goalType}`;
   const isLikes = goalType === 'likes';
-  const accentColor = isLikes ? '#ff3366' : '#00d4ff';
   const icon = isLikes ? '\u2764\uFE0F' : '\uD83E\uDE99';
   return `<!DOCTYPE html>
 <html><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=MedievalSharp&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
@@ -2294,18 +2293,18 @@ function getGoalHTML(roomId, goalType) {
     width: 450px;
     padding: 18px 24px;
     background: rgba(10, 10, 30, 0.85);
-    border: 2px solid ${accentColor};
+    border: 2px solid #00d4ff;
     border-radius: 16px;
-    box-shadow: 0 0 30px rgba(${isLikes ? '255,51,102' : '0,212,255'},0.3), inset 0 0 20px rgba(${isLikes ? '255,51,102' : '0,212,255'},0.05);
+    box-shadow: 0 0 30px rgba(0,212,255,0.3), inset 0 0 20px rgba(0,212,255,0.05);
     text-align: center;
   }
   .goal-title {
     font-size: 14px;
     font-weight: 700;
-    color: ${accentColor};
+    color: #00d4ff;
     letter-spacing: 2px;
     margin-bottom: 10px;
-    text-shadow: 0 0 10px rgba(${isLikes ? '255,51,102' : '0,212,255'},0.5);
+    text-shadow: 0 0 10px rgba(0,212,255,0.5);
     word-wrap: break-word;
   }
   .goal-numbers {
@@ -2315,9 +2314,7 @@ function getGoalHTML(roomId, goalType) {
     margin-bottom: 12px;
     text-shadow: 0 0 15px rgba(255,255,255,0.3);
   }
-  .goal-numbers .current {
-    color: ${accentColor};
-  }
+  .goal-numbers .current { color: #00d4ff; }
   .goal-bar-bg {
     width: 100%;
     height: 24px;
@@ -2330,18 +2327,16 @@ function getGoalHTML(roomId, goalType) {
   .goal-bar-fill {
     height: 100%;
     border-radius: 12px;
-    background: linear-gradient(90deg, ${isLikes ? '#ff3366, #ff6699' : '#0088cc, #00d4ff'});
+    background: linear-gradient(90deg, #0088cc, #00d4ff);
     transition: width 0.6s ease-out;
     width: 0%;
-    box-shadow: 0 0 15px rgba(${isLikes ? '255,51,102' : '0,212,255'},0.5);
+    box-shadow: 0 0 15px rgba(0,212,255,0.5);
     position: relative;
   }
   .goal-bar-fill::after {
     content: '';
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
+    top: 0; left: 0; right: 0;
     height: 50%;
     background: linear-gradient(180deg, rgba(255,255,255,0.25), transparent);
     border-radius: 12px 12px 0 0;
@@ -2357,25 +2352,97 @@ function getGoalHTML(roomId, goalType) {
     text-shadow: 0 1px 3px rgba(0,0,0,0.7);
     z-index: 2;
   }
-  @keyframes goalPulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.03); }
-    100% { transform: scale(1); }
-  }
+  @keyframes goalPulse { 0% { transform: scale(1); } 50% { transform: scale(1.03); } 100% { transform: scale(1); } }
   .pulse { animation: goalPulse 0.4s ease-out; }
   @keyframes goalComplete {
     0%,100% { box-shadow: 0 0 30px rgba(255,215,0,0.3), 0 0 60px rgba(255,215,0,0.1); border-color: #ffd700; }
     50% { box-shadow: 0 0 50px rgba(255,215,0,0.6), 0 0 100px rgba(255,215,0,0.3); border-color: #ffed4a; }
   }
-  .goal-complete {
-    animation: goalComplete 2s ease-in-out infinite;
+  .goal-complete { animation: goalComplete 2s ease-in-out infinite; }
+  .goal-complete .goal-bar-fill { background: linear-gradient(90deg, #ffd700, #ffed4a, #ffd700) !important; }
+
+  /* ===== THEME: NEON ===== */
+  .theme-neon .goal-container { border-color: #00d4ff; box-shadow: 0 0 30px rgba(0,212,255,0.3), inset 0 0 20px rgba(0,212,255,0.05); }
+  .theme-neon .goal-title { color: #00d4ff; text-shadow: 0 0 10px rgba(0,212,255,0.5); }
+  .theme-neon .goal-numbers .current { color: #00d4ff; }
+  .theme-neon .goal-bar-fill { background: linear-gradient(90deg, #0088cc, #00d4ff); box-shadow: 0 0 15px rgba(0,212,255,0.5); }
+
+  /* ===== THEME: FIRE ===== */
+  .theme-fire .goal-container {
+    background: linear-gradient(180deg, rgba(40,10,0,0.9), rgba(80,20,0,0.9));
+    border-color: #ff6b35;
+    box-shadow: 0 0 30px rgba(255,107,53,0.4), 0 0 60px rgba(255,69,0,0.2);
   }
-  .goal-complete .goal-bar-fill {
-    background: linear-gradient(90deg, #ffd700, #ffed4a, #ffd700);
+  .theme-fire .goal-title { color: #ff6b35; text-shadow: 0 0 10px rgba(255,107,53,0.6); }
+  .theme-fire .goal-numbers .current { color: #ff6b35; }
+  .theme-fire .goal-bar-fill { background: linear-gradient(90deg, #ff4500, #ff6b35, #ffaa00); box-shadow: 0 0 15px rgba(255,107,53,0.5); }
+
+  /* ===== THEME: ICE ===== */
+  .theme-ice .goal-container {
+    background: linear-gradient(180deg, rgba(10,20,40,0.9), rgba(20,40,80,0.9));
+    border-color: #87ceeb;
+    box-shadow: 0 0 30px rgba(135,206,235,0.3);
   }
+  .theme-ice .goal-title { color: #87ceeb; text-shadow: 0 0 10px rgba(135,206,235,0.5); }
+  .theme-ice .goal-numbers .current { color: #87ceeb; }
+  .theme-ice .goal-bar-fill { background: linear-gradient(90deg, #4fc3f7, #87ceeb, #b0e0e6); box-shadow: 0 0 15px rgba(135,206,235,0.5); }
+
+  /* ===== THEME: MEDIEVAL ===== */
+  .theme-medieval .goal-container {
+    background: linear-gradient(135deg, rgba(30,20,10,0.9), rgba(50,35,15,0.9));
+    border: 3px solid #c9a44a;
+    box-shadow: 0 0 20px rgba(201,164,74,0.3);
+    font-family: 'MedievalSharp', cursive;
+  }
+  .theme-medieval .goal-title { color: #ffd700; font-family: 'MedievalSharp', cursive; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
+  .theme-medieval .goal-numbers { font-family: 'MedievalSharp', cursive; }
+  .theme-medieval .goal-numbers .current { color: #ffd700; }
+  .theme-medieval .goal-bar-bg { border-color: rgba(201,164,74,0.4); }
+  .theme-medieval .goal-bar-fill { background: linear-gradient(90deg, #8b6914, #c9a44a, #ffd700); box-shadow: 0 0 10px rgba(201,164,74,0.4); }
+
+  /* ===== THEME: RETRO ===== */
+  .theme-retro .goal-container {
+    background: rgba(0,0,0,0.9);
+    border: 3px solid #39ff14;
+    box-shadow: 0 0 20px rgba(57,255,20,0.3);
+    border-radius: 4px;
+    font-family: 'Press Start 2P', monospace;
+  }
+  .theme-retro .goal-title { color: #39ff14; font-family: 'Press Start 2P', monospace; font-size: 10px; text-shadow: 0 0 10px rgba(57,255,20,0.8); }
+  .theme-retro .goal-numbers { font-family: 'Press Start 2P', monospace; font-size: 18px; }
+  .theme-retro .goal-numbers .current { color: #39ff14; }
+  .theme-retro .goal-bar-bg { border-radius: 2px; border-color: #39ff14; }
+  .theme-retro .goal-bar-fill { border-radius: 2px; background: #39ff14; box-shadow: 0 0 10px rgba(57,255,20,0.5); }
+  .theme-retro .goal-percent { font-family: 'Press Start 2P', monospace; font-size: 8px; }
+
+  /* ===== THEME: ROYALTY ===== */
+  @keyframes royalGoalGlow {
+    0%,100% { border-color: rgba(255,215,0,0.5); box-shadow: 0 0 30px rgba(255,215,0,0.2), 0 0 60px rgba(186,133,255,0.15); }
+    50% { border-color: rgba(255,215,0,0.9); box-shadow: 0 0 50px rgba(255,215,0,0.5), 0 0 80px rgba(186,133,255,0.3); }
+  }
+  .theme-royalty .goal-container {
+    background: linear-gradient(135deg, rgba(60,20,100,0.92), rgba(40,10,70,0.95));
+    border: 3px solid #ffd700;
+    animation: royalGoalGlow 4s ease-in-out infinite;
+  }
+  .theme-royalty .goal-title { color: #ffd700; text-shadow: 0 0 12px rgba(255,215,0,0.5); }
+  .theme-royalty .goal-numbers .current { color: #ffd700; }
+  .theme-royalty .goal-bar-bg { border-color: rgba(255,215,0,0.3); }
+  .theme-royalty .goal-bar-fill { background: linear-gradient(90deg, #6a0dad, #ba85ff, #ffd700); box-shadow: 0 0 15px rgba(186,133,255,0.5); }
+
+  /* ===== THEME: CUSTOM ===== */
+  .theme-custom .goal-container {
+    background: rgba(0,0,0,0.6);
+    border: 2px solid rgba(255,255,255,0.3);
+    box-shadow: 0 0 20px rgba(255,255,255,0.1);
+  }
+  .theme-custom .goal-title { color: #fff; }
+  .theme-custom .goal-numbers .current { color: #fff; }
+  .theme-custom .goal-bar-fill { background: linear-gradient(90deg, rgba(255,255,255,0.5), rgba(255,255,255,0.8)); }
 </style>
 </head>
 <body>
+<div id="theme-wrapper" class="theme-neon">
 <div class="goal-container" id="goal-container">
   <div class="goal-title" id="goal-title">${icon} Meta</div>
   <div class="goal-numbers"><span class="current" id="goal-current">0</span> / <span id="goal-target">0</span></div>
@@ -2384,7 +2451,9 @@ function getGoalHTML(roomId, goalType) {
     <div class="goal-percent" id="goal-percent">0%</div>
   </div>
 </div>
+</div>
 <script>
+  const wrapper = document.getElementById('theme-wrapper');
   const container = document.getElementById('goal-container');
   const titleEl = document.getElementById('goal-title');
   const currentEl = document.getElementById('goal-current');
@@ -2394,10 +2463,14 @@ function getGoalHTML(roomId, goalType) {
   const icon = '${icon}';
   let prevCurrent = 0;
 
+  function applyTheme(theme, customColor) {
+    wrapper.className = 'theme-' + (theme || 'neon');
+    document.body.style.background = (theme === 'custom' && customColor) ? customColor : 'transparent';
+  }
+
   function updateGoal(data) {
     const text = data.text || '';
     const target = data.target || 1;
-    const current = Math.min(data.current || 0, target);
     const pct = Math.min(100, Math.round((data.current / target) * 100));
 
     titleEl.textContent = text ? icon + ' ' + text : icon + ' Meta';
@@ -2417,6 +2490,11 @@ function getGoalHTML(roomId, goalType) {
     } else {
       container.classList.remove('goal-complete');
     }
+
+    if (data.theme) {
+      applyTheme(data.theme, data.customColor);
+    }
+
     prevCurrent = data.current || 0;
   }
 
