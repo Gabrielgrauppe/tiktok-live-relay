@@ -26,7 +26,9 @@ function getRoom(roomId) {
         characters: [],
         jar: [],
         scoreboard: [],
-        timer: []
+        timer: [],
+        goalCoins: [],
+        goalLikes: []
       },
       coinsRanking: {},
       likesRanking: {},
@@ -34,7 +36,9 @@ function getRoom(roomId) {
       likesConfig: { bg: 'transparent', side: 'left', theme: 'clean', customColor: '' },
       jarTheme: 'clean',
       jarCustomColor: '',
-      jarCapacity: 1000
+      jarCapacity: 1000,
+      goalCoins: { text: '', target: 2000, current: 0 },
+      goalLikes: { text: '', target: 5000, current: 0 }
     };
   }
   return rooms[roomId];
@@ -142,6 +146,11 @@ app.get('/overlay/:roomId/timer', (req, res) => {
   res.send(getTimerHTML(req.params.roomId));
 });
 
+app.get('/overlay/:roomId/goal/:goalType', (req, res) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(getGoalHTML(req.params.roomId, req.params.goalType));
+});
+
 // ============================================
 // SSE ENDPOINTS
 // ============================================
@@ -225,6 +234,24 @@ app.get('/sse/:roomId/jar', (req, res) => {
   room.sseClients.jar.push(res);
   req.on('close', () => {
     room.sseClients.jar = room.sseClients.jar.filter(c => c !== res);
+  });
+});
+
+// Goal SSE
+app.get('/sse/:roomId/goal/:goalType', (req, res) => {
+  const room = getRoom(req.params.roomId);
+  const gt = req.params.goalType === 'likes' ? 'goalLikes' : 'goalCoins';
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive'
+  });
+  res.write('data: {"type":"connected"}\n\n');
+  const goalState = room[gt] || { text: '', target: 2000, current: 0 };
+  res.write(`data: ${JSON.stringify({ type: 'goal', ...goalState })}\n\n`);
+  room.sseClients[gt].push(res);
+  req.on('close', () => {
+    room.sseClients[gt] = room.sseClients[gt].filter(c => c !== res);
   });
 });
 
@@ -391,6 +418,16 @@ wss.on('connection', (ws) => {
         }
         const event = JSON.stringify({ type: 'config', theme: room.jarTheme, customColor: room.jarCustomColor, capacity: room.jarCapacity });
         room.sseClients.jar.forEach(client => {
+          try { client.write(`data: ${event}\n\n`); } catch (e) {}
+        });
+      }
+
+      // Goal updates
+      if (msg.type === 'goal-update') {
+        const gt = msg.goalType === 'likes' ? 'goalLikes' : 'goalCoins';
+        room[gt] = { text: msg.text || '', target: msg.target || 2000, current: msg.current || 0 };
+        const event = JSON.stringify({ type: 'goal', ...room[gt] });
+        room.sseClients[gt].forEach(client => {
           try { client.write(`data: ${event}\n\n`); } catch (e) {}
         });
       }
@@ -2223,6 +2260,171 @@ function getTimerHTML(roomId) {
           document.body.style.background = 'transparent';
         }
       }
+    }
+  };
+</script>
+</body></html>`;
+}
+
+// ============================================
+// GOAL OVERLAY
+// ============================================
+function getGoalHTML(roomId, goalType) {
+  const sseUrl = `/sse/${roomId}/goal/${goalType}`;
+  const isLikes = goalType === 'likes';
+  const accentColor = isLikes ? '#ff3366' : '#00d4ff';
+  const icon = isLikes ? '\u2764\uFE0F' : '\uD83E\uDE99';
+  return `<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: transparent;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    font-family: 'Orbitron', sans-serif;
+  }
+  .goal-container {
+    width: 450px;
+    padding: 18px 24px;
+    background: rgba(10, 10, 30, 0.85);
+    border: 2px solid ${accentColor};
+    border-radius: 16px;
+    box-shadow: 0 0 30px rgba(${isLikes ? '255,51,102' : '0,212,255'},0.3), inset 0 0 20px rgba(${isLikes ? '255,51,102' : '0,212,255'},0.05);
+    text-align: center;
+  }
+  .goal-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: ${accentColor};
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+    text-shadow: 0 0 10px rgba(${isLikes ? '255,51,102' : '0,212,255'},0.5);
+    word-wrap: break-word;
+  }
+  .goal-numbers {
+    font-size: 28px;
+    font-weight: 900;
+    color: #fff;
+    margin-bottom: 12px;
+    text-shadow: 0 0 15px rgba(255,255,255,0.3);
+  }
+  .goal-numbers .current {
+    color: ${accentColor};
+  }
+  .goal-bar-bg {
+    width: 100%;
+    height: 24px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+    border: 1px solid rgba(255,255,255,0.15);
+  }
+  .goal-bar-fill {
+    height: 100%;
+    border-radius: 12px;
+    background: linear-gradient(90deg, ${isLikes ? '#ff3366, #ff6699' : '#0088cc, #00d4ff'});
+    transition: width 0.6s ease-out;
+    width: 0%;
+    box-shadow: 0 0 15px rgba(${isLikes ? '255,51,102' : '0,212,255'},0.5);
+    position: relative;
+  }
+  .goal-bar-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.25), transparent);
+    border-radius: 12px 12px 0 0;
+  }
+  .goal-percent {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.7);
+    z-index: 2;
+  }
+  @keyframes goalPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.03); }
+    100% { transform: scale(1); }
+  }
+  .pulse { animation: goalPulse 0.4s ease-out; }
+  @keyframes goalComplete {
+    0%,100% { box-shadow: 0 0 30px rgba(255,215,0,0.3), 0 0 60px rgba(255,215,0,0.1); border-color: #ffd700; }
+    50% { box-shadow: 0 0 50px rgba(255,215,0,0.6), 0 0 100px rgba(255,215,0,0.3); border-color: #ffed4a; }
+  }
+  .goal-complete {
+    animation: goalComplete 2s ease-in-out infinite;
+  }
+  .goal-complete .goal-bar-fill {
+    background: linear-gradient(90deg, #ffd700, #ffed4a, #ffd700);
+  }
+</style>
+</head>
+<body>
+<div class="goal-container" id="goal-container">
+  <div class="goal-title" id="goal-title">${icon} Meta</div>
+  <div class="goal-numbers"><span class="current" id="goal-current">0</span> / <span id="goal-target">0</span></div>
+  <div class="goal-bar-bg">
+    <div class="goal-bar-fill" id="goal-fill"></div>
+    <div class="goal-percent" id="goal-percent">0%</div>
+  </div>
+</div>
+<script>
+  const container = document.getElementById('goal-container');
+  const titleEl = document.getElementById('goal-title');
+  const currentEl = document.getElementById('goal-current');
+  const targetEl = document.getElementById('goal-target');
+  const fillEl = document.getElementById('goal-fill');
+  const percentEl = document.getElementById('goal-percent');
+  const icon = '${icon}';
+  let prevCurrent = 0;
+
+  function updateGoal(data) {
+    const text = data.text || '';
+    const target = data.target || 1;
+    const current = Math.min(data.current || 0, target);
+    const pct = Math.min(100, Math.round((data.current / target) * 100));
+
+    titleEl.textContent = text ? icon + ' ' + text : icon + ' Meta';
+    currentEl.textContent = (data.current || 0).toLocaleString('pt-BR');
+    targetEl.textContent = target.toLocaleString('pt-BR');
+    fillEl.style.width = pct + '%';
+    percentEl.textContent = pct + '%';
+
+    if (data.current > prevCurrent) {
+      container.classList.remove('pulse');
+      void container.offsetWidth;
+      container.classList.add('pulse');
+    }
+
+    if (data.current >= target) {
+      container.classList.add('goal-complete');
+    } else {
+      container.classList.remove('goal-complete');
+    }
+    prevCurrent = data.current || 0;
+  }
+
+  const evtSource = new EventSource('${sseUrl}');
+  evtSource.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    if (msg.type === 'goal') {
+      updateGoal(msg);
     }
   };
 </script>
