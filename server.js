@@ -2272,7 +2272,7 @@ function getTimerHTML(roomId) {
 function getGoalHTML(roomId, goalType) {
   const sseUrl = `/sse/${roomId}/goal/${goalType}`;
   const isLikes = goalType === 'likes';
-  const icon = isLikes ? '\u2764\uFE0F' : '\uD83E\uDE99';
+  const icon = isLikes ? '❤️' : '🪙';
   return `<!DOCTYPE html>
 <html><head>
 <meta charset="utf-8">
