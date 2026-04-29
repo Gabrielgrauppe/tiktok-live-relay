@@ -644,12 +644,7 @@ function getRankingHTML(roomId, type) {
     flex-direction: row;
     background: transparent; border-radius: 12px;
     padding: 8px 14px;
-    animation: slideIn 0.3s ease-out;
     transition: all 0.3s;
-  }
-  @keyframes slideIn {
-    from { opacity: 0; transform: translateX(-20px); }
-    to { opacity: 1; transform: translateX(0); }
   }
   .pos {
     width: 28px; height: 28px; border-radius: 50%;
@@ -868,10 +863,7 @@ function getRankingHTML(roomId, type) {
       document.querySelectorAll('.user-info').forEach(el => {
         el.style.textAlign = isRight ? 'right' : 'left';
       });
-      const style = document.getElementById('dynamic-style');
-      if (style) {
-        style.textContent = '@keyframes slideIn { from { opacity: 0; transform: translateX(' + (isRight ? '20px' : '-20px') + '); } to { opacity: 1; transform: translateX(0); } }';
-      }
+      // direction update handled per-element in renderRanking
     }
   }
 
@@ -887,22 +879,62 @@ function getRankingHTML(roomId, type) {
       return;
     }
 
-    list.innerHTML = sorted.map((user, i) => {
+    // Update in-place: add/update items without recreating all elements
+    const existingItems = list.querySelectorAll('.ranking-item[data-id]');
+    const existingMap = {};
+    existingItems.forEach(el => { existingMap[el.dataset.id] = el; });
+
+    sorted.forEach((user, i) => {
       const pos = i + 1;
       const posClass = pos <= 3 ? 'pos-' + pos : 'pos-other';
       const frameClass = pos <= 3 ? 'avatar-frame-' + pos : '';
-      const avatar = user.profilePictureUrl
-        ? '<img src="' + user.profilePictureUrl + '" onerror="this.parentElement.innerHTML=\\'\\u{1F464}\\'">'
-        : '\\u{1F464}';
       const val = user.${valueKey}.toLocaleString();
-      return '<div class="ranking-item" style="flex-direction:' + (isRight ? 'row-reverse' : 'row') + '">' +
-        '<div class="pos ' + posClass + '">' + pos + '</div>' +
-        '<div class="avatar ' + frameClass + '">' + avatar + '</div>' +
-        '<div class="user-info" style="text-align:' + (isRight ? 'right' : 'left') + '">' +
-        '<div class="user-name">' + esc(user.nickname) + '</div>' +
-        '<div class="user-value">${valueIcon} ' + val + '</div>' +
-        '</div></div>';
-    }).join('');
+      const dir = isRight ? 'row-reverse' : 'row';
+      const align = isRight ? 'right' : 'left';
+
+      let el = existingMap[user.id];
+      if (!el) {
+        // New user — create element
+        el = document.createElement('div');
+        el.className = 'ranking-item';
+        el.dataset.id = user.id;
+        el.innerHTML =
+          '<div class="pos ' + posClass + '">' + pos + '</div>' +
+          '<div class="avatar ' + frameClass + '">' +
+            (user.profilePictureUrl
+              ? '<img src="' + user.profilePictureUrl + '" onerror="this.parentElement.innerHTML=\'\\uD83D\\uDC64\'">'
+              : '\\uD83D\\uDC64') +
+          '</div>' +
+          '<div class="user-info" style="text-align:' + align + '">' +
+            '<div class="user-name">' + esc(user.nickname) + '</div>' +
+            '<div class="user-value">${valueIcon} ' + val + '</div>' +
+          '</div>';
+        list.appendChild(el);
+      } else {
+        // Existing user — only update what changed
+        const posEl = el.querySelector('.pos');
+        if (posEl && posEl.textContent != pos) {
+          posEl.textContent = pos;
+          posEl.className = 'pos ' + posClass;
+        }
+        const valEl = el.querySelector('.user-value');
+        const newVal = '${valueIcon} ' + val;
+        if (valEl && valEl.textContent !== newVal) {
+          valEl.textContent = newVal;
+        }
+        delete existingMap[user.id];
+      }
+
+      el.style.flexDirection = dir;
+      const infoEl = el.querySelector('.user-info');
+      if (infoEl) infoEl.style.textAlign = align;
+
+      // Ensure correct order
+      if (list.children[i] !== el) list.insertBefore(el, list.children[i] || null);
+    });
+
+    // Remove users no longer in top 20
+    Object.values(existingMap).forEach(el => el.remove());
   }
 
   function esc(s) {
