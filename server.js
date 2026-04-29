@@ -8,6 +8,9 @@ const wss = new WebSocketServer({ server });
 
 const PORT = process.env.PORT || 10000;
 
+// Serve background images for overlays
+app.get('/velho-oeste.png', (req, res) => res.sendFile(__dirname + '/velho-oeste.png'));
+
 // Health check endpoint
 app.get('/', (req, res) => res.send('OK'));
 app.get('/health', (req, res) => res.json({ status: 'ok', uptime: process.uptime(), rooms: Object.keys(rooms).length }));
@@ -822,158 +825,9 @@ function getRankingHTML(roomId, type) {
   .theme-custom .user-value { color: #f1c40f; }
 
   /* ===== THEME: VELHO-OESTE ===== */
-  .theme-velho-oeste .ranking-list { gap: 10px; }
-
-  /* Base card */
-  .theme-velho-oeste .ranking-item {
-    position: relative;
-    background: linear-gradient(180deg, rgba(40,20,5,0.94), rgba(22,11,3,0.97));
-    border: 2px solid #7a5c18;
-    border-radius: 4px;
-    padding: 10px 16px 10px 12px;
-    overflow: visible;
-    box-shadow:
-      inset 0 0 0 1px rgba(201,164,74,0.12),
-      0 0 0 1px rgba(60,35,5,0.7),
-      0 4px 16px rgba(0,0,0,0.75),
-      inset 0 1px 0 rgba(201,164,74,0.14);
-  }
-  /* Corner ✦ ornaments on #2, #3 and rest */
-  .theme-velho-oeste .ranking-item:not(:nth-child(1))::before {
-    content: '✦';
-    position: absolute; top: 3px; left: 6px;
-    color: rgba(201,164,74,0.45); font-size: 9px; pointer-events: none;
-  }
-  .theme-velho-oeste .ranking-item:not(:nth-child(1))::after {
-    content: '✦';
-    position: absolute; bottom: 3px; right: 6px;
-    color: rgba(201,164,74,0.45); font-size: 9px; pointer-events: none;
-  }
-
-  /* ── FIRST PLACE ── */
-  .theme-velho-oeste .ranking-item:nth-child(1) {
-    border: 2px solid #c9a44a;
-    outline: 1px solid rgba(201,164,74,0.3);
-    outline-offset: 3px;
-    padding: 14px 18px 14px 14px;
-    margin-top: 54px;
-    box-shadow:
-      inset 0 0 0 1px rgba(255,215,0,0.1),
-      0 0 0 1px rgba(120,80,10,0.8),
-      0 6px 28px rgba(0,0,0,0.9),
-      0 0 40px rgba(201,164,74,0.07);
-  }
-  /* Cowboy hat above #1 */
-  .theme-velho-oeste .ranking-item:nth-child(1)::before {
-    content: '🤠';
-    position: absolute;
-    top: -52px; left: 50%;
-    transform: translateX(-50%);
-    font-size: 48px; line-height: 1;
-    filter: drop-shadow(0 4px 10px rgba(0,0,0,0.95)) drop-shadow(0 0 18px rgba(201,164,74,0.4));
-    pointer-events: none;
-  }
-  /* Gold ✦ bottom-right corner for #1 */
-  .theme-velho-oeste .ranking-item:nth-child(1)::after {
-    content: '✦';
-    position: absolute; bottom: 4px; right: 7px;
-    color: rgba(255,215,0,0.5); font-size: 10px; pointer-events: none;
-  }
-
-  /* ── POSITION BADGES ── */
-  .theme-velho-oeste .pos {
-    font-family: 'Rye', cursive; font-size: 15px; font-weight: 400;
-    flex-shrink: 0; overflow: visible;
-    display: flex; align-items: center; justify-content: center;
-  }
-  /* Gold 5-point star for #1 */
-  .theme-velho-oeste .pos-1 {
-    width: 50px; height: 50px; border-radius: 0;
-    background: radial-gradient(circle at 40% 32%, #fff0a0, #d4a020 48%, #8a6200 100%);
-    color: #2a1000; font-size: 18px; font-weight: 900;
-    clip-path: polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);
-    box-shadow: 0 0 20px rgba(255,215,0,0.55), 0 0 40px rgba(201,164,74,0.25);
-    text-shadow: 0 1px 3px rgba(255,255,180,0.6);
-  }
-  /* Silver medal circle for #2 */
-  .theme-velho-oeste .pos-2 {
-    width: 40px; height: 40px; border-radius: 50%;
-    background: radial-gradient(circle at 38% 30%, #f6f6f6, #b8c4cc 50%, #68808c 100%);
-    color: #1a2530; border: 2px solid #98abb8;
-    box-shadow: 0 0 12px rgba(152,171,184,0.5), inset 0 1px 0 rgba(255,255,255,0.6);
-    text-shadow: 0 1px 2px rgba(255,255,255,0.7);
-    position: relative;
-  }
-  /* Silver ribbon tail */
-  .theme-velho-oeste .pos-2::after {
-    content: '';
-    position: absolute; bottom: -18px; left: 3px;
-    width: 34px; height: 20px;
-    background:
-      linear-gradient(225deg, #8a9eaa 50%, transparent 50%) 0 0 / 17px 20px no-repeat,
-      linear-gradient(315deg, #8a9eaa 50%, transparent 50%) 17px 0 / 17px 20px no-repeat;
-    pointer-events: none;
-  }
-  /* Bronze medal circle for #3 */
-  .theme-velho-oeste .pos-3 {
-    width: 40px; height: 40px; border-radius: 50%;
-    background: radial-gradient(circle at 38% 30%, #f0b060, #a86020 50%, #5a2e08 100%);
-    color: #1a0800; border: 2px solid #c08030;
-    box-shadow: 0 0 12px rgba(192,128,48,0.45), inset 0 1px 0 rgba(255,200,100,0.5);
-    text-shadow: 0 1px 1px rgba(255,190,80,0.6);
-    position: relative;
-  }
-  /* Bronze ribbon tail */
-  .theme-velho-oeste .pos-3::after {
-    content: '';
-    position: absolute; bottom: -18px; left: 3px;
-    width: 34px; height: 20px;
-    background:
-      linear-gradient(225deg, #8a5018 50%, transparent 50%) 0 0 / 17px 20px no-repeat,
-      linear-gradient(315deg, #8a5018 50%, transparent 50%) 17px 0 / 17px 20px no-repeat;
-    pointer-events: none;
-  }
-  .theme-velho-oeste .pos-other {
-    width: 30px; height: 30px; border-radius: 50%; font-size: 12px;
-    background: rgba(100,70,20,0.3);
-    border: 1px solid rgba(150,110,40,0.45);
-    color: rgba(201,164,74,0.65);
-  }
-
-  /* ── AVATARS ── */
-  .theme-velho-oeste .ranking-item:nth-child(1) .avatar { width: 52px; height: 52px; }
-  .theme-velho-oeste .avatar-frame-1 {
-    border: 3px solid #c9a44a;
-    box-shadow: 0 0 18px rgba(201,164,74,0.65), inset 0 0 6px rgba(201,164,74,0.2);
-  }
-  .theme-velho-oeste .avatar-frame-2 {
-    border: 2px solid #98abb8;
-    box-shadow: 0 0 10px rgba(152,171,184,0.4);
-  }
-  .theme-velho-oeste .avatar-frame-3 {
-    border: 2px solid #c08030;
-    box-shadow: 0 0 10px rgba(192,128,48,0.4);
-  }
-
-  /* ── TEXT ── */
-  .theme-velho-oeste .user-name {
-    font-family: 'Rye', cursive; font-size: 13px;
-    letter-spacing: 1px; text-transform: uppercase;
-    color: #d4a843;
-    text-shadow: 1px 1px 4px rgba(0,0,0,0.95), 0 0 8px rgba(100,60,10,0.5);
-  }
-  .theme-velho-oeste .ranking-item:nth-child(1) .user-name {
-    font-size: 16px; color: #ffd966;
-    text-shadow: 1px 1px 4px rgba(0,0,0,0.95), 0 0 14px rgba(255,215,0,0.4);
-  }
-  .theme-velho-oeste .user-value {
-    font-family: 'Rye', cursive; font-size: 12px;
-    letter-spacing: 0.5px; color: #b08830;
-    text-shadow: 1px 1px 3px rgba(0,0,0,0.9);
-  }
-  .theme-velho-oeste .ranking-item:nth-child(1) .user-value {
-    font-size: 14px; color: #f0c040;
-  }
+  .theme-velho-oeste #list { display: none; }
+  #vo-container { display: none; }
+  .theme-velho-oeste #vo-container { display: block; }
 </style>
 </head>
 <body>
@@ -997,6 +851,11 @@ function getRankingHTML(roomId, type) {
     if (cfg.theme !== undefined) {
       currentTheme = cfg.theme;
       wrapper.className = 'theme-' + cfg.theme;
+      // Reset velho-oeste container when switching away
+      if (cfg.theme !== 'velho-oeste') {
+        const vo = document.getElementById('vo-container');
+        if (vo) vo.style.display = 'none';
+      }
       if (cfg.theme === 'custom' && cfg.customColor) {
         document.body.style.background = cfg.customColor;
       } else if (cfg.theme === 'clean') {
@@ -1021,7 +880,84 @@ function getRankingHTML(roomId, type) {
     }
   }
 
+  function renderVelhoOeste(data) {
+    const sorted = Object.entries(data)
+      .map(([id, d]) => ({ id, ...d }))
+      .sort((a, b) => b.${valueKey} - a.${valueKey})
+      .slice(0, 3);
+
+    let vo = document.getElementById('vo-container');
+    if (!vo) {
+      vo = document.createElement('div');
+      vo.id = 'vo-container';
+      vo.style.cssText = 'position:relative;width:600px;height:490px;';
+      const bg = document.createElement('img');
+      bg.src = '/velho-oeste.png';
+      bg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;';
+      vo.appendChild(bg);
+      wrapper.insertBefore(vo, list);
+    }
+
+    document.querySelectorAll('.vo-slot').forEach(el => el.remove());
+
+    // [avatarLeft, avatarTop, avatarSize, nameLeft, nameTop, nameFontSize, valLeft, valTop, valFontSize, maxWidth]
+    const slots = [
+      { aL:98,  aT:50,  aS:132, nL:268, nT:85,  nSz:'19px', vL:278, vT:128, vSz:'15px', mW:'295px' },
+      { aL:98,  aT:232, aS:98,  nL:230, nT:257, nSz:'14px', vL:238, vT:284, vSz:'12px', mW:'280px' },
+      { aL:101, aT:357, aS:90,  nL:230, nT:378, nSz:'13px', vL:238, vT:404, vSz:'12px', mW:'280px' },
+    ];
+
+    sorted.forEach((user, i) => {
+      if (i >= slots.length) return;
+      const s = slots[i];
+      const slot = document.createElement('div');
+      slot.className = 'vo-slot';
+
+      // Avatar circle
+      const av = document.createElement('div');
+      av.style.cssText = 'position:absolute;border-radius:50%;overflow:hidden;' +
+        'left:' + s.aL + 'px;top:' + s.aT + 'px;width:' + s.aS + 'px;height:' + s.aS + 'px;';
+      if (user.profilePictureUrl) {
+        const img = document.createElement('img');
+        img.src = user.profilePictureUrl;
+        img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+        img.onerror = function() {
+          av.innerHTML = '';
+          av.style.cssText += 'display:flex;align-items:center;justify-content:center;font-size:32px;background:rgba(0,0,0,0.3);';
+          av.textContent = String.fromCodePoint(128100);
+        };
+        av.appendChild(img);
+      } else {
+        av.style.cssText += 'display:flex;align-items:center;justify-content:center;font-size:32px;background:rgba(0,0,0,0.3);';
+        av.textContent = String.fromCodePoint(128100);
+      }
+      slot.appendChild(av);
+
+      // Name
+      const nm = document.createElement('div');
+      nm.style.cssText = 'position:absolute;font-family:Rye,cursive;font-weight:400;' +
+        'color:#ffd966;text-shadow:2px 2px 4px #000,0 0 8px rgba(0,0,0,0.9);' +
+        'max-width:' + s.mW + ';overflow:hidden;white-space:nowrap;text-overflow:ellipsis;' +
+        'text-transform:uppercase;letter-spacing:1px;' +
+        'left:' + s.nL + 'px;top:' + s.nT + 'px;font-size:' + s.nSz + ';';
+      nm.textContent = user.nickname;
+      slot.appendChild(nm);
+
+      // Value
+      const vl = document.createElement('div');
+      vl.style.cssText = 'position:absolute;font-family:Rye,cursive;' +
+        'color:#f5d060;text-shadow:1px 1px 3px #000;' +
+        'left:' + s.vL + 'px;top:' + s.vT + 'px;font-size:' + s.vSz + ';';
+      vl.textContent = '${valueIcon} ' + user.${valueKey}.toLocaleString();
+      slot.appendChild(vl);
+
+      vo.appendChild(slot);
+    });
+  }
+
   function renderRanking(data) {
+    if (currentTheme === 'velho-oeste') { renderVelhoOeste(data); return; }
+
     const isRight = currentSide === 'right';
     const sorted = Object.entries(data)
       .map(([id, d]) => ({ id, ...d }))
