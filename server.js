@@ -2836,12 +2836,32 @@ function getMembrosHTML(roomId) {
     padding: 10px 0 8px; width: 100%;
   }
 
+  #title-row {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  #heart-icon {
+    width: 42px; height: 42px; object-fit: contain;
+    animation: heartbeat 1.6s ease-in-out infinite;
+    filter: drop-shadow(0 0 6px rgba(255,80,80,0.7));
+    flex-shrink: 0;
+  }
+
+  @keyframes heartbeat {
+    0%   { transform: scale(1)   rotate(-3deg); }
+    20%  { transform: scale(1.18) rotate(3deg); }
+    40%  { transform: scale(1)   rotate(-2deg); }
+    60%  { transform: scale(1.08) rotate(2deg); }
+    80%  { transform: scale(1)   rotate(0deg); }
+    100% { transform: scale(1)   rotate(-3deg); }
+  }
+
   #title {
     font-family: 'Orbitron', sans-serif;
     font-size: 16px; font-weight: 900;
     color: #fff;
     text-shadow: 0 0 14px rgba(255,255,255,0.5), 0 2px 4px rgba(0,0,0,0.9);
-    margin-bottom: 12px;
     text-transform: uppercase; letter-spacing: 2px;
     padding: 5px 22px;
     background: rgba(0,0,0,0.45);
@@ -2890,7 +2910,10 @@ function getMembrosHTML(roomId) {
 </head>
 <body>
 <div id="container">
-  <div id="title">Membros</div>
+  <div id="title-row">
+    <img id="heart-icon" src="https://p16-webcast.tiktokcdn.com/img/maliva/webcast-va/d56945782445b0b8c8658ed44f894c7b~tplv-obj.webp" alt="Heart Me">
+    <div id="title">Membros</div>
+  </div>
   <div class="ticker-wrapper" id="ticker-wrapper">
     <div class="empty-msg" id="empty-msg">Aguardando heartmes...</div>
     <div id="ticker-track" style="display:none;"></div>
