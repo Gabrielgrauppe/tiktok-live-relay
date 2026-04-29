@@ -32,7 +32,8 @@ function getRoom(roomId) {
         timer: [],
         goalCoins: [],
         goalLikes: [],
-        membros: []
+        membros: [],
+        topScore: []
       },
       coinsRanking: {},
       likesRanking: {},
@@ -43,7 +44,8 @@ function getRoom(roomId) {
       jarCapacity: 1000,
       goalCoins: { text: '', target: 2000, current: 0, theme: 'neon', customColor: '', style: 'default' },
       goalLikes: { text: '', target: 5000, current: 0, theme: 'neon', customColor: '', style: 'default' },
-      membros: { title: 'Membros', members: [] }
+      membros: { title: 'Membros', members: [] },
+      topScore: { title: 'TOP', desc: '', subtitle: 'PONTUAÇÃO', name: '', avatar: '', valor: 0 }
     };
   }
   return rooms[roomId];
@@ -162,6 +164,12 @@ app.get('/overlay/:roomId/membros', (req, res) => {
   res.send(getMembrosHTML(req.params.roomId));
 });
 
+// Top Score overlay
+app.get('/overlay/:roomId/top-score', (req, res) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(getTopScoreHTML(req.params.roomId));
+});
+
 // ============================================
 // SSE ENDPOINTS
 // ============================================
@@ -263,6 +271,17 @@ app.get('/sse/:roomId/goal/:goalType', (req, res) => {
   room.sseClients[gt].push(res);
   req.on('close', () => {
     room.sseClients[gt] = room.sseClients[gt].filter(c => c !== res);
+  });
+});
+
+// Top Score SSE
+app.get('/sse/:roomId/top-score', (req, res) => {
+  const room = getRoom(req.params.roomId);
+  res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
+  res.write(`data: ${JSON.stringify({ type: 'full', data: room.topScore })}\n\n`);
+  room.sseClients.topScore.push(res);
+  req.on('close', () => {
+    room.sseClients.topScore = room.sseClients.topScore.filter(c => c !== res);
   });
 });
 
@@ -480,6 +499,12 @@ wss.on('connection', (ws) => {
           room.sseClients.membros.forEach(c => { try { c.write(`data: ${event}\n\n`); } catch(e){} });
         }
       }
+      if (msg.type === 'top-score-update') {
+        room.topScore = { title: msg.title || 'TOP', desc: msg.desc || '', subtitle: msg.subtitle || 'PONTUAÇÃO', name: msg.name || '', avatar: msg.avatar || '', valor: msg.valor || 0 };
+        const ev = JSON.stringify({ type: 'full', data: room.topScore });
+        room.sseClients.topScore.forEach(c => { try { c.write(`data: ${ev}\n\n`); } catch(e){} });
+      }
+
       if (msg.type === 'membros-reset') {
         room.membros.members = [];
         const event = JSON.stringify({ type: 'full', data: room.membros });
@@ -2815,6 +2840,198 @@ function getGoalHTML(roomId, goalType) {
   };
 </script>
 </body></html>`;
+}
+
+// ============================================
+// TOP SCORE OVERLAY HTML (Velho Oeste)
+// ============================================
+function getTopScoreHTML(roomId) {
+  const sseUrl = `/sse/${roomId}/top-score`;
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Rye&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:transparent; display:flex; justify-content:center; align-items:flex-start; padding:10px; font-family:'Rye',cursive; }
+
+  .card {
+    width: 270px;
+    background: linear-gradient(160deg, #1c0e04 0%, #2a1506 40%, #1c0e04 100%);
+    border: 3px solid #c9a44a;
+    border-radius: 6px;
+    outline: 2px solid rgba(201,164,74,0.25);
+    outline-offset: 5px;
+    box-shadow: 0 0 0 1px #3d2008, 0 12px 50px rgba(0,0,0,0.95), inset 0 0 80px rgba(80,40,5,0.08);
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Inner wood grain lines */
+  .card::before {
+    content:''; position:absolute; inset:0; pointer-events:none;
+    background: repeating-linear-gradient(
+      175deg,
+      transparent 0px, transparent 18px,
+      rgba(201,164,74,0.025) 18px, rgba(201,164,74,0.025) 19px
+    );
+  }
+
+  /* ── TOP BAR ── */
+  .top-bar {
+    background: linear-gradient(90deg, #120800, #3a1c05 25%, #4a2408 50%, #3a1c05 75%, #120800);
+    border-bottom: 2px solid #c9a44a;
+    padding: 12px 14px 9px;
+    text-align: center; position: relative;
+  }
+  .top-bar::before { content:'✦ ✦'; position:absolute; left:10px; top:50%; transform:translateY(-50%); color:rgba(201,164,74,0.6); font-size:9px; letter-spacing:4px; }
+  .top-bar::after  { content:'✦ ✦'; position:absolute; right:10px; top:50%; transform:translateY(-50%); color:rgba(201,164,74,0.6); font-size:9px; letter-spacing:4px; }
+
+  .title-txt {
+    font-size:22px; color:#ffd966; letter-spacing:4px; text-transform:uppercase;
+    text-shadow: 0 0 16px rgba(255,180,0,0.5), 1px 1px 3px #000;
+  }
+  .desc-txt {
+    font-size:8px; letter-spacing:3px; color:rgba(201,164,74,0.65);
+    text-transform:uppercase; margin-top:3px;
+  }
+
+  /* ── CORNER ORNAMENTS ── */
+  .corner { position:absolute; color:rgba(201,164,74,0.4); font-size:13px; line-height:1; }
+  .corner.tl { top:6px; left:8px; }
+  .corner.tr { top:6px; right:8px; }
+  .corner.bl { bottom:6px; left:8px; }
+  .corner.br { bottom:6px; right:8px; }
+
+  /* ── AVATAR ── */
+  .avatar-wrap {
+    display:flex; flex-direction:column; align-items:center;
+    padding: 22px 20px 10px; position:relative;
+  }
+  .avatar-crown {
+    font-size:30px; margin-bottom:-10px; z-index:2; position:relative;
+    filter: drop-shadow(0 3px 8px rgba(0,0,0,0.9));
+    animation: float 3s ease-in-out infinite;
+  }
+  @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
+
+  .avatar-ring {
+    width:116px; height:116px; border-radius:50%; overflow:hidden;
+    border: 4px solid #c9a44a;
+    box-shadow: 0 0 0 2px rgba(201,164,74,0.3), 0 0 0 7px rgba(201,164,74,0.07), 0 0 24px rgba(201,164,74,0.35), inset 0 0 24px rgba(0,0,0,0.4);
+    background:rgba(255,255,255,0.04);
+    display:flex; align-items:center; justify-content:center; font-size:50px;
+  }
+  .avatar-ring img { width:100%; height:100%; object-fit:cover; }
+
+  /* Sheriff star badge on avatar */
+  .sheriff-star {
+    position:absolute; bottom:12px; right:calc(50% - 58px - 10px);
+    width:28px; height:28px;
+    background: radial-gradient(circle at 40% 35%, #fff0a0, #d4a020 48%, #8a6200);
+    clip-path: polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);
+    box-shadow: 0 0 10px rgba(255,210,0,0.6);
+    animation: star-pulse 2s ease-in-out infinite;
+  }
+  @keyframes star-pulse { 0%,100%{box-shadow:0 0 10px rgba(255,210,0,0.5)} 50%{box-shadow:0 0 20px rgba(255,210,0,0.9)} }
+
+  .name-txt {
+    margin-top:12px; font-size:15px; color:#ffd966; letter-spacing:1px;
+    text-transform:uppercase; text-align:center; max-width:230px;
+    overflow:hidden; white-space:nowrap; text-overflow:ellipsis;
+    text-shadow:1px 1px 4px #000, 0 0 12px rgba(255,200,0,0.25);
+  }
+
+  /* ── DIVIDER ── */
+  .divider { display:flex; align-items:center; gap:6px; padding:0 18px; margin:6px 0 10px; }
+  .div-line { flex:1; height:1px; background:linear-gradient(90deg,transparent,#c9a44a,transparent); }
+  .div-star { color:#c9a44a; font-size:11px; }
+
+  /* ── VALUE BOX ── */
+  .value-box {
+    text-align:center; margin:0 14px 14px;
+    padding: 10px 14px 14px;
+    background: linear-gradient(180deg, rgba(201,164,74,0.05), rgba(201,164,74,0.1));
+    border:1px solid rgba(201,164,74,0.25); border-radius:4px;
+    position:relative;
+  }
+  .value-box::before { content:'❧'; position:absolute; top:-10px; left:50%; transform:translateX(-50%); color:#c9a44a; font-size:16px; background:#1c0e04; padding:0 6px; }
+
+  .subtitle-txt {
+    font-size:8px; letter-spacing:3px; color:rgba(201,164,74,0.6);
+    text-transform:uppercase; margin-bottom:6px;
+  }
+  .value-txt {
+    font-size:38px; color:#e8571a;
+    text-shadow: 0 0 24px rgba(220,80,0,0.6), 1px 1px 0 #000, 2px 2px 0 rgba(0,0,0,0.5);
+    letter-spacing:2px; line-height:1;
+  }
+
+  /* ── BOTTOM DECO ── */
+  .bottom-deco { text-align:center; padding:2px 12px 12px; color:#c9a44a; font-size:16px; letter-spacing:10px; }
+</style>
+</head>
+<body>
+<div class="card">
+  <span class="corner tl">✦</span>
+  <span class="corner tr">✦</span>
+  <span class="corner bl">✦</span>
+  <span class="corner br">✦</span>
+
+  <div class="top-bar">
+    <div class="title-txt" id="title-el">TOP</div>
+    <div class="desc-txt"  id="desc-el"> </div>
+  </div>
+
+  <div class="avatar-wrap">
+    <div class="avatar-crown">👑</div>
+    <div class="avatar-ring" id="avatar-el">${String.fromCodePoint(128100)}</div>
+    <div class="sheriff-star"></div>
+    <div class="name-txt" id="name-el">—</div>
+  </div>
+
+  <div class="divider">
+    <div class="div-line"></div>
+    <span class="div-star">✦</span>
+    <div class="div-line"></div>
+  </div>
+
+  <div class="value-box">
+    <div class="subtitle-txt" id="subtitle-el">PONTUAÇÃO</div>
+    <div class="value-txt"    id="value-el">0</div>
+  </div>
+
+  <div class="bottom-deco">⭐ ⭐ ⭐</div>
+</div>
+<script>
+  const titleEl    = document.getElementById('title-el');
+  const descEl     = document.getElementById('desc-el');
+  const subtitleEl = document.getElementById('subtitle-el');
+  const avatarEl   = document.getElementById('avatar-el');
+  const nameEl     = document.getElementById('name-el');
+  const valueEl    = document.getElementById('value-el');
+
+  new EventSource('${sseUrl}').onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    if (msg.type === 'full') render(msg.data);
+  };
+
+  function render(d) {
+    titleEl.textContent    = d.title    || 'TOP';
+    descEl.textContent     = d.desc     || '';
+    subtitleEl.textContent = d.subtitle || 'PONTUAÇÃO';
+    nameEl.textContent     = d.name     || '—';
+    valueEl.textContent    = Number(d.valor || 0).toLocaleString('pt-BR');
+    avatarEl.innerHTML     = d.avatar
+      ? '<img src="' + esc(d.avatar) + '" onerror="this.parentElement.innerHTML=String.fromCodePoint(128100)">'
+      : String.fromCodePoint(128100);
+  }
+
+  function esc(s) { const d=document.createElement('div'); d.textContent=String(s); return d.innerHTML; }
+</script>
+</body>
+</html>`;
 }
 
 // ============================================
