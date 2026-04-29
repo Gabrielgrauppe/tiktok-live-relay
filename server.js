@@ -823,140 +823,157 @@ function getRankingHTML(roomId, type) {
 
   /* ===== THEME: VELHO-OESTE ===== */
   .theme-velho-oeste .ranking-list { gap: 10px; }
+
+  /* Base card */
   .theme-velho-oeste .ranking-item {
     position: relative;
-    background: linear-gradient(180deg, rgba(35,18,6,0.92) 0%, rgba(22,11,3,0.96) 100%);
-    border-top: 2px solid #9b7a28;
-    border-bottom: 2px solid #5a3e10;
-    border-left: 3px solid #7a5c18;
-    border-right: 3px solid #7a5c18;
-    border-radius: 5px;
+    background: linear-gradient(180deg, rgba(40,20,5,0.94), rgba(22,11,3,0.97));
+    border: 2px solid #7a5c18;
+    border-radius: 4px;
     padding: 10px 16px 10px 12px;
-    box-shadow:
-      inset 0 1px 0 rgba(201,164,74,0.18),
-      inset 0 -1px 0 rgba(0,0,0,0.4),
-      0 4px 18px rgba(0,0,0,0.7);
     overflow: visible;
-  }
-  /* Corner ornament top-left */
-  .theme-velho-oeste .ranking-item::before {
-    content: '';
-    position: absolute;
-    top: -2px; left: -2px;
-    width: 14px; height: 14px;
-    border-top: 3px solid #c9a44a;
-    border-left: 3px solid #c9a44a;
-    border-radius: 3px 0 0 0;
-    pointer-events: none;
-  }
-  /* Corner ornament bottom-right */
-  .theme-velho-oeste .ranking-item::after {
-    content: '';
-    position: absolute;
-    bottom: -2px; right: -2px;
-    width: 14px; height: 14px;
-    border-bottom: 3px solid #c9a44a;
-    border-right: 3px solid #c9a44a;
-    border-radius: 0 0 3px 0;
-    pointer-events: none;
-  }
-  /* 1st place — gold frame */
-  .theme-velho-oeste .ranking-item:nth-child(1) {
-    background: linear-gradient(180deg, rgba(50,28,5,0.95) 0%, rgba(30,15,3,0.98) 100%);
-    border-top: 2px solid #d4a030;
-    border-bottom: 2px solid #7a5c18;
-    border-left: 3px solid #c9a44a;
-    border-right: 3px solid #c9a44a;
     box-shadow:
-      inset 0 1px 0 rgba(255,215,0,0.25),
-      inset 0 -1px 0 rgba(0,0,0,0.5),
-      0 6px 24px rgba(0,0,0,0.8),
-      0 0 0 1px rgba(201,164,74,0.15);
+      inset 0 0 0 1px rgba(201,164,74,0.12),
+      0 0 0 1px rgba(60,35,5,0.7),
+      0 4px 16px rgba(0,0,0,0.75),
+      inset 0 1px 0 rgba(201,164,74,0.14);
   }
-  .theme-velho-oeste .ranking-item:nth-child(1)::before,
-  .theme-velho-oeste .ranking-item:nth-child(1)::after {
-    border-color: #ffd700;
-    width: 18px; height: 18px;
+  /* Corner ✦ ornaments on #2, #3 and rest */
+  .theme-velho-oeste .ranking-item:not(:nth-child(1))::before {
+    content: '✦';
+    position: absolute; top: 3px; left: 6px;
+    color: rgba(201,164,74,0.45); font-size: 9px; pointer-events: none;
+  }
+  .theme-velho-oeste .ranking-item:not(:nth-child(1))::after {
+    content: '✦';
+    position: absolute; bottom: 3px; right: 6px;
+    color: rgba(201,164,74,0.45); font-size: 9px; pointer-events: none;
   }
 
-  /* Position badges */
+  /* ── FIRST PLACE ── */
+  .theme-velho-oeste .ranking-item:nth-child(1) {
+    border: 2px solid #c9a44a;
+    outline: 1px solid rgba(201,164,74,0.3);
+    outline-offset: 3px;
+    padding: 14px 18px 14px 14px;
+    margin-top: 54px;
+    box-shadow:
+      inset 0 0 0 1px rgba(255,215,0,0.1),
+      0 0 0 1px rgba(120,80,10,0.8),
+      0 6px 28px rgba(0,0,0,0.9),
+      0 0 40px rgba(201,164,74,0.07);
+  }
+  /* Cowboy hat above #1 */
+  .theme-velho-oeste .ranking-item:nth-child(1)::before {
+    content: '🤠';
+    position: absolute;
+    top: -52px; left: 50%;
+    transform: translateX(-50%);
+    font-size: 48px; line-height: 1;
+    filter: drop-shadow(0 4px 10px rgba(0,0,0,0.95)) drop-shadow(0 0 18px rgba(201,164,74,0.4));
+    pointer-events: none;
+  }
+  /* Gold ✦ bottom-right corner for #1 */
+  .theme-velho-oeste .ranking-item:nth-child(1)::after {
+    content: '✦';
+    position: absolute; bottom: 4px; right: 7px;
+    color: rgba(255,215,0,0.5); font-size: 10px; pointer-events: none;
+  }
+
+  /* ── POSITION BADGES ── */
   .theme-velho-oeste .pos {
-    width: 38px; height: 38px;
-    font-family: 'Rye', cursive;
-    font-size: 15px;
-    font-weight: 400;
-    border-radius: 50%;
-    flex-shrink: 0;
+    font-family: 'Rye', cursive; font-size: 15px; font-weight: 400;
+    flex-shrink: 0; overflow: visible;
     display: flex; align-items: center; justify-content: center;
   }
-  /* Gold star shape for #1 */
+  /* Gold 5-point star for #1 */
   .theme-velho-oeste .pos-1 {
-    background: radial-gradient(circle at 38% 35%, #ffe566, #c9a020 55%, #7a5a08 100%);
-    color: #2a1500;
+    width: 50px; height: 50px; border-radius: 0;
+    background: radial-gradient(circle at 40% 32%, #fff0a0, #d4a020 48%, #8a6200 100%);
+    color: #2a1000; font-size: 18px; font-weight: 900;
     clip-path: polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);
-    border-radius: 0;
-    width: 42px; height: 42px;
-    box-shadow: 0 0 14px rgba(255,215,0,0.45), 0 0 28px rgba(201,164,74,0.2);
-    text-shadow: 0 1px 2px rgba(255,255,255,0.4);
+    box-shadow: 0 0 20px rgba(255,215,0,0.55), 0 0 40px rgba(201,164,74,0.25);
+    text-shadow: 0 1px 3px rgba(255,255,180,0.6);
   }
-  /* Silver medal for #2 */
+  /* Silver medal circle for #2 */
   .theme-velho-oeste .pos-2 {
-    background: radial-gradient(circle at 38% 35%, #f0f0f0, #b0b8be 50%, #6e7c84 100%);
-    color: #1a2530;
-    border: 2px solid #9aacb8;
-    box-shadow: 0 0 10px rgba(160,180,190,0.35);
-    text-shadow: 0 1px 1px rgba(255,255,255,0.5);
+    width: 40px; height: 40px; border-radius: 50%;
+    background: radial-gradient(circle at 38% 30%, #f6f6f6, #b8c4cc 50%, #68808c 100%);
+    color: #1a2530; border: 2px solid #98abb8;
+    box-shadow: 0 0 12px rgba(152,171,184,0.5), inset 0 1px 0 rgba(255,255,255,0.6);
+    text-shadow: 0 1px 2px rgba(255,255,255,0.7);
+    position: relative;
   }
-  /* Bronze medal for #3 */
+  /* Silver ribbon tail */
+  .theme-velho-oeste .pos-2::after {
+    content: '';
+    position: absolute; bottom: -18px; left: 3px;
+    width: 34px; height: 20px;
+    background:
+      linear-gradient(225deg, #8a9eaa 50%, transparent 50%) 0 0 / 17px 20px no-repeat,
+      linear-gradient(315deg, #8a9eaa 50%, transparent 50%) 17px 0 / 17px 20px no-repeat;
+    pointer-events: none;
+  }
+  /* Bronze medal circle for #3 */
   .theme-velho-oeste .pos-3 {
-    background: radial-gradient(circle at 38% 35%, #e8a952, #a0621a 55%, #5a2e08 100%);
-    color: #1a0800;
-    border: 2px solid #b87830;
-    box-shadow: 0 0 10px rgba(205,127,50,0.35);
-    text-shadow: 0 1px 1px rgba(255,180,80,0.5);
+    width: 40px; height: 40px; border-radius: 50%;
+    background: radial-gradient(circle at 38% 30%, #f0b060, #a86020 50%, #5a2e08 100%);
+    color: #1a0800; border: 2px solid #c08030;
+    box-shadow: 0 0 12px rgba(192,128,48,0.45), inset 0 1px 0 rgba(255,200,100,0.5);
+    text-shadow: 0 1px 1px rgba(255,190,80,0.6);
+    position: relative;
+  }
+  /* Bronze ribbon tail */
+  .theme-velho-oeste .pos-3::after {
+    content: '';
+    position: absolute; bottom: -18px; left: 3px;
+    width: 34px; height: 20px;
+    background:
+      linear-gradient(225deg, #8a5018 50%, transparent 50%) 0 0 / 17px 20px no-repeat,
+      linear-gradient(315deg, #8a5018 50%, transparent 50%) 17px 0 / 17px 20px no-repeat;
+    pointer-events: none;
   }
   .theme-velho-oeste .pos-other {
+    width: 30px; height: 30px; border-radius: 50%; font-size: 12px;
     background: rgba(100,70,20,0.3);
     border: 1px solid rgba(150,110,40,0.45);
     color: rgba(201,164,74,0.65);
   }
 
-  /* Avatar frames */
+  /* ── AVATARS ── */
+  .theme-velho-oeste .ranking-item:nth-child(1) .avatar { width: 52px; height: 52px; }
   .theme-velho-oeste .avatar-frame-1 {
     border: 3px solid #c9a44a;
-    box-shadow: 0 0 16px rgba(201,164,74,0.6), inset 0 0 6px rgba(201,164,74,0.15);
+    box-shadow: 0 0 18px rgba(201,164,74,0.65), inset 0 0 6px rgba(201,164,74,0.2);
   }
   .theme-velho-oeste .avatar-frame-2 {
-    border: 3px solid #9aacb8;
-    box-shadow: 0 0 10px rgba(154,172,184,0.4);
+    border: 2px solid #98abb8;
+    box-shadow: 0 0 10px rgba(152,171,184,0.4);
   }
   .theme-velho-oeste .avatar-frame-3 {
-    border: 3px solid #b87830;
-    box-shadow: 0 0 10px rgba(184,120,48,0.4);
+    border: 2px solid #c08030;
+    box-shadow: 0 0 10px rgba(192,128,48,0.4);
   }
 
-  /* Text styles */
+  /* ── TEXT ── */
   .theme-velho-oeste .user-name {
-    font-family: 'Rye', cursive;
+    font-family: 'Rye', cursive; font-size: 13px;
+    letter-spacing: 1px; text-transform: uppercase;
     color: #d4a843;
-    font-size: 14px;
-    letter-spacing: 1px;
-    text-transform: uppercase;
     text-shadow: 1px 1px 4px rgba(0,0,0,0.95), 0 0 8px rgba(100,60,10,0.5);
   }
   .theme-velho-oeste .ranking-item:nth-child(1) .user-name {
-    color: #ffd966;
-    font-size: 15px;
-    text-shadow: 1px 1px 4px rgba(0,0,0,0.95), 0 0 12px rgba(255,215,0,0.35);
+    font-size: 16px; color: #ffd966;
+    text-shadow: 1px 1px 4px rgba(0,0,0,0.95), 0 0 14px rgba(255,215,0,0.4);
   }
   .theme-velho-oeste .user-value {
-    font-family: 'Rye', cursive;
-    color: #b08830;
-    font-size: 12px;
-    letter-spacing: 0.5px;
+    font-family: 'Rye', cursive; font-size: 12px;
+    letter-spacing: 0.5px; color: #b08830;
     text-shadow: 1px 1px 3px rgba(0,0,0,0.9);
   }
-  .theme-velho-oeste .ranking-item:nth-child(1) .user-value { color: #f0c040; }
+  .theme-velho-oeste .ranking-item:nth-child(1) .user-value {
+    font-size: 14px; color: #f0c040;
+  }
 </style>
 </head>
 <body>
