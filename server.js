@@ -2832,7 +2832,7 @@ function getMembrosHTML(roomId) {
   body { background: transparent; overflow: hidden; font-family: 'Segoe UI', sans-serif; }
 
   #container {
-    display: flex; flex-direction: column; align-items: flex-start;
+    display: flex; flex-direction: column; align-items: center;
     padding: 10px 0 8px; width: 100%;
   }
 
@@ -2841,9 +2841,9 @@ function getMembrosHTML(roomId) {
     font-size: 16px; font-weight: 900;
     color: #fff;
     text-shadow: 0 0 14px rgba(255,255,255,0.5), 0 2px 4px rgba(0,0,0,0.9);
-    margin-bottom: 10px; margin-left: 8px;
+    margin-bottom: 12px;
     text-transform: uppercase; letter-spacing: 2px;
-    padding: 5px 18px;
+    padding: 5px 22px;
     background: rgba(0,0,0,0.45);
     border-radius: 20px;
     border: 1px solid rgba(255,255,255,0.18);
@@ -2851,20 +2851,15 @@ function getMembrosHTML(roomId) {
   }
 
   .ticker-wrapper {
-    width: 100%; overflow: hidden; position: relative;
+    width: 100%; overflow: hidden; position: relative; height: 88px;
   }
 
-  .ticker-track {
-    display: flex; align-items: center; gap: 18px;
+  #ticker-track {
+    position: absolute;
+    display: flex; align-items: center; gap: 20px;
     white-space: nowrap; will-change: transform;
     padding: 4px 0;
-    animation: scroll-left linear infinite;
-    animation-duration: 20s;
-  }
-
-  @keyframes scroll-left {
-    0%   { transform: translateX(0); }
-    100% { transform: translateX(-50%); }
+    top: 0; left: 0;
   }
 
   .member-card {
@@ -2889,22 +2884,31 @@ function getMembrosHTML(roomId) {
   }
 
   .empty-msg {
-    color: rgba(255,255,255,0.35); font-size: 13px; padding: 10px 16px;
+    color: rgba(255,255,255,0.35); font-size: 13px; padding: 10px 16px; text-align: center; width: 100%;
   }
 </style>
 </head>
 <body>
 <div id="container">
   <div id="title">Membros</div>
-  <div class="ticker-wrapper">
+  <div class="ticker-wrapper" id="ticker-wrapper">
     <div class="empty-msg" id="empty-msg">Aguardando heartmes...</div>
-    <div class="ticker-track" id="ticker-track" style="display:none;"></div>
+    <div id="ticker-track" style="display:none;"></div>
   </div>
 </div>
 <script>
-  const titleEl = document.getElementById('title');
-  const track   = document.getElementById('ticker-track');
-  const emptyEl = document.getElementById('empty-msg');
+  const titleEl  = document.getElementById('title');
+  const track    = document.getElementById('ticker-track');
+  const emptyEl  = document.getElementById('empty-msg');
+  const wrapper  = document.getElementById('ticker-wrapper');
+
+  const SPEED = 80; // pixels per second
+  const CARD_W = 96; // card width + gap
+
+  let animId = null;
+  let posX = 0;
+  let trackW = 0;
+  let lastTs = null;
 
   const evtSource = new EventSource('${sseUrl}');
   evtSource.onmessage = (e) => {
@@ -2915,18 +2919,50 @@ function getMembrosHTML(roomId) {
   function render(data) {
     titleEl.textContent = data.title || 'Membros';
     const members = data.members || [];
+
     if (members.length === 0) {
       emptyEl.style.display = '';
       track.style.display = 'none';
+      stopAnim();
       return;
     }
+
     emptyEl.style.display = 'none';
     track.style.display = '';
-    const cardHTML = members.map(buildCard).join('');
-    track.innerHTML = cardHTML + cardHTML; // duplicate for seamless loop
-    // ~76px per card + 18px gap ≈ 94px each; scroll at ~90px/s
-    const totalW = members.length * 94;
-    track.style.animationDuration = Math.max(8, totalW / 90) + 's';
+
+    // Build cards (no duplication — JS handles the reset)
+    track.innerHTML = members.map(buildCard).join('');
+
+    // Wait one frame for DOM to lay out, then start animation
+    requestAnimationFrame(() => {
+      trackW = track.scrollWidth;
+      const vw = wrapper.clientWidth || window.innerWidth;
+      posX = vw; // start fully off-screen right
+      track.style.transform = 'translateX(' + posX + 'px)';
+      lastTs = null;
+      stopAnim();
+      animId = requestAnimationFrame(step);
+    });
+  }
+
+  function step(ts) {
+    if (lastTs === null) lastTs = ts;
+    const dt = Math.min((ts - lastTs) / 1000, 0.1); // seconds, capped to avoid big jumps
+    lastTs = ts;
+
+    posX -= SPEED * dt;
+
+    // When last card has fully exited left, reset to off-screen right
+    if (posX < -trackW) {
+      posX = (wrapper.clientWidth || window.innerWidth);
+    }
+
+    track.style.transform = 'translateX(' + posX + 'px)';
+    animId = requestAnimationFrame(step);
+  }
+
+  function stopAnim() {
+    if (animId) { cancelAnimationFrame(animId); animId = null; }
   }
 
   function buildCard(m) {
