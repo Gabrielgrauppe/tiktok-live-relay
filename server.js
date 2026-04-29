@@ -31,7 +31,8 @@ function getRoom(roomId) {
         scoreboard: [],
         timer: [],
         goalCoins: [],
-        goalLikes: []
+        goalLikes: [],
+        membros: []
       },
       coinsRanking: {},
       likesRanking: {},
@@ -41,7 +42,8 @@ function getRoom(roomId) {
       jarCustomColor: '',
       jarCapacity: 1000,
       goalCoins: { text: '', target: 2000, current: 0, theme: 'neon', customColor: '', style: 'default' },
-      goalLikes: { text: '', target: 5000, current: 0, theme: 'neon', customColor: '', style: 'default' }
+      goalLikes: { text: '', target: 5000, current: 0, theme: 'neon', customColor: '', style: 'default' },
+      membros: { title: 'Membros', members: [] }
     };
   }
   return rooms[roomId];
@@ -154,6 +156,12 @@ app.get('/overlay/:roomId/goal/:goalType', (req, res) => {
   res.send(getGoalHTML(req.params.roomId, req.params.goalType));
 });
 
+// Membros overlay
+app.get('/overlay/:roomId/membros', (req, res) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(getMembrosHTML(req.params.roomId));
+});
+
 // ============================================
 // SSE ENDPOINTS
 // ============================================
@@ -255,6 +263,21 @@ app.get('/sse/:roomId/goal/:goalType', (req, res) => {
   room.sseClients[gt].push(res);
   req.on('close', () => {
     room.sseClients[gt] = room.sseClients[gt].filter(c => c !== res);
+  });
+});
+
+// Membros SSE
+app.get('/sse/:roomId/membros', (req, res) => {
+  const room = getRoom(req.params.roomId);
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive'
+  });
+  res.write(`data: ${JSON.stringify({ type: 'full', data: room.membros })}\n\n`);
+  room.sseClients.membros.push(res);
+  req.on('close', () => {
+    room.sseClients.membros = room.sseClients.membros.filter(c => c !== res);
   });
 });
 
@@ -441,6 +464,26 @@ wss.on('connection', (ws) => {
         room.sseClients.characters.forEach(client => {
           try { client.write(`data: ${event}\n\n`); } catch (e) {}
         });
+      }
+
+      // Membros
+      if (msg.type === 'membros-title') {
+        room.membros.title = msg.title || 'Membros';
+        const event = JSON.stringify({ type: 'full', data: room.membros });
+        room.sseClients.membros.forEach(c => { try { c.write(`data: ${event}\n\n`); } catch(e){} });
+      }
+      if (msg.type === 'membros-add') {
+        const exists = room.membros.members.find(m => m.userId === msg.userId);
+        if (!exists) {
+          room.membros.members.push({ userId: msg.userId, nickname: msg.nickname, profilePictureUrl: msg.profilePictureUrl || '' });
+          const event = JSON.stringify({ type: 'full', data: room.membros });
+          room.sseClients.membros.forEach(c => { try { c.write(`data: ${event}\n\n`); } catch(e){} });
+        }
+      }
+      if (msg.type === 'membros-reset') {
+        room.membros.members = [];
+        const event = JSON.stringify({ type: 'full', data: room.membros });
+        room.sseClients.membros.forEach(c => { try { c.write(`data: ${event}\n\n`); } catch(e){} });
       }
 
     } catch (e) {}
@@ -2772,6 +2815,136 @@ function getGoalHTML(roomId, goalType) {
   };
 </script>
 </body></html>`;
+}
+
+// ============================================
+// MEMBROS OVERLAY HTML
+// ============================================
+function getMembrosHTML(roomId) {
+  const sseUrl = `/sse/${roomId}/membros`;
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: transparent; overflow: hidden; font-family: 'Segoe UI', sans-serif; }
+
+  #container {
+    display: flex; flex-direction: column; align-items: flex-start;
+    padding: 10px 0 8px; width: 100%;
+  }
+
+  #title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 16px; font-weight: 900;
+    color: #fff;
+    text-shadow: 0 0 14px rgba(255,255,255,0.5), 0 2px 4px rgba(0,0,0,0.9);
+    margin-bottom: 10px; margin-left: 8px;
+    text-transform: uppercase; letter-spacing: 2px;
+    padding: 5px 18px;
+    background: rgba(0,0,0,0.45);
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.18);
+    white-space: nowrap;
+  }
+
+  .ticker-wrapper {
+    width: 100%; overflow: hidden; position: relative;
+  }
+
+  .ticker-track {
+    display: flex; align-items: center; gap: 18px;
+    white-space: nowrap; will-change: transform;
+    padding: 4px 0;
+    animation: scroll-left linear infinite;
+    animation-duration: 20s;
+  }
+
+  @keyframes scroll-left {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  .member-card {
+    display: inline-flex; flex-direction: column;
+    align-items: center; gap: 5px; flex-shrink: 0; width: 76px;
+  }
+
+  .member-avatar {
+    width: 58px; height: 58px; border-radius: 50%;
+    overflow: hidden; border: 2px solid rgba(255,255,255,0.5);
+    background: rgba(255,255,255,0.08);
+    display: flex; align-items: center; justify-content: center; font-size: 26px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+  }
+  .member-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+  .member-name {
+    font-size: 10px; font-weight: 700; color: #fff;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.95);
+    max-width: 76px; overflow: hidden;
+    white-space: nowrap; text-overflow: ellipsis; text-align: center;
+  }
+
+  .empty-msg {
+    color: rgba(255,255,255,0.35); font-size: 13px; padding: 10px 16px;
+  }
+</style>
+</head>
+<body>
+<div id="container">
+  <div id="title">Membros</div>
+  <div class="ticker-wrapper">
+    <div class="empty-msg" id="empty-msg">Aguardando heartmes...</div>
+    <div class="ticker-track" id="ticker-track" style="display:none;"></div>
+  </div>
+</div>
+<script>
+  const titleEl = document.getElementById('title');
+  const track   = document.getElementById('ticker-track');
+  const emptyEl = document.getElementById('empty-msg');
+
+  const evtSource = new EventSource('${sseUrl}');
+  evtSource.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    if (msg.type === 'full') render(msg.data);
+  };
+
+  function render(data) {
+    titleEl.textContent = data.title || 'Membros';
+    const members = data.members || [];
+    if (members.length === 0) {
+      emptyEl.style.display = '';
+      track.style.display = 'none';
+      return;
+    }
+    emptyEl.style.display = 'none';
+    track.style.display = '';
+    const cardHTML = members.map(buildCard).join('');
+    track.innerHTML = cardHTML + cardHTML; // duplicate for seamless loop
+    // ~76px per card + 18px gap ≈ 94px each; scroll at ~90px/s
+    const totalW = members.length * 94;
+    track.style.animationDuration = Math.max(8, totalW / 90) + 's';
+  }
+
+  function buildCard(m) {
+    const av = m.profilePictureUrl
+      ? '<img src="' + esc(m.profilePictureUrl) + '" onerror="this.parentElement.innerHTML=String.fromCodePoint(128100)">'
+      : String.fromCodePoint(128100);
+    return '<div class="member-card">' +
+      '<div class="member-avatar">' + av + '</div>' +
+      '<div class="member-name">' + esc(m.nickname) + '</div>' +
+      '</div>';
+  }
+
+  function esc(s) {
+    const d = document.createElement('div'); d.textContent = String(s); return d.innerHTML;
+  }
+</script>
+</body>
+</html>`;
 }
 
 // ============================================
