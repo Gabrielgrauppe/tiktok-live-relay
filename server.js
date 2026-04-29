@@ -1021,8 +1021,8 @@ function getRankingHTML(roomId, type) {
       const posClass = pos <= 3 ? 'pos-' + pos : 'pos-other';
       const frameClass = pos <= 3 ? 'avatar-frame-' + pos : '';
       const avatar = user.profilePictureUrl
-        ? '<img src="' + user.profilePictureUrl + '" onerror="this.parentElement.innerHTML=\'\\u{1F464}\'">'
-        : '\\u{1F464}';
+        ? '<img src="' + user.profilePictureUrl + '" onerror="this.parentElement.innerHTML=String.fromCodePoint(128100)" style="width:100%;height:100%;object-fit:cover;">'
+        : String.fromCodePoint(128100);
       const val = user.${valueKey}.toLocaleString();
       return '<div class="ranking-item" style="flex-direction:' + (isRight ? 'row-reverse' : 'row') + '">' +
         '<div class="pos ' + posClass + '">' + pos + '</div>' +
