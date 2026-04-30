@@ -3143,11 +3143,10 @@ function getMembrosHTML(roomId) {
   const wrapper  = document.getElementById('ticker-wrapper');
 
   const SPEED = 80; // pixels per second
-  const CARD_W = 96; // card width + gap
 
   let animId = null;
   let posX = 0;
-  let trackW = 0;
+  let singleW = 0; // width of ONE copy of the card list
   let lastTs = null;
 
   const evtSource = new EventSource('${sseUrl}');
@@ -3170,12 +3169,13 @@ function getMembrosHTML(roomId) {
     emptyEl.style.display = 'none';
     track.style.display = '';
 
-    // Build cards (no duplication — JS handles the reset)
-    track.innerHTML = members.map(buildCard).join('');
+    // Duplicate cards so copy2 fills the gap the moment copy1 exits left
+    const cardHTML = members.map(buildCard).join('');
+    track.innerHTML = cardHTML + cardHTML;
 
-    // Wait one frame for DOM to lay out, then start animation
+    // Wait one frame for DOM to lay out
     requestAnimationFrame(() => {
-      trackW = track.scrollWidth;
+      singleW = track.scrollWidth / 2; // width of ONE copy
       const vw = wrapper.clientWidth || window.innerWidth;
       posX = vw; // start fully off-screen right
       track.style.transform = 'translateX(' + posX + 'px)';
@@ -3187,14 +3187,14 @@ function getMembrosHTML(roomId) {
 
   function step(ts) {
     if (lastTs === null) lastTs = ts;
-    const dt = Math.min((ts - lastTs) / 1000, 0.1); // seconds, capped to avoid big jumps
+    const dt = Math.min((ts - lastTs) / 1000, 0.1);
     lastTs = ts;
 
     posX -= SPEED * dt;
 
-    // When last card has fully exited left, reset to off-screen right
-    if (posX < -trackW) {
-      posX = (wrapper.clientWidth || window.innerWidth);
+    // When copy1 has fully exited left, copy2 is already in position — seamless reset
+    if (posX <= -singleW) {
+      posX += singleW;
     }
 
     track.style.transform = 'translateX(' + posX + 'px)';
