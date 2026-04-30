@@ -3048,102 +3048,86 @@ function getMembrosHTML(roomId) {
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { background: transparent; overflow: hidden; font-family: 'Segoe UI', sans-serif; }
 
-  #container {
-    display: flex; flex-direction: column; align-items: center;
-    padding: 10px 0 8px; width: 100%;
-  }
+  #container { display: flex; flex-direction: column; align-items: center; padding: 10px 0 8px; width: 100%; }
 
-  #title-row {
-    display: flex; align-items: center; gap: 10px;
-    margin-bottom: 12px;
-  }
+  #title-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
 
   #heart-icon {
     width: 42px; height: 42px; object-fit: contain;
     animation: heartbeat 1.6s ease-in-out infinite;
-    filter: drop-shadow(0 0 6px rgba(255,80,80,0.7));
-    flex-shrink: 0;
+    filter: drop-shadow(0 0 6px rgba(255,80,80,0.7)); flex-shrink: 0;
   }
-
   @keyframes heartbeat {
-    0%   { transform: scale(1)   rotate(-3deg); }
-    20%  { transform: scale(1.18) rotate(3deg); }
-    40%  { transform: scale(1)   rotate(-2deg); }
-    60%  { transform: scale(1.08) rotate(2deg); }
-    80%  { transform: scale(1)   rotate(0deg); }
-    100% { transform: scale(1)   rotate(-3deg); }
+    0%   { transform: scale(1)    rotate(-3deg); }
+    20%  { transform: scale(1.18) rotate(3deg);  }
+    40%  { transform: scale(1)    rotate(-2deg); }
+    60%  { transform: scale(1.08) rotate(2deg);  }
+    80%  { transform: scale(1)    rotate(0deg);  }
+    100% { transform: scale(1)    rotate(-3deg); }
   }
 
   #title {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 16px; font-weight: 900;
-    color: #fff;
-    text-shadow: 0 0 14px rgba(255,255,255,0.5), 0 2px 4px rgba(0,0,0,0.9);
+    font-family: 'Orbitron', sans-serif; font-size: 16px; font-weight: 900;
+    color: #fff; text-shadow: 0 0 14px rgba(255,255,255,0.5), 0 2px 4px rgba(0,0,0,0.9);
     text-transform: uppercase; letter-spacing: 2px;
-    padding: 5px 22px;
-    background: rgba(0,0,0,0.45);
-    border-radius: 20px;
-    border: 1px solid rgba(255,255,255,0.18);
-    white-space: nowrap;
+    padding: 5px 22px; background: rgba(0,0,0,0.45);
+    border-radius: 20px; border: 1px solid rgba(255,255,255,0.18); white-space: nowrap;
   }
 
-  .ticker-wrapper {
-    width: 100%; overflow: hidden; position: relative; height: 88px;
+  #stage {
+    width: 100%; height: 88px; overflow: hidden; position: relative;
   }
 
-  #ticker-track {
-    display: inline-flex; align-items: center; gap: 20px;
-    white-space: nowrap; will-change: transform;
-    padding: 4px 0;
+  .mc {
+    position: absolute; top: 4px;
+    display: flex; flex-direction: column; align-items: center; gap: 5px;
+    width: 76px; will-change: transform;
   }
-
-  .member-card {
-    display: inline-flex; flex-direction: column;
-    align-items: center; gap: 5px; flex-shrink: 0; width: 76px;
-  }
-
-  .member-avatar {
-    width: 58px; height: 58px; border-radius: 50%;
-    overflow: hidden; border: 2px solid rgba(255,255,255,0.5);
-    background: rgba(255,255,255,0.08);
+  .ma {
+    width: 58px; height: 58px; border-radius: 50%; overflow: hidden;
+    border: 2px solid rgba(255,255,255,0.5); background: rgba(255,255,255,0.08);
     display: flex; align-items: center; justify-content: center; font-size: 26px;
     box-shadow: 0 0 10px rgba(0,0,0,0.5);
   }
-  .member-avatar img { width: 100%; height: 100%; object-fit: cover; }
-
-  .member-name {
+  .ma img { width: 100%; height: 100%; object-fit: cover; }
+  .mn {
     font-size: 10px; font-weight: 700; color: #fff;
     text-shadow: 0 1px 3px rgba(0,0,0,0.95);
-    max-width: 76px; overflow: hidden;
-    white-space: nowrap; text-overflow: ellipsis; text-align: center;
+    max-width: 76px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; text-align: center;
   }
-
-  .empty-msg {
-    color: rgba(255,255,255,0.35); font-size: 13px; padding: 10px 16px; text-align: center; width: 100%;
-  }
+  .empty-msg { color: rgba(255,255,255,0.35); font-size: 13px; padding: 20px 16px; text-align: center; width: 100%; }
 </style>
 </head>
 <body>
 <div id="container">
   <div id="title-row">
-    <img id="heart-icon" src="https://p16-webcast.tiktokcdn.com/img/maliva/webcast-va/d56945782445b0b8c8658ed44f894c7b~tplv-obj.webp" alt="Heart Me">
+    <img id="heart-icon" src="https://p16-webcast.tiktokcdn.com/img/maliva/webcast-va/d56945782445b0b8c8658ed44f894c7b~tplv-obj.webp" alt="">
     <div id="title">Membros</div>
   </div>
-  <div class="ticker-wrapper" id="ticker-wrapper">
+  <div id="stage">
     <div class="empty-msg" id="empty-msg">Aguardando heartmes...</div>
-    <div id="ticker-track" style="display:none;"></div>
   </div>
 </div>
 <script>
-  const titleEl  = document.getElementById('title');
-  const track    = document.getElementById('ticker-track');
-  const emptyEl  = document.getElementById('empty-msg');
-  const wrapper  = document.getElementById('ticker-wrapper');
+  const titleEl = document.getElementById('title');
+  const stage   = document.getElementById('stage');
+  const emptyEl = document.getElementById('empty-msg');
 
-  const SPEED = 90; // pixels per second
+  const CARD_W  = 76;
+  const GAP     = 22;
+  const STEP    = CARD_W + GAP; // 98px per slot
+  const SPEED   = 80;           // px per second
 
-  const evtSource = new EventSource('${sseUrl}');
-  evtSource.onmessage = (e) => {
+  let cards   = [];  // [{el, x}]
+  let animId  = null;
+  let lastTs  = null;
+  let vw      = 800;
+
+  // Measure viewport once on load
+  window.addEventListener('load', () => { vw = stage.offsetWidth || window.innerWidth || 800; });
+  setTimeout(() => { vw = stage.offsetWidth || window.innerWidth || 800; }, 200);
+
+  new EventSource('${sseUrl}').onmessage = (e) => {
     const msg = JSON.parse(e.data);
     if (msg.type === 'full') render(msg.data);
   };
@@ -3152,52 +3136,62 @@ function getMembrosHTML(roomId) {
     titleEl.textContent = data.title || 'Membros';
     const members = data.members || [];
 
+    // Stop animation
+    if (animId) { cancelAnimationFrame(animId); animId = null; }
+
+    // Clear old cards (keep emptyEl)
+    cards.forEach(c => c.el.remove());
+    cards = [];
+
     if (members.length === 0) {
       emptyEl.style.display = '';
-      track.style.display = 'none';
-      track.style.animation = 'none';
       return;
     }
-
     emptyEl.style.display = 'none';
-    track.style.display = '';
 
-    // NO duplication — one clean list only
-    track.innerHTML = members.map(buildCard).join('');
-    track.style.animation = 'none';
+    vw = stage.offsetWidth || window.innerWidth || 800;
 
-    // Two frames to let DOM settle and measure correctly
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      const trackW = track.scrollWidth;
-      const vw = wrapper.offsetWidth || document.documentElement.clientWidth || 800;
+    // Create each card as an absolutely positioned element
+    members.forEach((m, i) => {
+      const el = document.createElement('div');
+      el.className = 'mc';
+      const av = m.profilePictureUrl
+        ? '<img src="' + esc(m.profilePictureUrl) + '" onerror="this.parentElement.innerHTML=String.fromCodePoint(128100)">'
+        : String.fromCodePoint(128100);
+      el.innerHTML = '<div class="ma">' + av + '</div><div class="mn">' + esc(m.nickname) + '</div>';
+      stage.appendChild(el);
 
-      // Total travel = vw (enter from right) + trackW (exit fully to left)
-      const dist = vw + trackW;
-      const dur  = dist / SPEED;
+      // Spread cards starting from right edge, each offset by their index
+      const x = vw + i * STEP;
+      el.style.transform = 'translateX(' + x + 'px)';
+      cards.push({ el, x });
+    });
 
-      // Generate keyframe: right → left, CSS loops back instantly (0 frames gap)
-      let st = document.getElementById('mq-st');
-      if (!st) { st = document.createElement('style'); st.id = 'mq-st'; document.head.appendChild(st); }
-      st.textContent = '@keyframes mq{from{transform:translateX(' + vw + 'px)}to{transform:translateX(' + (-trackW) + 'px)}}';
-
-      void track.offsetWidth; // force reflow so new keyframe takes effect
-      track.style.animation = 'mq ' + dur + 's linear infinite';
-    }));
+    lastTs = null;
+    animId = requestAnimationFrame(tick);
   }
 
-  function buildCard(m) {
-    const av = m.profilePictureUrl
-      ? '<img src="' + esc(m.profilePictureUrl) + '" onerror="this.parentElement.innerHTML=String.fromCodePoint(128100)">'
-      : String.fromCodePoint(128100);
-    return '<div class="member-card">' +
-      '<div class="member-avatar">' + av + '</div>' +
-      '<div class="member-name">' + esc(m.nickname) + '</div>' +
-      '</div>';
+  function tick(ts) {
+    if (lastTs === null) lastTs = ts;
+    const dt = Math.min((ts - lastTs) / 1000, 0.05);
+    lastTs = ts;
+
+    cards.forEach(card => {
+      card.x -= SPEED * dt;
+
+      // When card fully exits left, teleport it behind the rightmost card
+      if (card.x + CARD_W < 0) {
+        const maxX = Math.max(...cards.map(c => c.x));
+        card.x = maxX + STEP;
+      }
+
+      card.el.style.transform = 'translateX(' + card.x + 'px)';
+    });
+
+    animId = requestAnimationFrame(tick);
   }
 
-  function esc(s) {
-    const d = document.createElement('div'); d.textContent = String(s); return d.innerHTML;
-  }
+  function esc(s) { const d = document.createElement('div'); d.textContent = String(s); return d.innerHTML; }
 </script>
 </body>
 </html>`;
