@@ -896,6 +896,39 @@ function getRankingHTML(roomId, type) {
   .theme-velho-oeste #list { display: none; }
   #vo-container { display: none; }
   .theme-velho-oeste #vo-container { display: block; }
+
+  @keyframes voSwing {
+    0%,100% { transform: rotate(-0.6deg) translateX(0); }
+    50%      { transform: rotate(0.6deg)  translateX(0); }
+  }
+  @keyframes voEntrada {
+    from { opacity:0; transform: translateX(55px) rotate(2deg); }
+    to   { opacity:1; transform: translateX(0)    rotate(0deg); }
+  }
+  @keyframes voEntrada2 {
+    from { opacity:0; transform: translateX(55px); }
+    to   { opacity:1; transform: translateX(0); }
+  }
+  @keyframes voEntrada3 {
+    from { opacity:0; transform: translateX(55px); }
+    to   { opacity:1; transform: translateX(0); }
+  }
+  @keyframes hatBounce {
+    0%,100% { transform: translateY(0)   rotate(-6deg); }
+    50%      { transform: translateY(-5px) rotate(4deg);  }
+  }
+  @keyframes legendPulse {
+    0%,100% { letter-spacing:2px; text-shadow: 0 0 6px #b8860b, 0 0 12px rgba(184,134,11,0.4); }
+    50%      { letter-spacing:3px; text-shadow: 0 0 10px #ffd700, 0 0 20px rgba(255,215,0,0.5); }
+  }
+  @keyframes shimmerGold {
+    0%   { background-position: -200% center; }
+    100% { background-position:  200% center; }
+  }
+  @keyframes dustUp {
+    0%   { opacity:0.5; transform:scale(1)   translateY(0); }
+    100% { opacity:0;   transform:scale(1.8) translateY(-18px); }
+  }
 </style>
 </head>
 <body>
@@ -948,6 +981,47 @@ function getRankingHTML(roomId, type) {
     }
   }
 
+  function mkEl(tag, css, text) {
+    const el = document.createElement(tag);
+    if (css) el.style.cssText = css;
+    if (text !== undefined) el.textContent = text;
+    return el;
+  }
+
+  function makeAvatar(url, size, borderColor, glowColor) {
+    const wrap = mkEl('div',
+      'position:relative;width:' + size + 'px;height:' + size + 'px;flex-shrink:0;border-radius:50%;');
+    const ring = mkEl('div',
+      'position:absolute;inset:-4px;border-radius:50%;' +
+      'background:conic-gradient(' + borderColor + ',#3a2000,' + borderColor + ',#3a2000,' + borderColor + ');' +
+      'box-shadow:0 0 10px ' + glowColor + ',0 0 22px ' + glowColor + '33;');
+    const inner = mkEl('div',
+      'position:absolute;inset:0;border-radius:50%;overflow:hidden;background:#1a0f00;' +
+      'display:flex;align-items:center;justify-content:center;font-size:' + Math.floor(size * 0.4) + 'px;');
+    if (url) {
+      const img = document.createElement('img');
+      img.src = url;
+      img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+      img.onerror = function() { inner.textContent = '\\u{1F464}'; };
+      inner.appendChild(img);
+    } else { inner.textContent = '\\u{1F464}'; }
+    wrap.appendChild(ring);
+    wrap.appendChild(inner);
+    return wrap;
+  }
+
+  function spawnDust(parent) {
+    for (let i = 0; i < 5; i++) {
+      const d = mkEl('div',
+        'position:absolute;bottom:4px;left:' + (10 + i * 18) + 'px;' +
+        'width:6px;height:6px;border-radius:50%;' +
+        'background:rgba(180,130,60,0.55);pointer-events:none;' +
+        'animation:dustUp ' + (0.6 + Math.random() * 0.5) + 's ease-out forwards;');
+      parent.appendChild(d);
+      setTimeout(() => d.remove(), 1200);
+    }
+  }
+
   function renderVelhoOeste(data) {
     const sorted = Object.entries(data)
       .map(([id, d]) => ({ id, ...d }))
@@ -955,71 +1029,167 @@ function getRankingHTML(roomId, type) {
       .slice(0, 3);
 
     let vo = document.getElementById('vo-container');
-    if (!vo) {
-      vo = document.createElement('div');
+    const isNew = !vo;
+    if (isNew) {
+      vo = mkEl('div', '');
       vo.id = 'vo-container';
-      vo.style.cssText = 'position:relative;width:600px;height:490px;';
-      const bg = document.createElement('img');
-      bg.src = '/velho-oeste.png';
-      bg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;';
-      vo.appendChild(bg);
       wrapper.insertBefore(vo, list);
     }
 
-    document.querySelectorAll('.vo-slot').forEach(el => el.remove());
+    // Board styles
+    vo.style.cssText =
+      'position:relative;width:390px;padding:18px 16px 20px;border-radius:5px;' +
+      'background:linear-gradient(160deg,#2c1c0a 0%,#1a0f04 35%,#2e1e0c 65%,#1a0f04 100%);' +
+      'border:2px solid #6b4218;' +
+      'box-shadow:inset 0 0 50px rgba(0,0,0,0.55),inset 2px 2px 10px rgba(255,180,40,0.07),' +
+      '0 10px 40px rgba(0,0,0,0.75),0 2px 8px rgba(0,0,0,0.5);' +
+      'font-family:Rye,cursive;overflow:visible;' +
+      'animation:voSwing 5s ease-in-out infinite;transform-origin:top center;';
 
-    // [avatarLeft, avatarTop, avatarSize, nameLeft, nameTop, nameFontSize, valLeft, valTop, valFontSize, maxWidth]
-    const slots = [
-      { aL:98,  aT:50,  aS:132, nL:268, nT:85,  nSz:'19px', vL:278, vT:128, vSz:'15px', mW:'295px' },
-      { aL:98,  aT:232, aS:98,  nL:230, nT:257, nSz:'14px', vL:238, vT:284, vSz:'12px', mW:'280px' },
-      { aL:101, aT:357, aS:90,  nL:230, nT:378, nSz:'13px', vL:238, vT:404, vSz:'12px', mW:'280px' },
-    ];
+    vo.innerHTML = '';
 
-    sorted.forEach((user, i) => {
-      if (i >= slots.length) return;
-      const s = slots[i];
-      const slot = document.createElement('div');
-      slot.className = 'vo-slot';
+    // ── Wood grains ──
+    for (let i = 0; i < 7; i++) {
+      vo.appendChild(mkEl('div',
+        'position:absolute;left:0;right:0;top:' + (20 + i * 62) + 'px;height:1px;pointer-events:none;' +
+        'background:linear-gradient(90deg,transparent,rgba(90,55,10,0.25) 20%,rgba(90,55,10,0.12) 80%,transparent);'));
+    }
 
-      // Avatar circle
-      const av = document.createElement('div');
-      av.style.cssText = 'position:absolute;border-radius:50%;overflow:hidden;' +
-        'left:' + s.aL + 'px;top:' + s.aT + 'px;width:' + s.aS + 'px;height:' + s.aS + 'px;';
-      if (user.profilePictureUrl) {
-        const img = document.createElement('img');
-        img.src = user.profilePictureUrl;
-        img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
-        img.onerror = function() {
-          av.innerHTML = '';
-          av.style.cssText += 'display:flex;align-items:center;justify-content:center;font-size:32px;background:rgba(0,0,0,0.3);';
-          av.textContent = String.fromCodePoint(128100);
-        };
-        av.appendChild(img);
-      } else {
-        av.style.cssText += 'display:flex;align-items:center;justify-content:center;font-size:32px;background:rgba(0,0,0,0.3);';
-        av.textContent = String.fromCodePoint(128100);
-      }
-      slot.appendChild(av);
+    // ── Corner nails ──
+    [['6px','6px'],['6px','calc(100% - 16px)'],['calc(100% - 16px)','6px'],['calc(100% - 16px)','calc(100% - 16px)']].forEach(([t,l]) => {
+      vo.appendChild(mkEl('div',
+        'position:absolute;top:' + t + ';left:' + l + ';width:10px;height:10px;border-radius:50%;pointer-events:none;' +
+        'background:radial-gradient(circle at 35% 35%,#d4a84b,#7a5010);' +
+        'box-shadow:0 1px 4px rgba(0,0,0,0.7);'));
+    });
+
+    // ── Title ──
+    const typeLabel = '${type === 'coins' ? 'MOEDAS' : 'CURTIDAS'}';
+    const icon = '${type === 'coins' ? '\u{1FA99}' : '❤️'}';
+    vo.appendChild(mkEl('div',
+      'text-align:center;font-size:11px;color:#c8943a;letter-spacing:4px;text-transform:uppercase;' +
+      'text-shadow:0 2px 5px rgba(0,0,0,0.9),0 0 18px rgba(160,100,10,0.3);' +
+      'margin-bottom:14px;padding-bottom:8px;' +
+      'border-bottom:1px solid rgba(160,100,10,0.3);',
+      '— RANKING DE ' + typeLabel + ' —'));
+
+    if (sorted.length === 0) {
+      vo.appendChild(mkEl('div',
+        'text-align:center;color:rgba(190,140,50,0.45);padding:40px 20px;font-size:12px;',
+        'Aguardando pistoleiros...'));
+      return;
+    }
+
+    // ══════════════════════════════════════
+    //  1st PLACE — WANTED POSTER STYLE
+    // ══════════════════════════════════════
+    if (sorted[0]) {
+      const u = sorted[0];
+      const s1 = mkEl('div',
+        'position:relative;display:flex;align-items:center;gap:14px;' +
+        'padding:14px 14px 12px;margin-bottom:10px;border-radius:4px;' +
+        'background:linear-gradient(145deg,#caa96c 0%,#b8935a 25%,#d6b47a 50%,#b08040 75%,#caa96c 100%);' +
+        'border:2px solid #7a5510;' +
+        'box-shadow:inset 0 0 22px rgba(0,0,0,0.22),0 5px 14px rgba(0,0,0,0.6),' +
+        '0 0 0 1px rgba(210,170,60,0.25);' +
+        'animation:voEntrada 0.55s cubic-bezier(.22,1,.36,1);overflow:visible;');
+
+      // Cowboy hat
+      const hat = mkEl('div',
+        'position:absolute;top:-30px;left:10px;font-size:38px;line-height:1;z-index:10;' +
+        'animation:hatBounce 3.2s ease-in-out infinite;' +
+        'filter:drop-shadow(0 3px 7px rgba(0,0,0,0.75));');
+      hat.textContent = '\\u{1F920}';
+      s1.appendChild(hat);
+
+      // Avatar
+      s1.appendChild(makeAvatar(u.profilePictureUrl, 72, '#d4a84b', 'rgba(180,120,10,0.8)'));
+
+      // Right side
+      const info1 = mkEl('div', 'flex:1;min-width:0;');
+
+      // "LENDA" badge
+      const badge = mkEl('div',
+        'font-size:8px;color:#3d1e00;letter-spacing:2px;text-transform:uppercase;' +
+        'margin-bottom:5px;animation:legendPulse 2.2s ease-in-out infinite;',
+        '\\u2605 LENDA DO OESTE \\u2605');
+      info1.appendChild(badge);
 
       // Name
-      const nm = document.createElement('div');
-      nm.style.cssText = 'position:absolute;font-family:Rye,cursive;font-weight:400;' +
-        'color:#ffd966;text-shadow:2px 2px 4px #000,0 0 8px rgba(0,0,0,0.9);' +
-        'max-width:' + s.mW + ';overflow:hidden;white-space:nowrap;text-overflow:ellipsis;' +
-        'text-transform:uppercase;letter-spacing:1px;' +
-        'left:' + s.nL + 'px;top:' + s.nT + 'px;font-size:' + s.nSz + ';';
-      nm.textContent = user.nickname;
-      slot.appendChild(nm);
+      const nm1 = mkEl('div',
+        'font-size:17px;color:#1e0d00;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;' +
+        'max-width:215px;text-shadow:1px 1px 2px rgba(255,255,255,0.15);margin-bottom:5px;');
+      nm1.textContent = u.nickname;
+      info1.appendChild(nm1);
 
-      // Value
-      const vl = document.createElement('div');
-      vl.style.cssText = 'position:absolute;font-family:Rye,cursive;' +
-        'color:#f5d060;text-shadow:1px 1px 3px #000;' +
-        'left:' + s.vL + 'px;top:' + s.vT + 'px;font-size:' + s.vSz + ';';
-      vl.textContent = '${valueIcon} ' + user.${valueKey}.toLocaleString();
-      slot.appendChild(vl);
+      // Value — shimmer gold
+      const vl1 = mkEl('div',
+        'font-size:14px;font-weight:bold;' +
+        'background:linear-gradient(90deg,#7a4800,#d4a030,#f0c040,#d4a030,#7a4800);' +
+        'background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;' +
+        'animation:shimmerGold 2.5s linear infinite;');
+      vl1.textContent = icon + ' ' + u.${valueKey}.toLocaleString('pt-BR');
+      info1.appendChild(vl1);
 
-      vo.appendChild(slot);
+      s1.appendChild(info1);
+
+      // Wax seal / stamp
+      const seal = mkEl('div',
+        'position:absolute;bottom:7px;right:9px;font-size:20px;opacity:0.3;transform:rotate(18deg);');
+      seal.textContent = '\\u2605';
+      s1.appendChild(seal);
+
+      vo.appendChild(s1);
+      setTimeout(() => spawnDust(s1), 200);
+    }
+
+    // ══════════════════════════════════════
+    //  2nd & 3rd PLACE
+    // ══════════════════════════════════════
+    const rowDefs = [
+      { label:'II',  medalGrad:'linear-gradient(145deg,#e8e8e8,#a8a8a8,#d0d0d0)', medalBorder:'#808080',
+        rowBorder:'rgba(160,160,160,0.25)', glowColor:'rgba(180,180,180,0.4)', textColor:'#c8c8c8',
+        valColor:'rgba(210,210,210,0.9)', delay:'0.72s', anim:'voEntrada2' },
+      { label:'III', medalGrad:'linear-gradient(145deg,#e0a060,#cd7f32,#a05020)', medalBorder:'#8b5a1a',
+        rowBorder:'rgba(150,90,20,0.28)', glowColor:'rgba(160,100,20,0.45)', textColor:'#c09060',
+        valColor:'rgba(190,130,60,0.9)', delay:'0.88s', anim:'voEntrada3' },
+    ];
+
+    sorted.slice(1).forEach((u, idx) => {
+      const rd = rowDefs[idx];
+      const row = mkEl('div',
+        'display:flex;align-items:center;gap:10px;padding:9px 11px;margin-bottom:6px;border-radius:3px;' +
+        'background:linear-gradient(135deg,rgba(38,18,4,0.92),rgba(22,10,2,0.97));' +
+        'border:1px solid ' + rd.rowBorder + ';' +
+        'box-shadow:inset 0 0 14px rgba(0,0,0,0.45),0 3px 8px rgba(0,0,0,0.45);' +
+        'animation:' + rd.anim + ' ' + rd.delay + ' cubic-bezier(.22,1,.36,1) both;');
+
+      // Medal badge
+      const medal = mkEl('div',
+        'width:32px;height:32px;border-radius:50%;flex-shrink:0;' +
+        'background:' + rd.medalGrad + ';border:1px solid ' + rd.medalBorder + ';' +
+        'display:flex;align-items:center;justify-content:center;font-size:10px;color:#1a0a00;' +
+        'box-shadow:0 2px 6px rgba(0,0,0,0.5),inset 0 1px 2px rgba(255,255,255,0.25);',
+        rd.label);
+      row.appendChild(medal);
+
+      // Avatar
+      row.appendChild(makeAvatar(u.profilePictureUrl, 42, rd.medalBorder, rd.glowColor));
+
+      // Name + value
+      const infoSm = mkEl('div', 'flex:1;min-width:0;');
+      const nmSm = mkEl('div',
+        'font-size:13px;color:' + rd.textColor + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;' +
+        'max-width:200px;text-shadow:0 1px 4px rgba(0,0,0,0.9);margin-bottom:3px;');
+      nmSm.textContent = u.nickname;
+      infoSm.appendChild(nmSm);
+      infoSm.appendChild(mkEl('div',
+        'font-size:11px;color:' + rd.valColor + ';text-shadow:0 1px 3px rgba(0,0,0,0.7);',
+        icon + ' ' + u.${valueKey}.toLocaleString('pt-BR')));
+      row.appendChild(infoSm);
+
+      vo.appendChild(row);
+      setTimeout(() => spawnDust(row), 300 + idx * 120);
     });
   }
 
