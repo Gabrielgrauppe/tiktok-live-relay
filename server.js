@@ -3179,9 +3179,10 @@ function getMembrosHTML(roomId) {
     cards.forEach(card => {
       card.x -= SPEED * dt;
 
-      // When card fully exits left, teleport it behind the rightmost card
+      // When card fully exits left, place it after the rightmost card
+      // but always at least off-screen right (>= vw), so it travels the full width
       if (card.x + CARD_W < 0) {
-        const maxX = Math.max(...cards.map(c => c.x));
+        const maxX = Math.max(...cards.map(c => c.x), vw - STEP);
         card.x = maxX + STEP;
       }
 
