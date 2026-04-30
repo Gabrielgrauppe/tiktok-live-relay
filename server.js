@@ -3118,12 +3118,12 @@ function getMembrosHTML(roomId) {
   const STEP    = CARD_W + GAP; // 98px per slot
   const SPEED   = 80;           // px per second
 
-  let cards   = [];  // [{el, x}]
-  let animId  = null;
-  let lastTs  = null;
-  let vw      = 800;
+  let cards      = [];       // [{el, x, userId}]
+  let renderedIds = new Set(); // userId already on stage
+  let animId     = null;
+  let lastTs     = null;
+  let vw         = 800;
 
-  // Measure viewport once on load
   window.addEventListener('load', () => { vw = stage.offsetWidth || window.innerWidth || 800; });
   setTimeout(() => { vw = stage.offsetWidth || window.innerWidth || 800; }, 200);
 
@@ -3136,23 +3136,25 @@ function getMembrosHTML(roomId) {
     titleEl.textContent = data.title || 'Membros';
     const members = data.members || [];
 
-    // Stop animation
-    if (animId) { cancelAnimationFrame(animId); animId = null; }
-
-    // Clear old cards (keep emptyEl)
-    cards.forEach(c => c.el.remove());
-    cards = [];
-
+    // RESET: if members list is empty, clear everything
     if (members.length === 0) {
+      if (animId) { cancelAnimationFrame(animId); animId = null; }
+      cards.forEach(c => c.el.remove());
+      cards = [];
+      renderedIds.clear();
       emptyEl.style.display = '';
       return;
     }
-    emptyEl.style.display = 'none';
 
+    emptyEl.style.display = 'none';
     vw = stage.offsetWidth || window.innerWidth || 800;
 
-    // Create each card as an absolutely positioned element
-    members.forEach((m, i) => {
+    // Only add members that aren't already on stage
+    const newMembers = members.filter(m => !renderedIds.has(m.userId));
+
+    newMembers.forEach(m => {
+      renderedIds.add(m.userId);
+
       const el = document.createElement('div');
       el.className = 'mc';
       const av = m.profilePictureUrl
@@ -3161,14 +3163,19 @@ function getMembrosHTML(roomId) {
       el.innerHTML = '<div class="ma">' + av + '</div><div class="mn">' + esc(m.nickname) + '</div>';
       stage.appendChild(el);
 
-      // Spread cards starting from right edge, each offset by their index
-      const x = vw + i * STEP;
-      el.style.transform = 'translateX(' + x + 'px)';
-      cards.push({ el, x });
+      // Place at end of queue, always past the right edge
+      const maxX = cards.length > 0
+        ? Math.max(...cards.map(c => c.x), vw - STEP) + STEP
+        : vw;
+      el.style.transform = 'translateX(' + maxX + 'px)';
+      cards.push({ el, x: maxX, userId: m.userId });
     });
 
-    lastTs = null;
-    animId = requestAnimationFrame(tick);
+    // Start animation if not already running
+    if (!animId && cards.length > 0) {
+      lastTs = null;
+      animId = requestAnimationFrame(tick);
+    }
   }
 
   function tick(ts) {
