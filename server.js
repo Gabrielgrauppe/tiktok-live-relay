@@ -3092,11 +3092,9 @@ function getMembrosHTML(roomId) {
   }
 
   #ticker-track {
-    position: absolute;
-    display: flex; align-items: center; gap: 20px;
+    display: inline-flex; align-items: center; gap: 20px;
     white-space: nowrap; will-change: transform;
     padding: 4px 0;
-    top: 0; left: 0;
   }
 
   .member-card {
@@ -3142,12 +3140,7 @@ function getMembrosHTML(roomId) {
   const emptyEl  = document.getElementById('empty-msg');
   const wrapper  = document.getElementById('ticker-wrapper');
 
-  const SPEED = 80; // pixels per second
-
-  let animId = null;
-  let posX = 0;
-  let singleW = 0; // width of ONE copy of the card list
-  let lastTs = null;
+  const SPEED = 90; // pixels per second
 
   const evtSource = new EventSource('${sseUrl}');
   evtSource.onmessage = (e) => {
@@ -3162,47 +3155,34 @@ function getMembrosHTML(roomId) {
     if (members.length === 0) {
       emptyEl.style.display = '';
       track.style.display = 'none';
-      stopAnim();
+      track.style.animation = 'none';
       return;
     }
 
     emptyEl.style.display = 'none';
     track.style.display = '';
 
-    // Duplicate cards so copy2 fills the gap the moment copy1 exits left
-    const cardHTML = members.map(buildCard).join('');
-    track.innerHTML = cardHTML + cardHTML;
+    // NO duplication — one clean list only
+    track.innerHTML = members.map(buildCard).join('');
+    track.style.animation = 'none';
 
-    // Wait one frame for DOM to lay out
-    requestAnimationFrame(() => {
-      singleW = track.scrollWidth / 2; // width of ONE copy
-      const vw = wrapper.clientWidth || window.innerWidth;
-      posX = vw; // start fully off-screen right
-      track.style.transform = 'translateX(' + posX + 'px)';
-      lastTs = null;
-      stopAnim();
-      animId = requestAnimationFrame(step);
-    });
-  }
+    // Two frames to let DOM settle and measure correctly
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const trackW = track.scrollWidth;
+      const vw = wrapper.offsetWidth || document.documentElement.clientWidth || 800;
 
-  function step(ts) {
-    if (lastTs === null) lastTs = ts;
-    const dt = Math.min((ts - lastTs) / 1000, 0.1);
-    lastTs = ts;
+      // Total travel = vw (enter from right) + trackW (exit fully to left)
+      const dist = vw + trackW;
+      const dur  = dist / SPEED;
 
-    posX -= SPEED * dt;
+      // Generate keyframe: right → left, CSS loops back instantly (0 frames gap)
+      let st = document.getElementById('mq-st');
+      if (!st) { st = document.createElement('style'); st.id = 'mq-st'; document.head.appendChild(st); }
+      st.textContent = '@keyframes mq{from{transform:translateX(' + vw + 'px)}to{transform:translateX(' + (-trackW) + 'px)}}';
 
-    // When copy1 has fully exited left, copy2 is already in position — seamless reset
-    if (posX <= -singleW) {
-      posX += singleW;
-    }
-
-    track.style.transform = 'translateX(' + posX + 'px)';
-    animId = requestAnimationFrame(step);
-  }
-
-  function stopAnim() {
-    if (animId) { cancelAnimationFrame(animId); animId = null; }
+      void track.offsetWidth; // force reflow so new keyframe takes effect
+      track.style.animation = 'mq ' + dur + 's linear infinite';
+    }));
   }
 
   function buildCard(m) {
