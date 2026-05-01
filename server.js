@@ -32,6 +32,7 @@ function getRoom(roomId) {
         timer: [],
         goalCoins: [],
         goalLikes: [],
+        goalPix: [],
         membros: [],
         topScore: [],
         topGift: [],
@@ -46,6 +47,7 @@ function getRoom(roomId) {
       jarCapacity: 1000,
       goalCoins: { text: '', target: 2000, current: 0, theme: 'neon', customColor: '', style: 'default' },
       goalLikes: { text: '', target: 5000, current: 0, theme: 'neon', customColor: '', style: 'default' },
+      goalPix: { text: '', target: 100, current: 0, theme: 'neon', customColor: '', style: 'default' },
       membros: { title: 'Membros', members: [] },
       topScore: { title: 'TOP', desc: '', subtitle: 'PONTUAÇÃO', name: '', avatar: '', valor: 0 },
       topGift: null,
@@ -277,7 +279,7 @@ app.get('/sse/:roomId/jar', (req, res) => {
 // Goal SSE
 app.get('/sse/:roomId/goal/:goalType', (req, res) => {
   const room = getRoom(req.params.roomId);
-  const gt = req.params.goalType === 'likes' ? 'goalLikes' : 'goalCoins';
+  const gt = req.params.goalType === 'likes' ? 'goalLikes' : (req.params.goalType === 'pix' ? 'goalPix' : 'goalCoins');
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache',
@@ -505,7 +507,7 @@ wss.on('connection', (ws) => {
 
       // Goal updates
       if (msg.type === 'goal-update') {
-        const gt = msg.goalType === 'likes' ? 'goalLikes' : 'goalCoins';
+        const gt = msg.goalType === 'likes' ? 'goalLikes' : (msg.goalType === 'pix' ? 'goalPix' : 'goalCoins');
         room[gt] = { text: msg.text || '', target: msg.target || 2000, current: msg.current || 0, theme: msg.theme || 'neon', customColor: msg.customColor || '', style: msg.style || 'default' };
         const event = JSON.stringify({ type: 'goal', ...room[gt] });
         room.sseClients[gt].forEach(client => {
@@ -2668,7 +2670,9 @@ function getTimerHTML(roomId) {
 function getGoalHTML(roomId, goalType) {
   const sseUrl = `/sse/${roomId}/goal/${goalType}`;
   const isLikes = goalType === 'likes';
-  const icon = isLikes ? '❤️' : '🪙';
+  const isPix = goalType === 'pix';
+  const icon = isPix ? '💰' : (isLikes ? '❤️' : '🪙');
+  const valuePrefix = isPix ? 'R$ ' : '';
   return `<!DOCTYPE html>
 <html><head>
 <meta charset="utf-8">
@@ -3030,6 +3034,7 @@ function getGoalHTML(roomId, goalType) {
   const pfFill = document.getElementById('pf-fill');
   const pfText = document.getElementById('pf-text');
   const icon = '${icon}';
+  const prefix = '${valuePrefix}';
   let prevCurrent = 0;
   let currentStyle = 'default';
 
@@ -3048,14 +3053,14 @@ function getGoalHTML(roomId, goalType) {
 
     // Default style elements
     titleEl.textContent = text ? icon + ' ' + text : icon + ' Meta';
-    currentEl.textContent = current.toLocaleString('pt-BR');
-    targetEl.textContent = target.toLocaleString('pt-BR');
+    currentEl.textContent = prefix + current.toLocaleString('pt-BR');
+    targetEl.textContent = prefix + target.toLocaleString('pt-BR');
     fillEl.style.width = pct + '%';
     percentEl.textContent = pct + '%';
 
     // Premium style elements
     const label = text ? text.toUpperCase() : (icon === '❤️' ? 'LIKE GOAL' : 'GOAL');
-    pfText.textContent = label + ' : ' + current.toLocaleString('pt-BR') + ' / ' + target.toLocaleString('pt-BR') + ' (' + pct + '%)';
+    pfText.textContent = label + ' : ' + prefix + current.toLocaleString('pt-BR') + ' / ' + prefix + target.toLocaleString('pt-BR') + ' (' + pct + '%)';
     pfFill.style.width = pct + '%';
 
     if (current > prevCurrent) {
