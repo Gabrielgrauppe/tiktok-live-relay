@@ -575,11 +575,15 @@ wss.on('connection', (ws) => {
         room.sseClients.topCombo.forEach(c => { try { c.write(`data: ${ev}\n\n`); } catch(e){} });
       }
 
-      // Top Gifts reset
-      if (msg.type === 'top-gifts-reset') {
+      // Top Gift reset
+      if (msg.type === 'top-gift-reset') {
         room.topGift = null;
-        room.topCombo = null;
         room.sseClients.topGift.forEach(c => { try { c.write(`data: ${JSON.stringify({ type: 'full', data: null, config: room.topGiftConfig })}\n\n`); } catch(e){} });
+      }
+
+      // Top Combo reset
+      if (msg.type === 'top-combo-reset') {
+        room.topCombo = null;
         room.sseClients.topCombo.forEach(c => { try { c.write(`data: ${JSON.stringify({ type: 'full', data: null, config: room.topComboConfig })}\n\n`); } catch(e){} });
       }
 
