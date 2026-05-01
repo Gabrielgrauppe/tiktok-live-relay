@@ -33,7 +33,9 @@ function getRoom(roomId) {
         goalCoins: [],
         goalLikes: [],
         membros: [],
-        topScore: []
+        topScore: [],
+        topGift: [],
+        topCombo: []
       },
       coinsRanking: {},
       likesRanking: {},
@@ -45,7 +47,10 @@ function getRoom(roomId) {
       goalCoins: { text: '', target: 2000, current: 0, theme: 'neon', customColor: '', style: 'default' },
       goalLikes: { text: '', target: 5000, current: 0, theme: 'neon', customColor: '', style: 'default' },
       membros: { title: 'Membros', members: [] },
-      topScore: { title: 'TOP', desc: '', subtitle: 'PONTUAÇÃO', name: '', avatar: '', valor: 0 }
+      topScore: { title: 'TOP', desc: '', subtitle: 'PONTUAÇÃO', name: '', avatar: '', valor: 0 },
+      topGift: null,
+      topCombo: null,
+      topGiftsNameColor: '#FFD700'
     };
   }
   return rooms[roomId];
@@ -170,6 +175,18 @@ app.get('/overlay/:roomId/top-score', (req, res) => {
   res.send(getTopScoreHTML(req.params.roomId));
 });
 
+// Top Gift overlay
+app.get('/overlay/:roomId/top-gift', (req, res) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(getTopGiftHTML(req.params.roomId));
+});
+
+// Top Combo overlay
+app.get('/overlay/:roomId/top-combo', (req, res) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(getTopComboHTML(req.params.roomId));
+});
+
 // ============================================
 // SSE ENDPOINTS
 // ============================================
@@ -283,6 +300,24 @@ app.get('/sse/:roomId/top-score', (req, res) => {
   req.on('close', () => {
     room.sseClients.topScore = room.sseClients.topScore.filter(c => c !== res);
   });
+});
+
+// Top Gift SSE
+app.get('/sse/:roomId/top-gift', (req, res) => {
+  const room = getRoom(req.params.roomId);
+  res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
+  res.write(`data: ${JSON.stringify({ type: 'full', data: room.topGift, nameColor: room.topGiftsNameColor })}\n\n`);
+  room.sseClients.topGift.push(res);
+  req.on('close', () => { room.sseClients.topGift = room.sseClients.topGift.filter(c => c !== res); });
+});
+
+// Top Combo SSE
+app.get('/sse/:roomId/top-combo', (req, res) => {
+  const room = getRoom(req.params.roomId);
+  res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
+  res.write(`data: ${JSON.stringify({ type: 'full', data: room.topCombo, nameColor: room.topGiftsNameColor })}\n\n`);
+  room.sseClients.topCombo.push(res);
+  req.on('close', () => { room.sseClients.topCombo = room.sseClients.topCombo.filter(c => c !== res); });
 });
 
 // Membros SSE
@@ -509,6 +544,39 @@ wss.on('connection', (ws) => {
         room.membros.members = [];
         const event = JSON.stringify({ type: 'full', data: room.membros });
         room.sseClients.membros.forEach(c => { try { c.write(`data: ${event}\n\n`); } catch(e){} });
+      }
+
+      // Top Gift update
+      if (msg.type === 'top-gift-update') {
+        room.topGift = { giftName: msg.giftName, giftPictureUrl: msg.giftPictureUrl, diamonds: msg.diamonds, nickname: msg.nickname, profilePictureUrl: msg.profilePictureUrl };
+        const ev = JSON.stringify({ type: 'full', data: room.topGift, nameColor: room.topGiftsNameColor });
+        room.sseClients.topGift.forEach(c => { try { c.write(`data: ${ev}\n\n`); } catch(e){} });
+      }
+
+      // Top Combo update
+      if (msg.type === 'top-combo-update') {
+        room.topCombo = { giftName: msg.giftName, giftPictureUrl: msg.giftPictureUrl, comboCount: msg.comboCount, nickname: msg.nickname, profilePictureUrl: msg.profilePictureUrl };
+        const ev = JSON.stringify({ type: 'full', data: room.topCombo, nameColor: room.topGiftsNameColor });
+        room.sseClients.topCombo.forEach(c => { try { c.write(`data: ${ev}\n\n`); } catch(e){} });
+      }
+
+      // Top Gifts name color config
+      if (msg.type === 'top-gifts-config') {
+        room.topGiftsNameColor = msg.nameColor || '#FFD700';
+        const evG = JSON.stringify({ type: 'full', data: room.topGift, nameColor: room.topGiftsNameColor });
+        const evC = JSON.stringify({ type: 'full', data: room.topCombo, nameColor: room.topGiftsNameColor });
+        room.sseClients.topGift.forEach(c => { try { c.write(`data: ${evG}\n\n`); } catch(e){} });
+        room.sseClients.topCombo.forEach(c => { try { c.write(`data: ${evC}\n\n`); } catch(e){} });
+      }
+
+      // Top Gifts reset
+      if (msg.type === 'top-gifts-reset') {
+        room.topGift = null;
+        room.topCombo = null;
+        const evG = JSON.stringify({ type: 'full', data: null, nameColor: room.topGiftsNameColor });
+        const evC = JSON.stringify({ type: 'full', data: null, nameColor: room.topGiftsNameColor });
+        room.sseClients.topGift.forEach(c => { try { c.write(`data: ${evG}\n\n`); } catch(e){} });
+        room.sseClients.topCombo.forEach(c => { try { c.write(`data: ${evC}\n\n`); } catch(e){} });
       }
 
     } catch (e) {}
@@ -3376,6 +3444,288 @@ function getMembrosHTML(roomId) {
 }
 
 // ============================================
+// ============================================
+// TOP GIFT & TOP COMBO OVERLAYS
+// ============================================
+function getTopGiftHTML(roomId) {
+  const sseUrl = `/sse/${roomId}/top-gift`;
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700;900&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:transparent; overflow:hidden; display:flex; justify-content:center; align-items:center; min-height:100vh; }
+
+  @keyframes floatGift {
+    0%,100% { transform: translateY(0px) rotate(-3deg); }
+    50%      { transform: translateY(-12px) rotate(3deg); }
+  }
+  @keyframes glowPulse {
+    0%,100% { filter: drop-shadow(0 0 8px rgba(255,215,0,0.6)); }
+    50%      { filter: drop-shadow(0 0 20px rgba(255,215,0,1)); }
+  }
+  @keyframes slideIn {
+    from { opacity:0; transform:translateY(30px) scale(0.85); }
+    to   { opacity:1; transform:translateY(0)    scale(1); }
+  }
+  @keyframes namePulse {
+    0%,100% { text-shadow: 0 2px 8px rgba(0,0,0,0.8); }
+    50%      { text-shadow: 0 2px 16px rgba(0,0,0,0.9), 0 0 30px currentColor; }
+  }
+  @keyframes sparkle {
+    0%   { opacity:0; transform:scale(0) rotate(0deg); }
+    50%  { opacity:1; transform:scale(1.2) rotate(180deg); }
+    100% { opacity:0; transform:scale(0) rotate(360deg); }
+  }
+
+  #card {
+    display:none;
+    flex-direction:column;
+    align-items:center;
+    gap:6px;
+    animation: slideIn 0.5s cubic-bezier(.22,1,.36,1);
+  }
+  #card.visible { display:flex; }
+
+  .gift-wrap {
+    position:relative;
+    width:120px; height:120px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  #gift-img {
+    width:110px; height:110px;
+    object-fit:contain;
+    animation: floatGift 2.8s ease-in-out infinite, glowPulse 2.8s ease-in-out infinite;
+    filter: drop-shadow(0 0 8px rgba(255,215,0,0.6));
+  }
+  .sparkle {
+    position:absolute;
+    font-size:14px;
+    animation: sparkle 2s ease-in-out infinite;
+    pointer-events:none;
+  }
+  .sp1 { top:5px;  left:5px;  animation-delay:0s;    }
+  .sp2 { top:5px;  right:5px; animation-delay:0.7s;  }
+  .sp3 { bottom:5px; left:10px; animation-delay:1.4s; }
+  .sp4 { bottom:5px; right:10px; animation-delay:0.35s; }
+
+  #name {
+    font-family:'Poppins',sans-serif;
+    font-size:22px;
+    font-weight:900;
+    color: #FFD700;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.8), 0 0 20px rgba(255,215,0,0.4);
+    text-align:center;
+    max-width:260px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    letter-spacing:0.5px;
+    animation: namePulse 3s ease-in-out infinite;
+  }
+  #value {
+    font-family:'Poppins',sans-serif;
+    font-size:16px;
+    font-weight:700;
+    color:#fff;
+    text-shadow:0 2px 6px rgba(0,0,0,0.8);
+    display:flex;
+    align-items:center;
+    gap:5px;
+  }
+  .coin-icon { font-size:18px; }
+  #label {
+    font-family:'Poppins',sans-serif;
+    font-size:11px;
+    font-weight:700;
+    color:rgba(255,255,255,0.6);
+    text-transform:uppercase;
+    letter-spacing:2px;
+  }
+</style>
+</head>
+<body>
+<div id="card">
+  <div id="label">🏆 MAIOR PRESENTE</div>
+  <div class="gift-wrap">
+    <img id="gift-img" src="" alt="">
+    <span class="sparkle sp1">✦</span>
+    <span class="sparkle sp2">✦</span>
+    <span class="sparkle sp3">✦</span>
+    <span class="sparkle sp4">✦</span>
+  </div>
+  <div id="name">User Name</div>
+  <div id="value"><span class="coin-icon">🪙</span><span id="val-num">0</span></div>
+</div>
+<script>
+  const card = document.getElementById('card');
+  const giftImg = document.getElementById('gift-img');
+  const nameEl = document.getElementById('name');
+  const valNum = document.getElementById('val-num');
+  const sse = new EventSource('${sseUrl}');
+
+  sse.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    if (msg.type === 'full') {
+      if (msg.nameColor) nameEl.style.color = msg.nameColor;
+      if (!msg.data) { card.classList.remove('visible'); return; }
+      const d = msg.data;
+      giftImg.src = d.giftPictureUrl || '';
+      nameEl.textContent = d.nickname || '';
+      valNum.textContent = (d.diamonds || 0).toLocaleString('pt-BR');
+      card.classList.remove('visible');
+      void card.offsetWidth; // force reflow for animation replay
+      card.classList.add('visible');
+    }
+  };
+</script>
+</body>
+</html>`;
+}
+
+function getTopComboHTML(roomId) {
+  const sseUrl = `/sse/${roomId}/top-combo`;
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700;900&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:transparent; overflow:hidden; display:flex; justify-content:center; align-items:center; min-height:100vh; }
+
+  @keyframes floatGift {
+    0%,100% { transform: translateY(0px) rotate(-3deg); }
+    50%      { transform: translateY(-12px) rotate(3deg); }
+  }
+  @keyframes glowPulse {
+    0%,100% { filter: drop-shadow(0 0 8px rgba(255,100,100,0.6)); }
+    50%      { filter: drop-shadow(0 0 22px rgba(255,100,100,1)); }
+  }
+  @keyframes slideIn {
+    from { opacity:0; transform:translateY(30px) scale(0.85); }
+    to   { opacity:1; transform:translateY(0)    scale(1); }
+  }
+  @keyframes comboScale {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.15); }
+    100% { transform: scale(1); }
+  }
+  @keyframes sparkle {
+    0%   { opacity:0; transform:scale(0) rotate(0deg); }
+    50%  { opacity:1; transform:scale(1.2) rotate(180deg); }
+    100% { opacity:0; transform:scale(0) rotate(360deg); }
+  }
+  @keyframes namePulse {
+    0%,100% { text-shadow: 0 2px 8px rgba(0,0,0,0.8); }
+    50%      { text-shadow: 0 2px 16px rgba(0,0,0,0.9), 0 0 30px currentColor; }
+  }
+
+  #card {
+    display:none;
+    flex-direction:column;
+    align-items:center;
+    gap:6px;
+    animation: slideIn 0.5s cubic-bezier(.22,1,.36,1);
+  }
+  #card.visible { display:flex; }
+
+  .gift-wrap {
+    position:relative;
+    width:120px; height:120px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  #gift-img {
+    width:110px; height:110px;
+    object-fit:contain;
+    animation: floatGift 2.8s ease-in-out infinite, glowPulse 2.8s ease-in-out infinite;
+    filter: drop-shadow(0 0 8px rgba(255,100,100,0.6));
+  }
+  .sparkle {
+    position:absolute;
+    font-size:14px;
+    animation: sparkle 2s ease-in-out infinite;
+    pointer-events:none;
+    color:#ff6464;
+  }
+  .sp1 { top:5px;  left:5px;  animation-delay:0s;    }
+  .sp2 { top:5px;  right:5px; animation-delay:0.7s;  }
+  .sp3 { bottom:5px; left:10px; animation-delay:1.4s; }
+  .sp4 { bottom:5px; right:10px; animation-delay:0.35s; }
+
+  #name {
+    font-family:'Poppins',sans-serif;
+    font-size:22px;
+    font-weight:900;
+    color: #FFD700;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.8), 0 0 20px rgba(255,215,0,0.4);
+    text-align:center;
+    max-width:260px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    letter-spacing:0.5px;
+    animation: namePulse 3s ease-in-out infinite;
+  }
+  #combo {
+    font-family:'Poppins',sans-serif;
+    font-size:20px;
+    font-weight:900;
+    color:#ff6464;
+    text-shadow:0 2px 8px rgba(0,0,0,0.8), 0 0 16px rgba(255,100,100,0.5);
+    animation: comboScale 1s ease-in-out infinite;
+  }
+  #label {
+    font-family:'Poppins',sans-serif;
+    font-size:11px;
+    font-weight:700;
+    color:rgba(255,255,255,0.6);
+    text-transform:uppercase;
+    letter-spacing:2px;
+  }
+</style>
+</head>
+<body>
+<div id="card">
+  <div id="label">🔥 MAIOR COMBO</div>
+  <div class="gift-wrap">
+    <img id="gift-img" src="" alt="">
+    <span class="sparkle sp1">✦</span>
+    <span class="sparkle sp2">✦</span>
+    <span class="sparkle sp3">✦</span>
+    <span class="sparkle sp4">✦</span>
+  </div>
+  <div id="name">User Name</div>
+  <div id="combo">x0</div>
+</div>
+<script>
+  const card = document.getElementById('card');
+  const giftImg = document.getElementById('gift-img');
+  const nameEl = document.getElementById('name');
+  const comboEl = document.getElementById('combo');
+  const sse = new EventSource('${sseUrl}');
+
+  sse.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    if (msg.type === 'full') {
+      if (msg.nameColor) nameEl.style.color = msg.nameColor;
+      if (!msg.data) { card.classList.remove('visible'); return; }
+      const d = msg.data;
+      giftImg.src = d.giftPictureUrl || '';
+      nameEl.textContent = d.nickname || '';
+      comboEl.textContent = 'x' + (d.comboCount || 0).toLocaleString('pt-BR');
+      card.classList.remove('visible');
+      void card.offsetWidth;
+      card.classList.add('visible');
+    }
+  };
+</script>
+</body>
+</html>`;
+}
+
 // START SERVER
 // ============================================
 server.listen(PORT, () => {
