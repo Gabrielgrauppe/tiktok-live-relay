@@ -50,7 +50,8 @@ function getRoom(roomId) {
       topScore: { title: 'TOP', desc: '', subtitle: 'PONTUAÇÃO', name: '', avatar: '', valor: 0 },
       topGift: null,
       topCombo: null,
-      topGiftsNameColor: '#FFD700'
+      topGiftConfig: { label: 'Maior Presente', labelColor: '#ffffff', nameColor: '#FFD700', valueColor: '#ffffff' },
+      topComboConfig: { label: 'Maior Combo', labelColor: '#ffffff', nameColor: '#FFD700', comboColor: '#ff6464' }
     };
   }
   return rooms[roomId];
@@ -306,7 +307,7 @@ app.get('/sse/:roomId/top-score', (req, res) => {
 app.get('/sse/:roomId/top-gift', (req, res) => {
   const room = getRoom(req.params.roomId);
   res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
-  res.write(`data: ${JSON.stringify({ type: 'full', data: room.topGift, nameColor: room.topGiftsNameColor })}\n\n`);
+  res.write(`data: ${JSON.stringify({ type: 'full', data: room.topGift, config: room.topGiftConfig })}\n\n`);
   room.sseClients.topGift.push(res);
   req.on('close', () => { room.sseClients.topGift = room.sseClients.topGift.filter(c => c !== res); });
 });
@@ -315,7 +316,7 @@ app.get('/sse/:roomId/top-gift', (req, res) => {
 app.get('/sse/:roomId/top-combo', (req, res) => {
   const room = getRoom(req.params.roomId);
   res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
-  res.write(`data: ${JSON.stringify({ type: 'full', data: room.topCombo, nameColor: room.topGiftsNameColor })}\n\n`);
+  res.write(`data: ${JSON.stringify({ type: 'full', data: room.topCombo, config: room.topComboConfig })}\n\n`);
   room.sseClients.topCombo.push(res);
   req.on('close', () => { room.sseClients.topCombo = room.sseClients.topCombo.filter(c => c !== res); });
 });
@@ -549,34 +550,37 @@ wss.on('connection', (ws) => {
       // Top Gift update
       if (msg.type === 'top-gift-update') {
         room.topGift = { giftName: msg.giftName, giftPictureUrl: msg.giftPictureUrl, diamonds: msg.diamonds, nickname: msg.nickname, profilePictureUrl: msg.profilePictureUrl };
-        const ev = JSON.stringify({ type: 'full', data: room.topGift, nameColor: room.topGiftsNameColor });
+        const ev = JSON.stringify({ type: 'full', data: room.topGift, config: room.topGiftConfig });
         room.sseClients.topGift.forEach(c => { try { c.write(`data: ${ev}\n\n`); } catch(e){} });
       }
 
       // Top Combo update
       if (msg.type === 'top-combo-update') {
         room.topCombo = { giftName: msg.giftName, giftPictureUrl: msg.giftPictureUrl, comboCount: msg.comboCount, nickname: msg.nickname, profilePictureUrl: msg.profilePictureUrl };
-        const ev = JSON.stringify({ type: 'full', data: room.topCombo, nameColor: room.topGiftsNameColor });
+        const ev = JSON.stringify({ type: 'full', data: room.topCombo, config: room.topComboConfig });
         room.sseClients.topCombo.forEach(c => { try { c.write(`data: ${ev}\n\n`); } catch(e){} });
       }
 
-      // Top Gifts name color config
-      if (msg.type === 'top-gifts-config') {
-        room.topGiftsNameColor = msg.nameColor || '#FFD700';
-        const evG = JSON.stringify({ type: 'full', data: room.topGift, nameColor: room.topGiftsNameColor });
-        const evC = JSON.stringify({ type: 'full', data: room.topCombo, nameColor: room.topGiftsNameColor });
-        room.sseClients.topGift.forEach(c => { try { c.write(`data: ${evG}\n\n`); } catch(e){} });
-        room.sseClients.topCombo.forEach(c => { try { c.write(`data: ${evC}\n\n`); } catch(e){} });
+      // Top Gift config
+      if (msg.type === 'top-gift-config') {
+        room.topGiftConfig = { label: msg.label || 'Maior Presente', labelColor: msg.labelColor || '#ffffff', nameColor: msg.nameColor || '#FFD700', valueColor: msg.valueColor || '#ffffff' };
+        const ev = JSON.stringify({ type: 'full', data: room.topGift, config: room.topGiftConfig });
+        room.sseClients.topGift.forEach(c => { try { c.write(`data: ${ev}\n\n`); } catch(e){} });
+      }
+
+      // Top Combo config
+      if (msg.type === 'top-combo-config') {
+        room.topComboConfig = { label: msg.label || 'Maior Combo', labelColor: msg.labelColor || '#ffffff', nameColor: msg.nameColor || '#FFD700', comboColor: msg.comboColor || '#ff6464' };
+        const ev = JSON.stringify({ type: 'full', data: room.topCombo, config: room.topComboConfig });
+        room.sseClients.topCombo.forEach(c => { try { c.write(`data: ${ev}\n\n`); } catch(e){} });
       }
 
       // Top Gifts reset
       if (msg.type === 'top-gifts-reset') {
         room.topGift = null;
         room.topCombo = null;
-        const evG = JSON.stringify({ type: 'full', data: null, nameColor: room.topGiftsNameColor });
-        const evC = JSON.stringify({ type: 'full', data: null, nameColor: room.topGiftsNameColor });
-        room.sseClients.topGift.forEach(c => { try { c.write(`data: ${evG}\n\n`); } catch(e){} });
-        room.sseClients.topCombo.forEach(c => { try { c.write(`data: ${evC}\n\n`); } catch(e){} });
+        room.sseClients.topGift.forEach(c => { try { c.write(`data: ${JSON.stringify({ type: 'full', data: null, config: room.topGiftConfig })}\n\n`); } catch(e){} });
+        room.sseClients.topCombo.forEach(c => { try { c.write(`data: ${JSON.stringify({ type: 'full', data: null, config: room.topComboConfig })}\n\n`); } catch(e){} });
       }
 
     } catch (e) {}
@@ -3562,6 +3566,7 @@ function getTopGiftHTML(roomId) {
 <script>
   const card = document.getElementById('card');
   const giftImg = document.getElementById('gift-img');
+  const labelEl = document.getElementById('label');
   const nameEl = document.getElementById('name');
   const valNum = document.getElementById('val-num');
   const sse = new EventSource('${sseUrl}');
@@ -3569,14 +3574,21 @@ function getTopGiftHTML(roomId) {
   sse.onmessage = (e) => {
     const msg = JSON.parse(e.data);
     if (msg.type === 'full') {
-      if (msg.nameColor) nameEl.style.color = msg.nameColor;
+      if (msg.config) {
+        const cfg = msg.config;
+        labelEl.textContent = cfg.label || 'Maior Presente';
+        labelEl.style.color = cfg.labelColor || '#ffffff';
+        nameEl.style.color = cfg.nameColor || '#FFD700';
+        nameEl.style.textShadow = '0 2px 8px rgba(0,0,0,0.8), 0 0 20px ' + (cfg.nameColor || '#FFD700') + '44';
+        valNum.parentElement.style.color = cfg.valueColor || '#ffffff';
+      }
       if (!msg.data) { card.classList.remove('visible'); return; }
       const d = msg.data;
       giftImg.src = d.giftPictureUrl || '';
       nameEl.textContent = d.nickname || '';
       valNum.textContent = (d.diamonds || 0).toLocaleString('pt-BR');
       card.classList.remove('visible');
-      void card.offsetWidth; // force reflow for animation replay
+      void card.offsetWidth;
       card.classList.add('visible');
     }
   };
@@ -3703,6 +3715,7 @@ function getTopComboHTML(roomId) {
 <script>
   const card = document.getElementById('card');
   const giftImg = document.getElementById('gift-img');
+  const labelEl = document.getElementById('label');
   const nameEl = document.getElementById('name');
   const comboEl = document.getElementById('combo');
   const sse = new EventSource('${sseUrl}');
@@ -3710,7 +3723,15 @@ function getTopComboHTML(roomId) {
   sse.onmessage = (e) => {
     const msg = JSON.parse(e.data);
     if (msg.type === 'full') {
-      if (msg.nameColor) nameEl.style.color = msg.nameColor;
+      if (msg.config) {
+        const cfg = msg.config;
+        labelEl.textContent = cfg.label || 'Maior Combo';
+        labelEl.style.color = cfg.labelColor || '#ffffff';
+        nameEl.style.color = cfg.nameColor || '#FFD700';
+        nameEl.style.textShadow = '0 2px 8px rgba(0,0,0,0.8), 0 0 20px ' + (cfg.nameColor || '#FFD700') + '44';
+        comboEl.style.color = cfg.comboColor || '#ff6464';
+        comboEl.style.textShadow = '0 2px 8px rgba(0,0,0,0.8), 0 0 16px ' + (cfg.comboColor || '#ff6464') + '88';
+      }
       if (!msg.data) { card.classList.remove('visible'); return; }
       const d = msg.data;
       giftImg.src = d.giftPictureUrl || '';
