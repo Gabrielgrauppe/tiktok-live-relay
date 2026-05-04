@@ -3161,11 +3161,14 @@ function getTopScoreHTML(roomId) {
     padding: 22px 20px 10px; position:relative;
   }
   .avatar-crown {
-    font-size:30px; margin-bottom:-10px; z-index:2; position:relative;
-    filter: drop-shadow(0 3px 8px rgba(0,0,0,0.9));
+    font-size:62px; margin-bottom:-18px; z-index:2; position:relative;
+    filter:
+      drop-shadow(0 0 8px rgba(255,200,0,0.95))
+      drop-shadow(0 0 18px rgba(255,160,0,0.7))
+      drop-shadow(0 4px 12px rgba(0,0,0,0.9));
     animation: float 3s ease-in-out infinite;
   }
-  @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
+  @keyframes float { 0%,100%{transform:translateY(0) scale(1)} 50%{transform:translateY(-6px) scale(1.04)} }
 
   .avatar-ring {
     width:116px; height:116px; border-radius:50%; overflow:hidden;
@@ -3176,16 +3179,7 @@ function getTopScoreHTML(roomId) {
   }
   .avatar-ring img { width:100%; height:100%; object-fit:cover; }
 
-  /* Sheriff star badge on avatar */
-  .sheriff-star {
-    position:absolute; bottom:12px; right:calc(50% - 58px - 10px);
-    width:28px; height:28px;
-    background: radial-gradient(circle at 40% 35%, #fff0a0, #d4a020 48%, #8a6200);
-    clip-path: polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);
-    box-shadow: 0 0 10px rgba(255,210,0,0.6);
-    animation: star-pulse 2s ease-in-out infinite;
-  }
-  @keyframes star-pulse { 0%,100%{box-shadow:0 0 10px rgba(255,210,0,0.5)} 50%{box-shadow:0 0 20px rgba(255,210,0,0.9)} }
+  /* Sheriff star removida */
 
   .name-txt {
     margin-top:12px; font-size:15px; color:#ffd966; letter-spacing:1px;
@@ -3238,7 +3232,6 @@ function getTopScoreHTML(roomId) {
   <div class="avatar-wrap">
     <div class="avatar-crown">👑</div>
     <div class="avatar-ring" id="avatar-el">${String.fromCodePoint(128100)}</div>
-    <div class="sheriff-star"></div>
     <div class="name-txt" id="name-el">—</div>
   </div>
 
