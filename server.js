@@ -3163,11 +3163,11 @@ function getTopScoreHTML(roomId) {
   }
   .avatar-crown {
     margin-bottom:-18px; z-index:2; position:relative;
+    mix-blend-mode: multiply;
     animation: float 3s ease-in-out infinite;
   }
   .avatar-crown img {
     display:block; width:148px; height:auto;
-    mix-blend-mode: multiply;
     filter:
       drop-shadow(0 0 8px rgba(255,200,0,0.85))
       drop-shadow(0 0 18px rgba(255,150,0,0.45))
