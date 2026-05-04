@@ -10,6 +10,7 @@ const PORT = process.env.PORT || 10000;
 
 // Serve background images for overlays
 app.get('/velho-oeste.png', (req, res) => res.sendFile(__dirname + '/velho-oeste.png'));
+app.get('/crown.svg', (req, res) => res.sendFile(__dirname + '/crown.svg'));
 
 // Health check endpoint
 app.get('/', (req, res) => res.send('OK'));
@@ -3162,13 +3163,16 @@ function getTopScoreHTML(roomId) {
   }
   .avatar-crown {
     margin-bottom:-18px; z-index:2; position:relative;
-    filter:
-      drop-shadow(0 0 7px rgba(255,200,0,0.9))
-      drop-shadow(0 0 18px rgba(255,150,0,0.5))
-      drop-shadow(0 5px 14px rgba(0,0,0,0.95));
     animation: float 3s ease-in-out infinite;
   }
-  .avatar-crown svg { display:block; }
+  .avatar-crown img {
+    display:block; width:148px; height:auto;
+    filter:
+      drop-shadow(0 0 8px rgba(255,200,0,0.85))
+      drop-shadow(0 0 18px rgba(255,150,0,0.45))
+      drop-shadow(0 4px 12px rgba(0,0,0,0.9));
+  }
+  .avatar-crown-DISABLED { display:none; }
   @keyframes float { 0%,100%{transform:translateY(0) scale(1)} 50%{transform:translateY(-6px) scale(1.03)} }
 
   .avatar-ring {
@@ -3231,7 +3235,8 @@ function getTopScoreHTML(roomId) {
   </div>
 
   <div class="avatar-wrap">
-    <div class="avatar-crown"><svg xmlns="http://www.w3.org/2000/svg" width="162" height="88" viewBox="0 0 200 108">
+    <div class="avatar-crown"><img src="/crown.svg" alt="crown"/></div>
+    <div class="avatar-crown-DISABLED"><svg xmlns="http://www.w3.org/2000/svg" width="162" height="88" viewBox="0 0 200 108">
   <defs>
     <!-- Gradiente dourado para pontas (diagonal metalico) -->
     <linearGradient id="gSpk" x1="20%" y1="0%" x2="80%" y2="100%">
