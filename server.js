@@ -3203,7 +3203,7 @@ function getTopScoreHTML(roomId) {
     border:1px solid rgba(201,164,74,0.25); border-radius:4px;
     position:relative;
   }
-  .value-box::before { content:'❧'; position:absolute; top:-10px; left:50%; transform:translateX(-50%); color:#c9a44a; font-size:16px; background:#1c0e04; padding:0 6px; }
+  .value-box::before { display:none; }
 
   .subtitle-txt {
     font-size:8px; letter-spacing:3px; color:rgba(201,164,74,0.6);
