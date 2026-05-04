@@ -26,7 +26,7 @@ function getRoom(roomId) {
     rooms[roomId] = {
       sseClients: {
         edits1: [], edits2: [], edits3: [],
-        coins: [], likes: [],
+        coins: [], likes: [], points: [],
         characters: [],
         jar: [],
         scoreboard: [],
@@ -41,8 +41,10 @@ function getRoom(roomId) {
       },
       coinsRanking: {},
       likesRanking: {},
+      pointsRanking: {},
       coinsConfig: { bg: 'transparent', side: 'left', theme: 'clean', customColor: '' },
       likesConfig: { bg: 'transparent', side: 'left', theme: 'clean', customColor: '' },
+      pointsConfig: { bg: 'transparent', side: 'left', theme: 'clean', customColor: '', label: 'points', valueColor: '#f1c40f', labelColor: '#aaaaaa', nameColor: '#ffffff' },
       jarTheme: 'clean',
       jarCustomColor: '',
       jarCapacity: 1000,
@@ -185,6 +187,12 @@ app.get('/overlay/:roomId/top-gift', (req, res) => {
   res.send(getTopGiftHTML(req.params.roomId));
 });
 
+// Points ranking overlay
+app.get('/overlay/:roomId/ranking/points', (req, res) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(getRankingPointsHTML(req.params.roomId));
+});
+
 // Top Combo overlay
 app.get('/overlay/:roomId/top-combo', (req, res) => {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -227,6 +235,15 @@ app.get('/sse/:roomId/ranking/coins', (req, res) => {
   req.on('close', () => {
     room.sseClients.coins = room.sseClients.coins.filter(c => c !== res);
   });
+});
+
+app.get('/sse/:roomId/ranking/points', (req, res) => {
+  const room = getRoom(req.params.roomId);
+  res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
+  res.write(`data: ${JSON.stringify({ type: 'config', ...room.pointsConfig })}\n\n`);
+  res.write(`data: ${JSON.stringify({ type: 'full', data: room.pointsRanking })}\n\n`);
+  room.sseClients.points.push(res);
+  req.on('close', () => { room.sseClients.points = room.sseClients.points.filter(c => c !== res); });
 });
 
 app.get('/sse/:roomId/ranking/likes', (req, res) => {
@@ -436,15 +453,34 @@ wss.on('connection', (ws) => {
         });
       }
 
+      // Points ranking
+      if (msg.type === 'points') {
+        room.pointsRanking = msg.data;
+        const event = JSON.stringify({ type: 'full', data: msg.data });
+        room.sseClients.points.forEach(client => {
+          try { client.write(`data: ${event}\n\n`); } catch (e) {}
+        });
+      }
+
       // Ranking config update (bg color, side)
       if (msg.type === 'ranking-config') {
-        const target = msg.ranking; // 'coins' or 'likes'
+        const target = msg.ranking; // 'coins', 'likes' or 'points'
         const config = { bg: msg.bg || 'transparent', side: msg.side || 'left', theme: msg.theme || 'clean', customColor: msg.customColor || '' };
         if (target === 'coins') room.coinsConfig = config;
         if (target === 'likes') room.likesConfig = config;
         const event = JSON.stringify({ type: 'config', ...config });
         const clients = room.sseClients[target] || [];
         clients.forEach(client => {
+          try { client.write(`data: ${event}\n\n`); } catch (e) {}
+        });
+      }
+
+      // Points config update (colors, label, theme, side)
+      if (msg.type === 'points-config') {
+        const { type: _t, ...cfg } = msg;
+        room.pointsConfig = { ...room.pointsConfig, ...cfg };
+        const event = JSON.stringify({ type: 'config', ...room.pointsConfig });
+        room.sseClients.points.forEach(client => {
           try { client.write(`data: ${event}\n\n`); } catch (e) {}
         });
       }
@@ -1313,6 +1349,189 @@ function getRankingHTML(roomId, type) {
   const dynStyle = document.createElement('style');
   dynStyle.id = 'dynamic-style';
   document.head.appendChild(dynStyle);
+</script>
+</body>
+</html>`;
+}
+
+function getRankingPointsHTML(roomId) {
+  const sseUrl = `/sse/${roomId}/ranking/points`;
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=MedievalSharp&family=Press+Start+2P&family=Rye&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:transparent; font-family:'Segoe UI',-apple-system,sans-serif; color:white; padding:16px; overflow-y:auto; transition:background 0.3s; }
+  .ranking-list { display:flex; flex-direction:column; gap:6px; }
+  .ranking-item { display:flex; align-items:center; gap:10px; flex-direction:row; background:transparent; border-radius:12px; padding:8px 14px; transition:all 0.3s; }
+  .pos { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:800; flex-shrink:0; }
+  .pos-1 { background:linear-gradient(135deg,#f1c40f,#e67e22); color:#1a1a2e; }
+  .pos-2 { background:linear-gradient(135deg,#bdc3c7,#95a5a6); color:#1a1a2e; }
+  .pos-3 { background:linear-gradient(135deg,#e67e22,#d35400); color:#1a1a2e; }
+  .pos-other { background:rgba(255,255,255,0.15); color:rgba(255,255,255,0.6); }
+  .avatar { width:42px; height:42px; border-radius:50%; background:rgba(255,255,255,0.1); overflow:hidden; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:16px; }
+  .avatar img { width:100%; height:100%; object-fit:cover; }
+  .avatar-frame-1 { border:3px solid #f1c40f; box-shadow:0 0 12px rgba(241,196,15,0.5); }
+  .avatar-frame-2 { border:3px solid #bdc3c7; box-shadow:0 0 10px rgba(189,195,199,0.4); }
+  .avatar-frame-3 { border:3px solid #e67e22; box-shadow:0 0 10px rgba(230,126,34,0.4); }
+  .user-info { flex:1; min-width:0; text-align:left; }
+  .user-name { font-size:14px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-shadow:0 1px 4px rgba(0,0,0,0.8); }
+  .user-value { font-size:13px; font-weight:800; text-shadow:0 1px 4px rgba(0,0,0,0.8); }
+  .val-num { }
+  .val-label { font-size:11px; font-weight:600; margin-left:3px; }
+  .empty { text-align:center; color:rgba(255,255,255,0.3); padding:40px; font-size:14px; }
+
+  /* THEME: CLEAN */
+  .theme-clean .ranking-item { background:transparent; }
+  /* THEME: NEON */
+  .theme-neon .ranking-item { background:rgba(10,10,30,0.7); border:1px solid rgba(0,212,255,0.3); box-shadow:0 0 8px rgba(0,212,255,0.1); }
+  .theme-neon .user-name { color:#00d4ff; text-shadow:0 0 8px rgba(0,212,255,0.5); }
+  .theme-neon .avatar-frame-1 { border-color:#00d4ff; box-shadow:0 0 15px rgba(0,212,255,0.6); }
+  .theme-neon .avatar-frame-2 { border-color:#ff3366; box-shadow:0 0 12px rgba(255,51,102,0.4); }
+  .theme-neon .avatar-frame-3 { border-color:#ffd700; box-shadow:0 0 12px rgba(255,215,0,0.4); }
+  /* THEME: MEDIEVAL */
+  .theme-medieval .ranking-item { background:rgba(30,20,10,0.8); border:1px solid rgba(201,164,74,0.4); font-family:'MedievalSharp',cursive; }
+  .theme-medieval .avatar-frame-1 { border-color:#ffd700; box-shadow:0 0 15px rgba(255,215,0,0.5); }
+  .theme-medieval .avatar-frame-2 { border-color:#c0c0c0; box-shadow:0 0 12px rgba(192,192,192,0.4); }
+  .theme-medieval .avatar-frame-3 { border-color:#cd7f32; box-shadow:0 0 12px rgba(205,127,50,0.4); }
+  /* THEME: RETRO */
+  .theme-retro .ranking-item { background:rgba(0,0,0,0.85); border:1px solid #39ff14; font-family:'Press Start 2P',monospace; }
+  .theme-retro .user-name { color:#39ff14; font-size:10px; text-shadow:0 0 6px rgba(57,255,20,0.6); }
+  .theme-retro .avatar-frame-1 { border-color:#39ff14; box-shadow:0 0 10px rgba(57,255,20,0.6); }
+  .theme-retro .avatar-frame-2 { border-color:#00ffff; }
+  .theme-retro .avatar-frame-3 { border-color:#ff00ff; }
+  /* THEME: FIRE */
+  .theme-fire .ranking-item { background:rgba(40,10,0,0.8); border:1px solid rgba(255,107,53,0.4); }
+  .theme-fire .user-name { color:#fff44f; }
+  .theme-fire .avatar-frame-1 { border-color:#ff4500; box-shadow:0 0 15px rgba(255,69,0,0.6),0 0 30px rgba(255,69,0,0.3); }
+  .theme-fire .avatar-frame-2 { border-color:#ff6b35; }
+  .theme-fire .avatar-frame-3 { border-color:#ffd700; }
+  /* THEME: ICE */
+  .theme-ice .ranking-item { background:rgba(10,20,40,0.8); border:1px solid rgba(135,206,235,0.3); }
+  .theme-ice .user-name { color:#e0f0ff; }
+  .theme-ice .avatar-frame-1 { border-color:#87ceeb; box-shadow:0 0 15px rgba(135,206,235,0.6); }
+  .theme-ice .avatar-frame-2 { border-color:#b0e0e6; }
+  .theme-ice .avatar-frame-3 { border-color:#4fc3f7; }
+  /* THEME: ROYALTY */
+  @keyframes royalGlow { 0%,100%{box-shadow:0 0 15px rgba(255,215,0,0.4),0 0 30px rgba(186,133,255,0.2);} 50%{box-shadow:0 0 25px rgba(255,215,0,0.7),0 0 50px rgba(186,133,255,0.4);} }
+  @keyframes crownFloat { 0%,100%{transform:translateY(0) rotate(-5deg);} 50%{transform:translateY(-3px) rotate(5deg);} }
+  .theme-royalty .ranking-item { background:linear-gradient(135deg,rgba(60,20,100,0.9),rgba(40,10,70,0.85),rgba(60,20,100,0.9)); border:1px solid rgba(255,215,0,0.35); box-shadow:inset 0 0 20px rgba(186,133,255,0.08),0 2px 8px rgba(0,0,0,0.3); position:relative; }
+  .theme-royalty .ranking-item:nth-child(1) { border:2px solid rgba(255,215,0,0.7); animation:royalGlow 3s ease-in-out infinite; background:linear-gradient(135deg,rgba(80,30,120,0.95),rgba(50,15,80,0.9),rgba(80,30,120,0.95)); }
+  .theme-royalty .ranking-item:nth-child(1)::before { content:'\\1F451'; position:absolute; top:-18px; left:50%; transform:translateX(-50%); font-size:28px; animation:crownFloat 2s ease-in-out infinite; filter:drop-shadow(0 0 8px rgba(255,215,0,0.8)); z-index:10; }
+  .theme-royalty .ranking-item:nth-child(1) { margin-top:14px; }
+  .theme-royalty .user-name { color:#f0e6ff; font-weight:800; }
+  .theme-royalty .ranking-item:nth-child(1) .user-name { color:#ffd700; text-shadow:0 0 10px rgba(255,215,0,0.6); }
+  .theme-royalty .pos-1 { background:linear-gradient(135deg,#ffd700,#ffaa00,#ffd700); color:#3a1560; font-weight:900; box-shadow:0 0 12px rgba(255,215,0,0.6); }
+  .theme-royalty .pos-2 { background:linear-gradient(135deg,#c0c0c0,#e8e8e8,#c0c0c0); color:#3a1560; }
+  .theme-royalty .pos-3 { background:linear-gradient(135deg,#cd7f32,#e8a952,#cd7f32); color:#3a1560; }
+  .theme-royalty .avatar-frame-1 { border:3px solid #ffd700; box-shadow:0 0 20px rgba(255,215,0,0.7),0 0 40px rgba(255,215,0,0.3),inset 0 0 8px rgba(255,215,0,0.2); }
+  .theme-royalty .avatar-frame-2 { border:3px solid #c0c0c0; box-shadow:0 0 15px rgba(192,192,192,0.5); }
+  .theme-royalty .avatar-frame-3 { border:3px solid #cd7f32; box-shadow:0 0 12px rgba(205,127,50,0.5); }
+  /* THEME: CUSTOM */
+  .theme-custom .ranking-item { background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); }
+</style>
+</head>
+<body>
+<div id="theme-wrapper" class="theme-clean">
+<div class="ranking-list" id="list"></div>
+</div>
+<script>
+  const list = document.getElementById('list');
+  const wrapper = document.getElementById('theme-wrapper');
+  const evtSource = new EventSource('${sseUrl}');
+  let currentSide = 'left';
+  let cfg = { label:'points', valueColor:'#f1c40f', labelColor:'#aaaaaa', nameColor:'#ffffff' };
+
+  evtSource.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    if (msg.type === 'full') renderRanking(msg.data);
+    if (msg.type === 'config') applyConfig(msg);
+  };
+
+  function applyConfig(c) {
+    if (c.label !== undefined) cfg.label = c.label;
+    if (c.valueColor !== undefined) cfg.valueColor = c.valueColor;
+    if (c.labelColor !== undefined) cfg.labelColor = c.labelColor;
+    if (c.nameColor !== undefined) cfg.nameColor = c.nameColor;
+    if (c.theme !== undefined) {
+      wrapper.className = 'theme-' + c.theme;
+      document.body.style.background = (c.theme === 'custom' && c.customColor) ? c.customColor : 'transparent';
+    }
+    if (c.bg !== undefined && c.theme !== 'custom') document.body.style.background = c.bg;
+    if (c.side !== undefined) {
+      currentSide = c.side;
+      document.querySelectorAll('.ranking-item').forEach(item => item.style.flexDirection = c.side === 'right' ? 'row-reverse' : 'row');
+      document.querySelectorAll('.user-info').forEach(el => el.style.textAlign = c.side === 'right' ? 'right' : 'left');
+    }
+    // Re-apply colors to existing items
+    document.querySelectorAll('.user-name').forEach(el => el.style.color = cfg.nameColor);
+    document.querySelectorAll('.val-num').forEach(el => el.style.color = cfg.valueColor);
+    document.querySelectorAll('.val-label').forEach(el => el.style.color = cfg.labelColor);
+  }
+
+  function renderRanking(data) {
+    const sorted = Object.entries(data)
+      .map(([id, d]) => ({ id, ...d }))
+      .sort((a, b) => b.points - a.points)
+      .slice(0, 20);
+    list.innerHTML = '';
+    if (sorted.length === 0) {
+      list.innerHTML = '<div class="empty">Nenhum ponto registrado ainda</div>';
+      return;
+    }
+    sorted.forEach((u, i) => {
+      const pos = i + 1;
+      const item = document.createElement('div');
+      item.className = 'ranking-item';
+      item.style.flexDirection = currentSide === 'right' ? 'row-reverse' : 'row';
+
+      const posEl = document.createElement('div');
+      posEl.className = 'pos ' + (pos <= 3 ? 'pos-' + pos : 'pos-other');
+      posEl.textContent = pos;
+
+      const av = document.createElement('div');
+      av.className = 'avatar' + (pos <= 3 ? ' avatar-frame-' + pos : '');
+      if (u.profilePictureUrl) {
+        const img = document.createElement('img');
+        img.src = u.profilePictureUrl;
+        img.onerror = () => { av.textContent = '\\u{1F464}'; };
+        av.appendChild(img);
+      } else { av.textContent = '\\u{1F464}'; }
+
+      const info = document.createElement('div');
+      info.className = 'user-info';
+      info.style.textAlign = currentSide === 'right' ? 'right' : 'left';
+
+      const name = document.createElement('div');
+      name.className = 'user-name';
+      name.style.color = cfg.nameColor;
+      name.textContent = u.nickname || u.id;
+
+      const valWrap = document.createElement('div');
+      valWrap.className = 'user-value';
+
+      const valNum = document.createElement('span');
+      valNum.className = 'val-num';
+      valNum.style.color = cfg.valueColor;
+      valNum.textContent = (u.points || 0).toLocaleString('pt-BR');
+
+      const valLbl = document.createElement('span');
+      valLbl.className = 'val-label';
+      valLbl.style.color = cfg.labelColor;
+      valLbl.textContent = ' ' + cfg.label;
+
+      valWrap.appendChild(valNum);
+      valWrap.appendChild(valLbl);
+      info.appendChild(name);
+      info.appendChild(valWrap);
+      item.appendChild(posEl);
+      item.appendChild(av);
+      item.appendChild(info);
+      list.appendChild(item);
+    });
+  }
 </script>
 </body>
 </html>`;
