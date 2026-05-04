@@ -3162,16 +3162,12 @@ function getTopScoreHTML(roomId) {
     padding: 22px 20px 10px; position:relative;
   }
   .avatar-crown {
-    margin-bottom:-18px; z-index:2; position:relative;
-    mix-blend-mode: multiply;
-    animation: float 3s ease-in-out infinite;
-  }
-  .avatar-crown img {
-    display:block; width:148px; height:auto;
+    font-size:62px; margin-bottom:-14px; z-index:2; position:relative;
     filter:
-      drop-shadow(0 0 8px rgba(255,200,0,0.85))
-      drop-shadow(0 0 18px rgba(255,150,0,0.45))
-      drop-shadow(0 4px 12px rgba(0,0,0,0.9));
+      drop-shadow(0 0 6px rgba(255,200,0,0.9))
+      drop-shadow(0 0 16px rgba(255,150,0,0.55))
+      drop-shadow(0 5px 14px rgba(0,0,0,0.95));
+    animation: float 3s ease-in-out infinite;
   }
   .avatar-crown-DISABLED { display:none; }
   @keyframes float { 0%,100%{transform:translateY(0) scale(1)} 50%{transform:translateY(-6px) scale(1.03)} }
@@ -3236,7 +3232,7 @@ function getTopScoreHTML(roomId) {
   </div>
 
   <div class="avatar-wrap">
-    <div class="avatar-crown"><img src="/crown.svg" alt="crown"/></div>
+    <div class="avatar-crown">👑</div>
     <div class="avatar-crown-DISABLED"><svg xmlns="http://www.w3.org/2000/svg" width="162" height="88" viewBox="0 0 200 108">
   <defs>
     <!-- Gradiente dourado para pontas (diagonal metalico) -->
