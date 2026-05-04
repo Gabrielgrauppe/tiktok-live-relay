@@ -3161,10 +3161,10 @@ function getTopScoreHTML(roomId) {
     padding: 22px 20px 10px; position:relative;
   }
   .avatar-crown {
-    margin-bottom:-14px; z-index:2; position:relative;
+    margin-bottom:-18px; z-index:2; position:relative;
     filter:
-      drop-shadow(0 0 6px rgba(255,200,0,0.9))
-      drop-shadow(0 0 16px rgba(255,150,0,0.55))
+      drop-shadow(0 0 7px rgba(255,200,0,0.9))
+      drop-shadow(0 0 18px rgba(255,150,0,0.5))
       drop-shadow(0 5px 14px rgba(0,0,0,0.95));
     animation: float 3s ease-in-out infinite;
   }
@@ -3231,115 +3231,178 @@ function getTopScoreHTML(roomId) {
   </div>
 
   <div class="avatar-wrap">
-    <div class="avatar-crown"><svg xmlns="http://www.w3.org/2000/svg" width="158" height="78" viewBox="0 0 158 78">
+    <div class="avatar-crown"><svg xmlns="http://www.w3.org/2000/svg" width="162" height="88" viewBox="0 0 200 108">
   <defs>
-    <!-- Gradiente principal dourado com destaque 3D -->
-    <linearGradient id="goldMain" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%"   stop-color="#fff6a0"/>
-      <stop offset="18%"  stop-color="#ffd84d"/>
-      <stop offset="45%"  stop-color="#c8820a"/>
-      <stop offset="72%"  stop-color="#f0b020"/>
-      <stop offset="100%" stop-color="#7a4800"/>
+    <!-- Gradiente dourado para pontas (diagonal metalico) -->
+    <linearGradient id="gSpk" x1="20%" y1="0%" x2="80%" y2="100%">
+      <stop offset="0%"   stop-color="#fff8b0"/>
+      <stop offset="18%"  stop-color="#fdd84a"/>
+      <stop offset="50%"  stop-color="#c07810"/>
+      <stop offset="75%"  stop-color="#e8a818"/>
+      <stop offset="100%" stop-color="#7a4400"/>
     </linearGradient>
-    <!-- Gradiente lateral esquerdo das pontas -->
-    <linearGradient id="goldLeft" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%"   stop-color="#ffe566"/>
-      <stop offset="100%" stop-color="#9a5c00"/>
+    <!-- Gradiente para pontas laterais -->
+    <linearGradient id="gSpkS" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#ffe878"/>
+      <stop offset="40%"  stop-color="#d09018"/>
+      <stop offset="100%" stop-color="#7a4400"/>
     </linearGradient>
-    <!-- Gradiente lateral direito das pontas -->
-    <linearGradient id="goldRight" x1="100%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%"   stop-color="#ffe566"/>
-      <stop offset="100%" stop-color="#9a5c00"/>
+    <!-- Gradiente da banda (cilindro) -->
+    <linearGradient id="gBnd" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%"   stop-color="#f8e050"/>
+      <stop offset="22%"  stop-color="#d4a018"/>
+      <stop offset="52%"  stop-color="#c08010"/>
+      <stop offset="78%"  stop-color="#dca028"/>
+      <stop offset="100%" stop-color="#8a4e00"/>
     </linearGradient>
-    <!-- Base da coroa -->
-    <linearGradient id="goldBase" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%"   stop-color="#f0b020"/>
-      <stop offset="40%"  stop-color="#c07010"/>
-      <stop offset="100%" stop-color="#7a4800"/>
+    <!-- Elipse superior da banda -->
+    <linearGradient id="gEllT" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%"   stop-color="#f8e060"/>
+      <stop offset="100%" stop-color="#b07c10"/>
     </linearGradient>
-    <!-- Brilho interno (highlight) -->
-    <linearGradient id="highlight" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%"   stop-color="rgba(255,255,255,0.55)"/>
-      <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
-    </linearGradient>
-    <!-- Gema vermelha -->
-    <radialGradient id="gemRed" cx="35%" cy="30%" r="65%">
-      <stop offset="0%"   stop-color="#ff9999"/>
-      <stop offset="40%"  stop-color="#cc1111"/>
-      <stop offset="100%" stop-color="#6b0000"/>
+    <!-- Esfera dourada (orb) - efeito 3D -->
+    <radialGradient id="gOrb" cx="32%" cy="27%" r="68%">
+      <stop offset="0%"   stop-color="#fffce0"/>
+      <stop offset="22%"  stop-color="#ffe050"/>
+      <stop offset="62%"  stop-color="#b07010"/>
+      <stop offset="100%" stop-color="#5a3000"/>
     </radialGradient>
-    <!-- Gema azul -->
-    <radialGradient id="gemBlue" cx="35%" cy="30%" r="65%">
-      <stop offset="0%"   stop-color="#aaddff"/>
-      <stop offset="40%"  stop-color="#1155cc"/>
-      <stop offset="100%" stop-color="#001155"/>
+    <!-- Rubi vermelho -->
+    <radialGradient id="gRub" cx="33%" cy="28%" r="68%">
+      <stop offset="0%"   stop-color="#ffb0b0"/>
+      <stop offset="32%"  stop-color="#e01818"/>
+      <stop offset="100%" stop-color="#6a0000"/>
     </radialGradient>
-    <!-- Gema verde -->
-    <radialGradient id="gemGreen" cx="35%" cy="30%" r="65%">
-      <stop offset="0%"   stop-color="#aaffcc"/>
-      <stop offset="40%"  stop-color="#118833"/>
-      <stop offset="100%" stop-color="#003311"/>
+    <!-- Esmeralda verde -->
+    <radialGradient id="gEmd" cx="33%" cy="28%" r="68%">
+      <stop offset="0%"   stop-color="#b0ffb8"/>
+      <stop offset="32%"  stop-color="#18a030"/>
+      <stop offset="100%" stop-color="#004010"/>
     </radialGradient>
-    <!-- Sombra da coroa -->
-    <filter id="crownShadow" x="-5%" y="-5%" width="110%" height="120%">
-      <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="rgba(0,0,0,0.7)"/>
+    <!-- Interior inferior da banda (reflexo avermelhado) -->
+    <linearGradient id="gInn" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%"   stop-color="#b85a00"/>
+      <stop offset="100%" stop-color="#2a0c00"/>
+    </linearGradient>
+    <!-- Sombra geral -->
+    <filter id="drp" x="-8%" y="-5%" width="120%" height="125%">
+      <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="rgba(0,0,0,0.85)"/>
     </filter>
   </defs>
 
-  <g filter="url(#crownShadow)">
-    <!-- ══ CORPO PRINCIPAL DA COROA ══ -->
-    <!-- Silhueta da coroa: base sólida + 5 pontas -->
+  <g filter="url(#drp)">
+
+    <!-- ══ PONTAS (desenhadas antes da banda) ══ -->
+
+    <!-- Ponta far-esquerda -->
+    <path d="M 4,68 C 6,58 12,52 18,42 C 24,52 29,58 33,68 Z" fill="url(#gSpkS)"/>
+    <path d="M 4,68 C 6,58 12,52 18,42 C 14,52 10,58 9,68 Z"  fill="rgba(255,255,160,0.28)"/>
+
+    <!-- Ponta meio-esquerda -->
+    <path d="M 36,68 C 40,52 47,34 55,18 C 63,34 70,52 74,68 Z" fill="url(#gSpk)"/>
+    <path d="M 36,68 C 40,52 47,34 55,18 C 50,34 45,52 42,68 Z" fill="rgba(255,255,160,0.30)"/>
+    <path d="M 74,68 C 70,52 63,34 55,18 C 59,34 65,52 68,68 Z" fill="rgba(0,0,0,0.16)"/>
+
     <!-- Ponta central (mais alta) -->
-    <polygon points="79,2 91,32 67,32"        fill="url(#goldLeft)"/>
-    <!-- Ponta esquerda interna -->
-    <polygon points="45,10 55,34 35,34"       fill="url(#goldLeft)"/>
-    <!-- Ponta direita interna -->
-    <polygon points="113,10 123,34 103,34"    fill="url(#goldRight)"/>
-    <!-- Ponta esquerda externa -->
-    <polygon points="14,18 24,36 4,36"        fill="url(#goldLeft)"/>
-    <!-- Ponta direita externa -->
-    <polygon points="144,18 154,36 134,36"    fill="url(#goldRight)"/>
+    <path d="M 76,68 C 80,46 88,24 100,9 C 112,24 120,46 124,68 Z" fill="url(#gSpk)"/>
+    <path d="M 76,68 C 80,46 88,24 100,9 C 94,24 87,46 84,68 Z"    fill="rgba(255,255,160,0.35)"/>
+    <path d="M 124,68 C 120,46 112,24 100,9 C 106,24 113,46 116,68 Z" fill="rgba(0,0,0,0.18)"/>
 
-    <!-- BASE DA COROA (retângulo inferior) -->
-    <rect x="4" y="34" width="150" height="34" rx="3" fill="url(#goldBase)"/>
+    <!-- Ponta meio-direita -->
+    <path d="M 126,68 C 130,52 137,34 145,18 C 153,34 160,52 164,68 Z" fill="url(#gSpk)"/>
+    <path d="M 126,68 C 130,52 137,34 145,18 C 140,34 135,52 132,68 Z" fill="rgba(255,255,160,0.20)"/>
+    <path d="M 164,68 C 160,52 153,34 145,18 C 149,34 155,52 159,68 Z" fill="rgba(0,0,0,0.16)"/>
 
-    <!-- Linha de destaque superior da base -->
-    <rect x="4" y="34" width="150" height="7" rx="2" fill="url(#highlight)" opacity="0.5"/>
+    <!-- Ponta far-direita -->
+    <path d="M 167,68 C 171,58 177,52 182,42 C 188,52 193,58 196,68 Z" fill="url(#gSpkS)"/>
+    <path d="M 196,68 C 193,58 188,52 182,42 C 186,52 190,58 191,68 Z" fill="rgba(0,0,0,0.14)"/>
 
-    <!-- Linha decorativa horizontal na base -->
-    <rect x="10" y="52" width="138" height="2.5" rx="1" fill="rgba(255,230,80,0.45)"/>
-    <rect x="10" y="59" width="138" height="1.5" rx="1" fill="rgba(0,0,0,0.25)"/>
+    <!-- ══ BANDA CILÍNDRICA ══ -->
+    <!-- Interior inferior (reflexo avermelhado) -->
+    <rect x="4" y="94" width="192" height="10" rx="3" fill="url(#gInn)"/>
+    <!-- Corpo principal da banda -->
+    <rect x="4" y="66" width="192" height="34" fill="url(#gBnd)"/>
+    <!-- Brilho superior da banda -->
+    <rect x="4" y="66" width="192" height="15" fill="rgba(255,255,255,0.11)"/>
+    <!-- Linha divisória horizontal -->
+    <rect x="4" y="80" width="192" height="1.8" fill="rgba(255,220,60,0.32)"/>
+    <!-- Elipse superior (perspectiva 3D) -->
+    <ellipse cx="100" cy="66" rx="96" ry="8"   fill="url(#gEllT)"/>
+    <ellipse cx="100" cy="66" rx="96" ry="8"   fill="rgba(255,255,255,0.20)"/>
+    <ellipse cx="100" cy="66" rx="96" ry="8"   fill="none" stroke="#ffe050" stroke-width="1.4"/>
+    <!-- Elipse inferior -->
+    <ellipse cx="100" cy="100" rx="96" ry="6.5" fill="#9a5a08"/>
+    <ellipse cx="100" cy="100" rx="96" ry="6.5" fill="none" stroke="#dda018" stroke-width="1" opacity="0.7"/>
 
-    <!-- Rebites / pregos dourados na base -->
-    <circle cx="22"  cy="43" r="4" fill="#ffe066" stroke="#8a5500" stroke-width="1"/>
-    <circle cx="22"  cy="43" r="2" fill="rgba(255,255,255,0.6)"/>
-    <circle cx="79"  cy="43" r="4" fill="#ffe066" stroke="#8a5500" stroke-width="1"/>
-    <circle cx="79"  cy="43" r="2" fill="rgba(255,255,255,0.6)"/>
-    <circle cx="136" cy="43" r="4" fill="#ffe066" stroke="#8a5500" stroke-width="1"/>
-    <circle cx="136" cy="43" r="2" fill="rgba(255,255,255,0.6)"/>
+    <!-- ══ PÉROLAS — borda superior ══ -->
+    <circle cx="16"  cy="59" r="2.4" fill="white" opacity="0.88"/>
+    <circle cx="31"  cy="56" r="2.4" fill="white" opacity="0.88"/>
+    <circle cx="47"  cy="55" r="2.4" fill="white" opacity="0.88"/>
+    <circle cx="63"  cy="54" r="2.4" fill="white" opacity="0.88"/>
+    <circle cx="82"  cy="57" r="2.4" fill="white" opacity="0.88"/>
+    <circle cx="100" cy="57" r="2.4" fill="white" opacity="0.88"/>
+    <circle cx="118" cy="57" r="2.4" fill="white" opacity="0.88"/>
+    <circle cx="137" cy="54" r="2.4" fill="white" opacity="0.88"/>
+    <circle cx="153" cy="55" r="2.4" fill="white" opacity="0.88"/>
+    <circle cx="169" cy="56" r="2.4" fill="white" opacity="0.88"/>
+    <circle cx="184" cy="59" r="2.4" fill="white" opacity="0.88"/>
 
-    <!-- Rebordo dourado brilhante no topo da base -->
-    <rect x="4" y="33" width="150" height="3.5" rx="1" fill="#ffe566"/>
+    <!-- ══ PÉROLAS — borda inferior ══ -->
+    <circle cx="16"  cy="97"  r="2.2" fill="white" opacity="0.72"/>
+    <circle cx="34"  cy="99"  r="2.2" fill="white" opacity="0.72"/>
+    <circle cx="52"  cy="100" r="2.2" fill="white" opacity="0.72"/>
+    <circle cx="70"  cy="101" r="2.2" fill="white" opacity="0.72"/>
+    <circle cx="88"  cy="102" r="2.2" fill="white" opacity="0.72"/>
+    <circle cx="100" cy="102" r="2.2" fill="white" opacity="0.72"/>
+    <circle cx="112" cy="102" r="2.2" fill="white" opacity="0.72"/>
+    <circle cx="130" cy="101" r="2.2" fill="white" opacity="0.72"/>
+    <circle cx="148" cy="100" r="2.2" fill="white" opacity="0.72"/>
+    <circle cx="166" cy="99"  r="2.2" fill="white" opacity="0.72"/>
+    <circle cx="184" cy="97"  r="2.2" fill="white" opacity="0.72"/>
 
-    <!-- Rebordo inferior da base -->
-    <rect x="4" y="64" width="150" height="4" rx="2" fill="#ffe566" opacity="0.7"/>
+    <!-- ══ PEDRAS NA BANDA ══ -->
+    <!-- Rubi central -->
+    <circle cx="100" cy="82" r="8"   fill="#a06010" stroke="#ffe050" stroke-width="1.2"/>
+    <circle cx="100" cy="82" r="6"   fill="url(#gRub)"/>
+    <circle cx="98"  cy="80" r="2.2" fill="rgba(255,255,255,0.62)"/>
+    <!-- Esmeralda esquerda -->
+    <circle cx="66"  cy="83" r="6.5" fill="#a06010" stroke="#ffe050" stroke-width="1"/>
+    <circle cx="66"  cy="83" r="4.8" fill="url(#gEmd)"/>
+    <circle cx="64.5" cy="81.5" r="1.8" fill="rgba(255,255,255,0.60)"/>
+    <!-- Rubi direito -->
+    <circle cx="134" cy="83" r="6.5" fill="#a06010" stroke="#ffe050" stroke-width="1"/>
+    <circle cx="134" cy="83" r="4.8" fill="url(#gRub)"/>
+    <circle cx="132.5" cy="81.5" r="1.8" fill="rgba(255,255,255,0.60)"/>
+    <!-- Esmeralda far-esquerda -->
+    <circle cx="30"  cy="79" r="5.2" fill="#a06010" stroke="#ffe050" stroke-width="0.8"/>
+    <circle cx="30"  cy="79" r="3.8" fill="url(#gEmd)"/>
+    <circle cx="28.8" cy="77.8" r="1.4" fill="rgba(255,255,255,0.60)"/>
+    <!-- Rubi far-direito -->
+    <circle cx="170" cy="79" r="5.2" fill="#a06010" stroke="#ffe050" stroke-width="0.8"/>
+    <circle cx="170" cy="79" r="3.8" fill="url(#gRub)"/>
+    <circle cx="168.8" cy="77.8" r="1.4" fill="rgba(255,255,255,0.60)"/>
 
-    <!-- ══ GEMAS NAS PONTAS ══ -->
-    <!-- Gema vermelha — ponta central -->
-    <circle cx="79" cy="6"   r="6.5" fill="url(#gemRed)"   stroke="rgba(255,255,255,0.4)" stroke-width="0.8"/>
-    <circle cx="77" cy="4.5" r="2"   fill="rgba(255,255,255,0.55)"/>
+    <!-- ══ PEDRAS NAS PONTAS ══ -->
+    <!-- Rubi — ponta central -->
+    <circle cx="100" cy="34" r="7"   fill="#a06010" stroke="#ffe050" stroke-width="0.8"/>
+    <circle cx="100" cy="34" r="5.2" fill="url(#gRub)"/>
+    <circle cx="98.2" cy="32.2" r="2"  fill="rgba(255,255,255,0.62)"/>
+    <!-- Rubi — ponta meio-esquerda -->
+    <circle cx="55"  cy="46" r="5.5" fill="#a06010" stroke="#ffe050" stroke-width="0.8"/>
+    <circle cx="55"  cy="46" r="4"   fill="url(#gRub)"/>
+    <circle cx="53.5" cy="44.5" r="1.5" fill="rgba(255,255,255,0.60)"/>
+    <!-- Rubi — ponta meio-direita -->
+    <circle cx="145" cy="46" r="5.5" fill="#a06010" stroke="#ffe050" stroke-width="0.8"/>
+    <circle cx="145" cy="46" r="4"   fill="url(#gRub)"/>
+    <circle cx="143.5" cy="44.5" r="1.5" fill="rgba(255,255,255,0.60)"/>
 
-    <!-- Gema azul — pontas internas -->
-    <circle cx="45" cy="13"  r="5.5" fill="url(#gemBlue)"  stroke="rgba(255,255,255,0.4)" stroke-width="0.8"/>
-    <circle cx="43" cy="11.5" r="1.8" fill="rgba(255,255,255,0.55)"/>
-    <circle cx="113" cy="13" r="5.5" fill="url(#gemBlue)"  stroke="rgba(255,255,255,0.4)" stroke-width="0.8"/>
-    <circle cx="111" cy="11.5" r="1.8" fill="rgba(255,255,255,0.55)"/>
+    <!-- ══ ESFERAS DOURADAS no topo das pontas ══ -->
+    <circle cx="18"  cy="42" r="6"   fill="url(#gOrb)" stroke="#c07808" stroke-width="0.6"/>
+    <circle cx="55"  cy="17" r="7.5" fill="url(#gOrb)" stroke="#c07808" stroke-width="0.6"/>
+    <circle cx="100" cy="8"  r="9"   fill="url(#gOrb)" stroke="#c07808" stroke-width="0.6"/>
+    <circle cx="145" cy="17" r="7.5" fill="url(#gOrb)" stroke="#c07808" stroke-width="0.6"/>
+    <circle cx="182" cy="42" r="6"   fill="url(#gOrb)" stroke="#c07808" stroke-width="0.6"/>
 
-    <!-- Gema verde — pontas externas -->
-    <circle cx="14"  cy="21" r="4.5" fill="url(#gemGreen)" stroke="rgba(255,255,255,0.4)" stroke-width="0.8"/>
-    <circle cx="12.5" cy="19.5" r="1.5" fill="rgba(255,255,255,0.55)"/>
-    <circle cx="144" cy="21" r="4.5" fill="url(#gemGreen)" stroke="rgba(255,255,255,0.4)" stroke-width="0.8"/>
-    <circle cx="142.5" cy="19.5" r="1.5" fill="rgba(255,255,255,0.55)"/>
   </g>
 </svg></div>
     <div class="avatar-ring" id="avatar-el">${String.fromCodePoint(128100)}</div>
