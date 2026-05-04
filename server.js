@@ -3162,7 +3162,7 @@ function getTopScoreHTML(roomId) {
     padding: 22px 20px 10px; position:relative;
   }
   .avatar-crown {
-    font-size:62px; margin-bottom:-14px; z-index:2; position:relative;
+    font-size:32px; margin-bottom:-14px; z-index:2; position:relative;
     filter:
       drop-shadow(0 0 6px rgba(255,200,0,0.9))
       drop-shadow(0 0 16px rgba(255,150,0,0.55))
