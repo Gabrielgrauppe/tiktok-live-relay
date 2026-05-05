@@ -285,7 +285,7 @@ app.get('/sse/:roomId/scoreboard', (req, res) => {
     'Connection': 'keep-alive'
   });
   // Send current state
-  const sb = room.scoreboard || { left: 0, right: 0, leftName: 'Streamer', rightName: 'Chat', theme: 'neon' };
+  const sb = room.scoreboard || { left: 0, right: 0, leftName: 'Streamer', rightName: 'Chat', theme: 'neon', style: 'default', customColor: '' };
   res.write(`data: ${JSON.stringify({ type: 'full', ...sb })}\n\n`);
   room.sseClients.scoreboard.push(res);
   req.on('close', () => {
@@ -502,7 +502,7 @@ wss.on('connection', (ws) => {
 
       // Scoreboard update
       if (msg.type === 'scoreboard') {
-        room.scoreboard = { left: msg.left, right: msg.right, leftName: msg.leftName, rightName: msg.rightName, theme: msg.theme, customColor: msg.customColor || '' };
+        room.scoreboard = { left: msg.left, right: msg.right, leftName: msg.leftName, rightName: msg.rightName, theme: msg.theme, customColor: msg.customColor || '', style: msg.style || 'default' };
         const event = JSON.stringify({ type: 'full', ...room.scoreboard });
         room.sseClients.scoreboard.forEach(client => {
           try { client.write(`data: ${event}\n\n`); } catch (e) {}
@@ -2167,6 +2167,85 @@ function getScoreboardHTML(roomId) {
   }
   .score-pop { animation: scorePop 0.3s ease-out; }
 
+  /* ===== ESTILO PREMIUM ===== */
+  .style-premium .sb-side {
+    background: rgba(10,10,30,0.92) !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    clip-path: polygon(14px 0%,calc(100% - 14px) 0%,100% 14px,100% calc(100% - 14px),calc(100% - 14px) 100%,14px 100%,0% calc(100% - 14px),0% 14px);
+    padding: 14px 28px;
+    position: relative;
+  }
+  .style-premium .sb-vs {
+    background: rgba(10,10,30,0.92) !important;
+    border: none !important;
+    border-radius: 0 !important;
+    clip-path: polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);
+    width: 58px; height: 58px;
+    box-shadow: none !important;
+  }
+  /* Corner accent dots — hidden by default, shown in premium */
+  .sb-ca { display:none; position:absolute; width:18px; height:18px; z-index:5; }
+  .style-premium .sb-ca { display:block; }
+  .sb-ca-tl { top:2px; left:2px; }
+  .sb-ca-tr { top:2px; right:2px; }
+  .sb-ca-bl { bottom:2px; left:2px; }
+  .sb-ca-br { bottom:2px; right:2px; }
+  .sb-ca::before { content:''; position:absolute; width:3px; height:14px; }
+  .sb-ca::after  { content:''; position:absolute; width:14px; height:3px; }
+  .sb-ca-tl::before { top:0; left:0; }  .sb-ca-tl::after { top:0; left:0; }
+  .sb-ca-tr::before { top:0; right:0; } .sb-ca-tr::after { top:0; right:0; }
+  .sb-ca-bl::before { bottom:0; left:0; } .sb-ca-bl::after { bottom:0; left:0; }
+  .sb-ca-br::before { bottom:0; right:0; } .sb-ca-br::after { bottom:0; right:0; }
+
+  /* Theme colors for premium corners & VS glow */
+  .style-premium.theme-neon .sb-side.left .sb-ca::before,
+  .style-premium.theme-neon .sb-side.left .sb-ca::after { background:#00d4ff; box-shadow:0 0 6px rgba(0,212,255,.8); }
+  .style-premium.theme-neon .sb-side.right .sb-ca::before,
+  .style-premium.theme-neon .sb-side.right .sb-ca::after { background:#ff3366; box-shadow:0 0 6px rgba(255,51,102,.8); }
+  .style-premium.theme-neon .sb-vs { color:#ffd700; text-shadow:0 0 12px rgba(255,215,0,.8); filter:drop-shadow(0 0 8px rgba(255,215,0,.5)); }
+  .style-premium.theme-neon .sb-name.left-n { color:#00d4ff; text-shadow:0 0 12px rgba(0,212,255,.7); }
+  .style-premium.theme-neon .sb-name.right-n { color:#ff3366; text-shadow:0 0 12px rgba(255,51,102,.7); }
+  .style-premium.theme-neon .sb-score { color:#fff; text-shadow:0 0 20px rgba(255,255,255,.4); }
+
+  .style-premium.theme-fire .sb-ca::before,
+  .style-premium.theme-fire .sb-ca::after { background:#ff6b35; box-shadow:0 0 6px rgba(255,107,53,.8); }
+  .style-premium.theme-fire .sb-vs { color:#ffd700; text-shadow:0 0 12px rgba(255,215,0,.8); filter:drop-shadow(0 0 8px rgba(255,107,53,.5)); }
+  .style-premium.theme-fire .sb-name { color:#ffd700; text-shadow:0 0 10px rgba(255,107,53,.8); }
+  .style-premium.theme-fire .sb-score { color:#fff; text-shadow:0 0 15px rgba(255,107,53,.5); }
+
+  .style-premium.theme-ice .sb-ca::before,
+  .style-premium.theme-ice .sb-ca::after { background:#87ceeb; box-shadow:0 0 6px rgba(135,206,235,.8); }
+  .style-premium.theme-ice .sb-vs { color:#b0e0ff; filter:drop-shadow(0 0 8px rgba(135,206,235,.5)); }
+  .style-premium.theme-ice .sb-name { color:#b0e0ff; text-shadow:0 0 10px rgba(135,206,235,.7); }
+  .style-premium.theme-ice .sb-score { color:#fff; text-shadow:0 0 15px rgba(135,206,235,.5); }
+
+  .style-premium.theme-medieval .sb-ca::before,
+  .style-premium.theme-medieval .sb-ca::after { background:#ffd700; box-shadow:0 0 6px rgba(255,215,0,.8); }
+  .style-premium.theme-medieval .sb-vs { color:#ffd700; filter:drop-shadow(0 0 8px rgba(255,215,0,.5)); }
+  .style-premium.theme-medieval .sb-name { color:#ffd700; text-shadow:0 0 10px rgba(255,215,0,.6); }
+  .style-premium.theme-medieval .sb-score { color:#fff; text-shadow:0 0 15px rgba(255,215,0,.4); }
+
+  .style-premium.theme-retro .sb-side { background:#111 !important; }
+  .style-premium.theme-retro .sb-ca::before,
+  .style-premium.theme-retro .sb-ca::after { background:#00ff41; box-shadow:0 0 6px rgba(0,255,65,.8); }
+  .style-premium.theme-retro .sb-vs { color:#ffff00; filter:drop-shadow(0 0 8px rgba(0,255,65,.5)); }
+  .style-premium.theme-retro .sb-name { color:#00ff41; }
+  .style-premium.theme-retro .sb-score { color:#fff; }
+
+  .style-premium.theme-royalty .sb-ca::before,
+  .style-premium.theme-royalty .sb-ca::after { background:#ffd700; box-shadow:0 0 6px rgba(255,215,0,.8); }
+  .style-premium.theme-royalty .sb-vs { color:#ffd700; filter:drop-shadow(0 0 8px rgba(255,215,0,.5)); }
+  .style-premium.theme-royalty .sb-name { color:#ffd700; }
+  .style-premium.theme-royalty .sb-score { color:#fff; text-shadow:0 0 20px rgba(186,133,255,.5); }
+
+  .style-premium.theme-custom .sb-ca::before,
+  .style-premium.theme-custom .sb-ca::after { background:#fff; box-shadow:0 0 6px rgba(255,255,255,.6); }
+  .style-premium.theme-custom .sb-vs { color:#fff; }
+  .style-premium.theme-custom .sb-name { color:#fff; }
+  .style-premium.theme-custom .sb-score { color:#fff; }
+
   /* ===== THEME: CUSTOM ===== */
   .theme-custom .sb-side.left {
     background: rgba(0,0,0,0.5);
@@ -2195,12 +2274,16 @@ function getScoreboardHTML(roomId) {
 
 <div class="scoreboard theme-neon" id="scoreboard">
   <div class="sb-side left">
-    <div class="sb-name" id="sb-left-name">Streamer</div>
+    <div class="sb-ca sb-ca-tl"></div><div class="sb-ca sb-ca-tr"></div>
+    <div class="sb-ca sb-ca-bl"></div><div class="sb-ca sb-ca-br"></div>
+    <div class="sb-name left-n" id="sb-left-name">Streamer</div>
     <div class="sb-score" id="sb-left-score">0</div>
   </div>
-  <div class="sb-vs">VS</div>
+  <div class="sb-vs" id="sb-vs">VS</div>
   <div class="sb-side right">
-    <div class="sb-name" id="sb-right-name">Chat</div>
+    <div class="sb-ca sb-ca-tl"></div><div class="sb-ca sb-ca-tr"></div>
+    <div class="sb-ca sb-ca-bl"></div><div class="sb-ca sb-ca-br"></div>
+    <div class="sb-name right-n" id="sb-right-name">Chat</div>
     <div class="sb-score" id="sb-right-score">0</div>
   </div>
 </div>
@@ -2233,9 +2316,10 @@ function getScoreboardHTML(roomId) {
       if (String(msg.left) !== oldLeft) popAnim(leftScore);
       if (String(msg.right) !== oldRight) popAnim(rightScore);
 
-      // Apply theme
+      // Apply style + theme
       const theme = msg.theme || 'neon';
-      board.className = 'scoreboard theme-' + theme;
+      const style = msg.style || 'default';
+      board.className = 'scoreboard style-' + style + ' theme-' + theme;
       if (theme === 'custom' && msg.customColor) {
         document.body.style.background = msg.customColor;
       } else {
