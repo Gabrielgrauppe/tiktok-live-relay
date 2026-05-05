@@ -52,7 +52,7 @@ function getRoom(roomId) {
       goalLikes: { text: '', target: 5000, current: 0, theme: 'neon', customColor: '', style: 'default' },
       goalPix: { text: '', target: 100, current: 0, theme: 'neon', customColor: '', style: 'default' },
       membros: { title: 'Membros', members: [] },
-      membrosAcao: { title: 'Membros Ação', members: [], giftName: 'Heart Me', giftImage: '', subText: '', subValue: '' },
+      membrosAcao: { title: 'Membros Ação', members: [], giftName: 'Heart Me', giftImage: '', subText: '', subValue: '', subTextSize: 9, subValueSize: 9 },
       topScore: { title: 'TOP', desc: '', subtitle: 'PONTUAÇÃO', name: '', avatar: '', valor: 0 },
       topGift: null,
       topCombo: null,
@@ -603,11 +603,13 @@ wss.on('connection', (ws) => {
 
       // Membros Ação
       if (msg.type === 'membros-acao-config') {
-        room.membrosAcao.title    = msg.title    ?? room.membrosAcao.title;
-        room.membrosAcao.giftName = msg.giftName ?? room.membrosAcao.giftName;
-        room.membrosAcao.giftImage= msg.giftImage?? room.membrosAcao.giftImage;
-        room.membrosAcao.subText  = msg.subText  ?? room.membrosAcao.subText;
-        room.membrosAcao.subValue = msg.subValue ?? room.membrosAcao.subValue;
+        room.membrosAcao.title        = msg.title        ?? room.membrosAcao.title;
+        room.membrosAcao.giftName     = msg.giftName     ?? room.membrosAcao.giftName;
+        room.membrosAcao.giftImage    = msg.giftImage    ?? room.membrosAcao.giftImage;
+        room.membrosAcao.subText      = msg.subText      ?? room.membrosAcao.subText;
+        room.membrosAcao.subValue     = msg.subValue     ?? room.membrosAcao.subValue;
+        room.membrosAcao.subTextSize  = msg.subTextSize  ?? room.membrosAcao.subTextSize;
+        room.membrosAcao.subValueSize = msg.subValueSize ?? room.membrosAcao.subValueSize;
         const ev = JSON.stringify({ type: 'full', data: room.membrosAcao });
         room.sseClients.membrosAcao.forEach(c => { try { c.write(`data: ${ev}\n\n`); } catch(e){} });
       }
@@ -3958,9 +3960,11 @@ function getMembrosAcaoHTML(roomId) {
   const STEP   = CARD_W + GAP;
   const SPEED  = 80;
 
-  let subText  = '';
-  let subValue = '';
-  let animId   = null;
+  let subText      = '';
+  let subValue     = '';
+  let subTextSize  = 9;
+  let subValueSize = 9;
+  let animId       = null;
 
   const evtSource = new EventSource('${sseUrl}');
   evtSource.onmessage = (e) => {
@@ -3980,8 +3984,10 @@ function getMembrosAcaoHTML(roomId) {
     if (data.title)     titleEl.textContent = data.title;
     if (data.giftImage) { giftIcon.src = data.giftImage; giftIcon.style.display = ''; }
     else giftIcon.style.display = 'none';
-    subText  = data.subText  || '';
-    subValue = data.subValue || '';
+    subText      = data.subText      || '';
+    subValue     = data.subValue     || '';
+    subTextSize  = data.subTextSize  || 9;
+    subValueSize = data.subValueSize || 9;
 
     const incoming = data.members || [];
 
@@ -4026,7 +4032,21 @@ function getMembrosAcaoHTML(roomId) {
       if (subText || subValue) {
         const sub = document.createElement('div');
         sub.className = 'msub';
-        sub.textContent = [subText, subValue].filter(Boolean).join(' ');
+        if (subText) {
+          const st = document.createElement('span');
+          st.style.fontSize = subTextSize + 'px';
+          st.textContent = subText;
+          sub.appendChild(st);
+        }
+        if (subText && subValue) {
+          sub.appendChild(document.createTextNode(' '));
+        }
+        if (subValue) {
+          const sv = document.createElement('span');
+          sv.style.fontSize = subValueSize + 'px';
+          sv.textContent = subValue;
+          sub.appendChild(sv);
+        }
         el.appendChild(sub);
       }
 
