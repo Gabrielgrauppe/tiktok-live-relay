@@ -52,7 +52,7 @@ function getRoom(roomId) {
       goalLikes: { text: '', target: 5000, current: 0, theme: 'neon', customColor: '', style: 'default' },
       goalPix: { text: '', target: 100, current: 0, theme: 'neon', customColor: '', style: 'default' },
       membros: { title: 'Membros', members: [] },
-      membrosAcao: { title: 'Membros Ação', members: [], giftName: 'Heart Me', giftImage: '', subText: '', subValue: '', subTextSize: 9, subValueSize: 9, subTextColor: '#ffdc50', subValueColor: '#ffdc50' },
+      membrosAcao: { title: 'Membros Ação', members: [], giftName: 'Heart Me', giftImage: '', subText: '', subTextSize: 9, subValueSize: 9, subTextColor: '#ffdc50', subValueColor: '#ffdc50' },
       topScore: { title: 'TOP', desc: '', subtitle: 'PONTUAÇÃO', name: '', avatar: '', valor: 0 },
       topGift: null,
       topCombo: null,
@@ -607,7 +607,6 @@ wss.on('connection', (ws) => {
         room.membrosAcao.giftName     = msg.giftName     ?? room.membrosAcao.giftName;
         room.membrosAcao.giftImage    = msg.giftImage    ?? room.membrosAcao.giftImage;
         room.membrosAcao.subText      = msg.subText      ?? room.membrosAcao.subText;
-        room.membrosAcao.subValue     = msg.subValue     ?? room.membrosAcao.subValue;
         room.membrosAcao.subTextSize   = msg.subTextSize   ?? room.membrosAcao.subTextSize;
         room.membrosAcao.subValueSize  = msg.subValueSize  ?? room.membrosAcao.subValueSize;
         room.membrosAcao.subTextColor  = msg.subTextColor  ?? room.membrosAcao.subTextColor;
@@ -617,11 +616,15 @@ wss.on('connection', (ws) => {
       }
       if (msg.type === 'membros-acao-add') {
         const exists = room.membrosAcao.members.find(m => m.userId === msg.userId);
-        if (!exists) {
-          room.membrosAcao.members.push({ userId: msg.userId, nickname: msg.nickname, profilePictureUrl: msg.profilePictureUrl || '' });
-          const ev = JSON.stringify({ type: 'full', data: room.membrosAcao });
-          room.sseClients.membrosAcao.forEach(c => { try { c.write(`data: ${ev}\n\n`); } catch(e){} });
+        if (exists) {
+          exists.value = (exists.value || 0) + (msg.value || 0);
+          exists.nickname = msg.nickname || exists.nickname;
+          exists.profilePictureUrl = msg.profilePictureUrl || exists.profilePictureUrl;
+        } else {
+          room.membrosAcao.members.push({ userId: msg.userId, nickname: msg.nickname, profilePictureUrl: msg.profilePictureUrl || '', value: msg.value || 0 });
         }
+        const ev = JSON.stringify({ type: 'full', data: room.membrosAcao });
+        room.sseClients.membrosAcao.forEach(c => { try { c.write(`data: ${ev}\n\n`); } catch(e){} });
       }
       if (msg.type === 'membros-acao-reset') {
         room.membrosAcao.members = [];
@@ -3965,7 +3968,6 @@ function getMembrosAcaoHTML(roomId) {
   const SPEED  = 80;
 
   let subText       = '';
-  let subValue      = '';
   let subTextSize   = 9;
   let subValueSize  = 9;
   let subTextColor  = '#ffdc50';
@@ -3986,8 +3988,9 @@ function getMembrosAcaoHTML(roomId) {
   window.addEventListener('load', () => { vw = stage.offsetWidth || window.innerWidth || 800; });
   setTimeout(() => { vw = stage.offsetWidth || window.innerWidth || 800; }, 200);
 
-  function buildSubEl() {
-    if (!subText && !subValue) return null;
+  function buildSubEl(member) {
+    const val = member && member.value ? member.value : 0;
+    if (!subText && !val) return null;
     const sub = document.createElement('div');
     sub.className = 'msub';
     if (subText) {
@@ -3997,12 +4000,12 @@ function getMembrosAcaoHTML(roomId) {
       st.textContent = subText;
       sub.appendChild(st);
     }
-    if (subText && subValue) sub.appendChild(document.createTextNode(' '));
-    if (subValue) {
+    if (subText && val) sub.appendChild(document.createTextNode(' '));
+    if (val) {
       const sv = document.createElement('span');
       sv.style.fontSize = subValueSize + 'px';
       sv.style.color = subValueColor;
-      sv.textContent = subValue;
+      sv.textContent = val;
       sub.appendChild(sv);
     }
     return sub;
@@ -4013,7 +4016,6 @@ function getMembrosAcaoHTML(roomId) {
     if (data.giftImage) { giftIcon.src = data.giftImage; giftIcon.style.display = ''; }
     else giftIcon.style.display = 'none';
     subText       = data.subText       || '';
-    subValue      = data.subValue      || '';
     subTextSize   = data.subTextSize   || 9;
     subValueSize  = data.subValueSize  || 9;
     subTextColor  = data.subTextColor  || '#ffdc50';
@@ -4034,11 +4036,12 @@ function getMembrosAcaoHTML(roomId) {
     emptyEl.style.display = 'none';
     vw = stage.offsetWidth || window.innerWidth || 800;
 
-    // Update sub text/size on ALL existing cards (config may have changed)
+    // Update sub text/value on ALL existing cards (config or value may have changed)
     cards.forEach(card => {
+      const member = incoming.find(m => m.userId === card.userId);
       let old = card.el.querySelector('.msub');
       if (old) old.remove();
-      const fresh = buildSubEl();
+      const fresh = buildSubEl(member);
       if (fresh) card.el.appendChild(fresh);
     });
 
@@ -4066,7 +4069,7 @@ function getMembrosAcaoHTML(roomId) {
       el.appendChild(av);
       el.appendChild(nm);
 
-      const sub = buildSubEl();
+      const sub = buildSubEl(m);
       if (sub) el.appendChild(sub);
 
       stage.appendChild(el);
