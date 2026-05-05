@@ -17,6 +17,16 @@ app.get('/', (req, res) => res.send('OK'));
 app.get('/health', (req, res) => res.json({ status: 'ok', uptime: process.uptime(), rooms: Object.keys(rooms).length }));
 
 // ============================================
+// ACCESS KEY VALIDATION
+// ============================================
+const ACCESS_KEY = 'LS2026-INS'; // Mude aqui para revogar acesso
+
+app.get('/validate-key', (req, res) => {
+  const key = req.query.k || '';
+  res.json({ valid: key === ACCESS_KEY });
+});
+
+// ============================================
 // ROOMS - each user has a unique room
 // ============================================
 const rooms = {};
