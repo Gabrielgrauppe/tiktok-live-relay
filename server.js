@@ -3980,6 +3980,26 @@ function getMembrosAcaoHTML(roomId) {
   window.addEventListener('load', () => { vw = stage.offsetWidth || window.innerWidth || 800; });
   setTimeout(() => { vw = stage.offsetWidth || window.innerWidth || 800; }, 200);
 
+  function buildSubEl() {
+    if (!subText && !subValue) return null;
+    const sub = document.createElement('div');
+    sub.className = 'msub';
+    if (subText) {
+      const st = document.createElement('span');
+      st.style.fontSize = subTextSize + 'px';
+      st.textContent = subText;
+      sub.appendChild(st);
+    }
+    if (subText && subValue) sub.appendChild(document.createTextNode(' '));
+    if (subValue) {
+      const sv = document.createElement('span');
+      sv.style.fontSize = subValueSize + 'px';
+      sv.textContent = subValue;
+      sub.appendChild(sv);
+    }
+    return sub;
+  }
+
   function applyFull(data) {
     if (data.title)     titleEl.textContent = data.title;
     if (data.giftImage) { giftIcon.src = data.giftImage; giftIcon.style.display = ''; }
@@ -4004,9 +4024,16 @@ function getMembrosAcaoHTML(roomId) {
     emptyEl.style.display = 'none';
     vw = stage.offsetWidth || window.innerWidth || 800;
 
-    // Only add members not already on stage
-    const newMembers = incoming.filter(m => !renderedIds.has(m.userId));
+    // Update sub text/size on ALL existing cards (config may have changed)
+    cards.forEach(card => {
+      let old = card.el.querySelector('.msub');
+      if (old) old.remove();
+      const fresh = buildSubEl();
+      if (fresh) card.el.appendChild(fresh);
+    });
 
+    // Add only members not yet on stage
+    const newMembers = incoming.filter(m => !renderedIds.has(m.userId));
     newMembers.forEach(m => {
       renderedIds.add(m.userId);
 
@@ -4018,9 +4045,9 @@ function getMembrosAcaoHTML(roomId) {
       if (m.profilePictureUrl) {
         const img = document.createElement('img');
         img.src = m.profilePictureUrl;
-        img.onerror = () => { av.innerHTML = '\\u{1F464}'; };
+        img.onerror = () => { av.innerHTML = ''; av.textContent = String.fromCodePoint(128100); };
         av.appendChild(img);
-      } else { av.textContent = '\\u{1F464}'; }
+      } else { av.textContent = String.fromCodePoint(128100); }
 
       const nm = document.createElement('div');
       nm.className = 'mn';
@@ -4029,26 +4056,8 @@ function getMembrosAcaoHTML(roomId) {
       el.appendChild(av);
       el.appendChild(nm);
 
-      if (subText || subValue) {
-        const sub = document.createElement('div');
-        sub.className = 'msub';
-        if (subText) {
-          const st = document.createElement('span');
-          st.style.fontSize = subTextSize + 'px';
-          st.textContent = subText;
-          sub.appendChild(st);
-        }
-        if (subText && subValue) {
-          sub.appendChild(document.createTextNode(' '));
-        }
-        if (subValue) {
-          const sv = document.createElement('span');
-          sv.style.fontSize = subValueSize + 'px';
-          sv.textContent = subValue;
-          sub.appendChild(sv);
-        }
-        el.appendChild(sub);
-      }
+      const sub = buildSubEl();
+      if (sub) el.appendChild(sub);
 
       stage.appendChild(el);
 
