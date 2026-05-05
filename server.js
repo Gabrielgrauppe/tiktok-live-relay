@@ -3958,11 +3958,9 @@ function getMembrosAcaoHTML(roomId) {
   const STEP   = CARD_W + GAP;
   const SPEED  = 80;
 
-  let members  = [];
   let subText  = '';
   let subValue = '';
   let animId   = null;
-  let positions = [];
 
   const evtSource = new EventSource('${sseUrl}');
   evtSource.onmessage = (e) => {
@@ -3970,82 +3968,102 @@ function getMembrosAcaoHTML(roomId) {
     if (msg.type === 'full') applyFull(msg.data);
   };
 
+  let cards      = [];
+  let renderedIds = new Set();
+  let lastTs     = null;
+  let vw         = 800;
+
+  window.addEventListener('load', () => { vw = stage.offsetWidth || window.innerWidth || 800; });
+  setTimeout(() => { vw = stage.offsetWidth || window.innerWidth || 800; }, 200);
+
   function applyFull(data) {
     if (data.title)     titleEl.textContent = data.title;
     if (data.giftImage) { giftIcon.src = data.giftImage; giftIcon.style.display = ''; }
     else giftIcon.style.display = 'none';
     subText  = data.subText  || '';
     subValue = data.subValue || '';
-    members  = data.members  || [];
-    rebuild();
-  }
 
-  function rebuild() {
-    if (animId) cancelAnimationFrame(animId);
-    stage.innerHTML = '';
-    if (members.length === 0) {
-      stage.appendChild(emptyEl);
+    const incoming = data.members || [];
+
+    // If list was reset (empty), clear everything
+    if (incoming.length === 0) {
+      if (animId) { cancelAnimationFrame(animId); animId = null; }
+      cards.forEach(c => c.el.remove());
+      cards = [];
+      renderedIds.clear();
       emptyEl.style.display = '';
       return;
     }
+
     emptyEl.style.display = 'none';
+    vw = stage.offsetWidth || window.innerWidth || 800;
 
-    const stageW = stage.offsetWidth || window.innerWidth;
-    // Build enough cards to fill 2× the stage width (loop)
-    const totalCards = members.length;
-    const loopW = totalCards * STEP;
+    // Only add members not already on stage
+    const newMembers = incoming.filter(m => !renderedIds.has(m.userId));
 
-    // Create 2 copies for seamless loop
-    positions = [];
-    [0, 1].forEach(copy => {
-      members.forEach((m, i) => {
-        const card = document.createElement('div');
-        card.className = 'mc';
+    newMembers.forEach(m => {
+      renderedIds.add(m.userId);
 
-        const av = document.createElement('div');
-        av.className = 'ma';
-        if (m.profilePictureUrl) {
-          const img = document.createElement('img');
-          img.src = m.profilePictureUrl;
-          img.onerror = () => { av.textContent = '\\u{1F464}'; };
-          av.appendChild(img);
-        } else { av.textContent = '\\u{1F464}'; }
+      const el = document.createElement('div');
+      el.className = 'mc';
 
-        const nm = document.createElement('div');
-        nm.className = 'mn';
-        nm.textContent = m.nickname || m.userId;
+      const av = document.createElement('div');
+      av.className = 'ma';
+      if (m.profilePictureUrl) {
+        const img = document.createElement('img');
+        img.src = m.profilePictureUrl;
+        img.onerror = () => { av.innerHTML = '\\u{1F464}'; };
+        av.appendChild(img);
+      } else { av.textContent = '\\u{1F464}'; }
 
-        card.appendChild(av);
-        card.appendChild(nm);
+      const nm = document.createElement('div');
+      nm.className = 'mn';
+      nm.textContent = m.nickname || m.userId;
 
-        if (subText || subValue) {
-          const sub = document.createElement('div');
-          sub.className = 'msub';
-          sub.textContent = [subText, subValue].filter(Boolean).join(' ');
-          card.appendChild(sub);
-        }
+      el.appendChild(av);
+      el.appendChild(nm);
 
-        const x = copy * loopW + i * STEP;
-        card.style.left = x + 'px';
-        stage.appendChild(card);
-        positions.push({ el: card, baseX: x, loopW });
-      });
+      if (subText || subValue) {
+        const sub = document.createElement('div');
+        sub.className = 'msub';
+        sub.textContent = [subText, subValue].filter(Boolean).join(' ');
+        el.appendChild(sub);
+      }
+
+      stage.appendChild(el);
+
+      // Place at end of queue, always past the right edge
+      const maxX = cards.length > 0
+        ? Math.max(...cards.map(c => c.x), vw - STEP) + STEP
+        : vw;
+      el.style.transform = 'translateX(' + maxX + 'px)';
+      cards.push({ el, x: maxX, userId: m.userId });
     });
 
-    let offset = 0;
-    let last = null;
-    function tick(ts) {
-      if (last !== null) {
-        const dt = (ts - last) / 1000;
-        offset += SPEED * dt;
-        if (offset >= loopW) offset -= loopW;
-        positions.forEach(p => {
-          p.el.style.transform = 'translateX(' + (-offset) + 'px)';
-        });
-      }
-      last = ts;
+    // Start animation if not already running
+    if (!animId && cards.length > 0) {
+      lastTs = null;
       animId = requestAnimationFrame(tick);
     }
+  }
+
+  function tick(ts) {
+    if (lastTs === null) lastTs = ts;
+    const dt = Math.min((ts - lastTs) / 1000, 0.05);
+    lastTs = ts;
+
+    cards.forEach(card => {
+      card.x -= SPEED * dt;
+
+      // When card fully exits left, place it after the rightmost card
+      if (card.x + CARD_W < 0) {
+        const maxX = Math.max(...cards.map(c => c.x), vw - STEP);
+        card.x = maxX + STEP;
+      }
+
+      card.el.style.transform = 'translateX(' + card.x + 'px)';
+    });
+
     animId = requestAnimationFrame(tick);
   }
 
