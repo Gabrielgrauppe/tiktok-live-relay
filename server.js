@@ -26,7 +26,7 @@ function getRoom(roomId) {
     rooms[roomId] = {
       sseClients: {
         edits1: [], edits2: [], edits3: [],
-        coins: [], likes: [], points: [],
+        coins: [], likes: [], points: [], membrosAcao: [],
         characters: [],
         jar: [],
         scoreboard: [],
@@ -52,6 +52,7 @@ function getRoom(roomId) {
       goalLikes: { text: '', target: 5000, current: 0, theme: 'neon', customColor: '', style: 'default' },
       goalPix: { text: '', target: 100, current: 0, theme: 'neon', customColor: '', style: 'default' },
       membros: { title: 'Membros', members: [] },
+      membrosAcao: { title: 'Membros Ação', members: [], giftName: 'Heart Me', giftImage: '', subText: '', subValue: '' },
       topScore: { title: 'TOP', desc: '', subtitle: 'PONTUAÇÃO', name: '', avatar: '', valor: 0 },
       topGift: null,
       topCombo: null,
@@ -187,6 +188,12 @@ app.get('/overlay/:roomId/top-gift', (req, res) => {
   res.send(getTopGiftHTML(req.params.roomId));
 });
 
+// Membros Ação overlay
+app.get('/overlay/:roomId/membros-acao', (req, res) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(getMembrosAcaoHTML(req.params.roomId));
+});
+
 // Points ranking overlay
 app.get('/overlay/:roomId/ranking/points', (req, res) => {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -235,6 +242,14 @@ app.get('/sse/:roomId/ranking/coins', (req, res) => {
   req.on('close', () => {
     room.sseClients.coins = room.sseClients.coins.filter(c => c !== res);
   });
+});
+
+app.get('/sse/:roomId/membros-acao', (req, res) => {
+  const room = getRoom(req.params.roomId);
+  res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
+  res.write(`data: ${JSON.stringify({ type: 'full', data: room.membrosAcao })}\n\n`);
+  room.sseClients.membrosAcao.push(res);
+  req.on('close', () => { room.sseClients.membrosAcao = room.sseClients.membrosAcao.filter(c => c !== res); });
 });
 
 app.get('/sse/:roomId/ranking/points', (req, res) => {
@@ -584,6 +599,30 @@ wss.on('connection', (ws) => {
         room.membros.members = [];
         const event = JSON.stringify({ type: 'full', data: room.membros });
         room.sseClients.membros.forEach(c => { try { c.write(`data: ${event}\n\n`); } catch(e){} });
+      }
+
+      // Membros Ação
+      if (msg.type === 'membros-acao-config') {
+        room.membrosAcao.title    = msg.title    ?? room.membrosAcao.title;
+        room.membrosAcao.giftName = msg.giftName ?? room.membrosAcao.giftName;
+        room.membrosAcao.giftImage= msg.giftImage?? room.membrosAcao.giftImage;
+        room.membrosAcao.subText  = msg.subText  ?? room.membrosAcao.subText;
+        room.membrosAcao.subValue = msg.subValue ?? room.membrosAcao.subValue;
+        const ev = JSON.stringify({ type: 'full', data: room.membrosAcao });
+        room.sseClients.membrosAcao.forEach(c => { try { c.write(`data: ${ev}\n\n`); } catch(e){} });
+      }
+      if (msg.type === 'membros-acao-add') {
+        const exists = room.membrosAcao.members.find(m => m.userId === msg.userId);
+        if (!exists) {
+          room.membrosAcao.members.push({ userId: msg.userId, nickname: msg.nickname, profilePictureUrl: msg.profilePictureUrl || '' });
+          const ev = JSON.stringify({ type: 'full', data: room.membrosAcao });
+          room.sseClients.membrosAcao.forEach(c => { try { c.write(`data: ${ev}\n\n`); } catch(e){} });
+        }
+      }
+      if (msg.type === 'membros-acao-reset') {
+        room.membrosAcao.members = [];
+        const ev = JSON.stringify({ type: 'full', data: room.membrosAcao });
+        room.sseClients.membrosAcao.forEach(c => { try { c.write(`data: ${ev}\n\n`); } catch(e){} });
       }
 
       // Top Gift update
@@ -3835,6 +3874,178 @@ function getMembrosHTML(roomId) {
       card.el.style.transform = 'translateX(' + card.x + 'px)';
     });
 
+    animId = requestAnimationFrame(tick);
+  }
+
+  function esc(s) { const d = document.createElement('div'); d.textContent = String(s); return d.innerHTML; }
+</script>
+</body>
+</html>`;
+}
+
+function getMembrosAcaoHTML(roomId) {
+  const sseUrl = `/sse/${roomId}/membros-acao`;
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:transparent; overflow:hidden; font-family:'Segoe UI',sans-serif; }
+  #container { display:flex; flex-direction:column; align-items:center; padding:10px 0 8px; width:100%; }
+  #title-row { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+  #gift-icon {
+    width:42px; height:42px; object-fit:contain; flex-shrink:0;
+    animation:giftPulse 2s ease-in-out infinite;
+    filter:drop-shadow(0 0 8px rgba(255,200,0,0.8));
+  }
+  @keyframes giftPulse {
+    0%,100% { transform:scale(1) rotate(-5deg); }
+    50%     { transform:scale(1.2) rotate(5deg); }
+  }
+  #title {
+    font-family:'Orbitron',sans-serif; font-size:16px; font-weight:900;
+    color:#fff; text-shadow:0 0 14px rgba(255,255,255,0.5),0 2px 4px rgba(0,0,0,0.9);
+    text-transform:uppercase; letter-spacing:2px;
+    padding:5px 22px; background:rgba(0,0,0,0.45);
+    border-radius:20px; border:1px solid rgba(255,255,255,0.18); white-space:nowrap;
+  }
+  #stage { width:100%; height:100px; overflow:hidden; position:relative; }
+  .mc {
+    position:absolute; top:4px;
+    display:flex; flex-direction:column; align-items:center; gap:4px;
+    width:80px; will-change:transform;
+  }
+  .ma {
+    width:58px; height:58px; border-radius:50%; overflow:hidden;
+    border:2px solid rgba(255,255,255,0.5); background:rgba(255,255,255,0.08);
+    display:flex; align-items:center; justify-content:center; font-size:26px;
+    box-shadow:0 0 10px rgba(0,0,0,0.5); flex-shrink:0;
+  }
+  .ma img { width:100%; height:100%; object-fit:cover; }
+  .mn {
+    font-size:10px; font-weight:700; color:#fff;
+    text-shadow:0 1px 3px rgba(0,0,0,0.95);
+    max-width:80px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; text-align:center;
+  }
+  .msub {
+    font-size:9px; font-weight:600; color:rgba(255,220,80,0.9);
+    text-shadow:0 1px 3px rgba(0,0,0,0.95);
+    max-width:80px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; text-align:center;
+  }
+  .empty-msg { color:rgba(255,255,255,0.35); font-size:13px; padding:20px 16px; text-align:center; width:100%; }
+</style>
+</head>
+<body>
+<div id="container">
+  <div id="title-row">
+    <img id="gift-icon" src="" alt="" onerror="this.style.display='none'">
+    <div id="title">Membros Ação</div>
+  </div>
+  <div id="stage">
+    <div class="empty-msg" id="empty-msg">Aguardando presentes...</div>
+  </div>
+</div>
+<script>
+  const titleEl  = document.getElementById('title');
+  const giftIcon = document.getElementById('gift-icon');
+  const stage    = document.getElementById('stage');
+  const emptyEl  = document.getElementById('empty-msg');
+
+  const CARD_W = 80;
+  const GAP    = 20;
+  const STEP   = CARD_W + GAP;
+  const SPEED  = 80;
+
+  let members  = [];
+  let subText  = '';
+  let subValue = '';
+  let animId   = null;
+  let positions = [];
+
+  const evtSource = new EventSource('${sseUrl}');
+  evtSource.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    if (msg.type === 'full') applyFull(msg.data);
+  };
+
+  function applyFull(data) {
+    if (data.title)     titleEl.textContent = data.title;
+    if (data.giftImage) { giftIcon.src = data.giftImage; giftIcon.style.display = ''; }
+    else giftIcon.style.display = 'none';
+    subText  = data.subText  || '';
+    subValue = data.subValue || '';
+    members  = data.members  || [];
+    rebuild();
+  }
+
+  function rebuild() {
+    if (animId) cancelAnimationFrame(animId);
+    stage.innerHTML = '';
+    if (members.length === 0) {
+      stage.appendChild(emptyEl);
+      emptyEl.style.display = '';
+      return;
+    }
+    emptyEl.style.display = 'none';
+
+    const stageW = stage.offsetWidth || window.innerWidth;
+    // Build enough cards to fill 2× the stage width (loop)
+    const totalCards = members.length;
+    const loopW = totalCards * STEP;
+
+    // Create 2 copies for seamless loop
+    positions = [];
+    [0, 1].forEach(copy => {
+      members.forEach((m, i) => {
+        const card = document.createElement('div');
+        card.className = 'mc';
+
+        const av = document.createElement('div');
+        av.className = 'ma';
+        if (m.profilePictureUrl) {
+          const img = document.createElement('img');
+          img.src = m.profilePictureUrl;
+          img.onerror = () => { av.textContent = '\\u{1F464}'; };
+          av.appendChild(img);
+        } else { av.textContent = '\\u{1F464}'; }
+
+        const nm = document.createElement('div');
+        nm.className = 'mn';
+        nm.textContent = m.nickname || m.userId;
+
+        card.appendChild(av);
+        card.appendChild(nm);
+
+        if (subText || subValue) {
+          const sub = document.createElement('div');
+          sub.className = 'msub';
+          sub.textContent = [subText, subValue].filter(Boolean).join(' ');
+          card.appendChild(sub);
+        }
+
+        const x = copy * loopW + i * STEP;
+        card.style.left = x + 'px';
+        stage.appendChild(card);
+        positions.push({ el: card, baseX: x, loopW });
+      });
+    });
+
+    let offset = 0;
+    let last = null;
+    function tick(ts) {
+      if (last !== null) {
+        const dt = (ts - last) / 1000;
+        offset += SPEED * dt;
+        if (offset >= loopW) offset -= loopW;
+        positions.forEach(p => {
+          p.el.style.transform = 'translateX(' + (-offset) + 'px)';
+        });
+      }
+      last = ts;
+      animId = requestAnimationFrame(tick);
+    }
     animId = requestAnimationFrame(tick);
   }
 
