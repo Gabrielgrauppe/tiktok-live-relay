@@ -52,7 +52,7 @@ function getRoom(roomId) {
       goalLikes: { text: '', target: 5000, current: 0, theme: 'neon', customColor: '', style: 'default' },
       goalPix: { text: '', target: 100, current: 0, theme: 'neon', customColor: '', style: 'default' },
       membros: { title: 'Membros', members: [] },
-      membrosAcao: { title: 'Membros Ação', members: [], giftName: 'Heart Me', giftImage: '', subText: '', subValue: '', subTextSize: 9, subValueSize: 9 },
+      membrosAcao: { title: 'Membros Ação', members: [], giftName: 'Heart Me', giftImage: '', subText: '', subValue: '', subTextSize: 9, subValueSize: 9, subTextColor: '#ffdc50', subValueColor: '#ffdc50' },
       topScore: { title: 'TOP', desc: '', subtitle: 'PONTUAÇÃO', name: '', avatar: '', valor: 0 },
       topGift: null,
       topCombo: null,
@@ -608,8 +608,10 @@ wss.on('connection', (ws) => {
         room.membrosAcao.giftImage    = msg.giftImage    ?? room.membrosAcao.giftImage;
         room.membrosAcao.subText      = msg.subText      ?? room.membrosAcao.subText;
         room.membrosAcao.subValue     = msg.subValue     ?? room.membrosAcao.subValue;
-        room.membrosAcao.subTextSize  = msg.subTextSize  ?? room.membrosAcao.subTextSize;
-        room.membrosAcao.subValueSize = msg.subValueSize ?? room.membrosAcao.subValueSize;
+        room.membrosAcao.subTextSize   = msg.subTextSize   ?? room.membrosAcao.subTextSize;
+        room.membrosAcao.subValueSize  = msg.subValueSize  ?? room.membrosAcao.subValueSize;
+        room.membrosAcao.subTextColor  = msg.subTextColor  ?? room.membrosAcao.subTextColor;
+        room.membrosAcao.subValueColor = msg.subValueColor ?? room.membrosAcao.subValueColor;
         const ev = JSON.stringify({ type: 'full', data: room.membrosAcao });
         room.sseClients.membrosAcao.forEach(c => { try { c.write(`data: ${ev}\n\n`); } catch(e){} });
       }
@@ -3933,7 +3935,7 @@ function getMembrosAcaoHTML(roomId) {
     line-height:1.2;
   }
   .msub {
-    font-size:9px; font-weight:600; color:rgba(255,220,80,0.9);
+    font-size:9px; font-weight:600;
     text-shadow:0 1px 3px rgba(0,0,0,0.95);
     max-width:86px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; text-align:center;
     line-height:1.2;
@@ -3962,11 +3964,13 @@ function getMembrosAcaoHTML(roomId) {
   const STEP   = CARD_W + GAP;
   const SPEED  = 80;
 
-  let subText      = '';
-  let subValue     = '';
-  let subTextSize  = 9;
-  let subValueSize = 9;
-  let animId       = null;
+  let subText       = '';
+  let subValue      = '';
+  let subTextSize   = 9;
+  let subValueSize  = 9;
+  let subTextColor  = '#ffdc50';
+  let subValueColor = '#ffdc50';
+  let animId        = null;
 
   const evtSource = new EventSource('${sseUrl}');
   evtSource.onmessage = (e) => {
@@ -3989,6 +3993,7 @@ function getMembrosAcaoHTML(roomId) {
     if (subText) {
       const st = document.createElement('span');
       st.style.fontSize = subTextSize + 'px';
+      st.style.color = subTextColor;
       st.textContent = subText;
       sub.appendChild(st);
     }
@@ -3996,6 +4001,7 @@ function getMembrosAcaoHTML(roomId) {
     if (subValue) {
       const sv = document.createElement('span');
       sv.style.fontSize = subValueSize + 'px';
+      sv.style.color = subValueColor;
       sv.textContent = subValue;
       sub.appendChild(sv);
     }
@@ -4006,10 +4012,12 @@ function getMembrosAcaoHTML(roomId) {
     if (data.title)     titleEl.textContent = data.title;
     if (data.giftImage) { giftIcon.src = data.giftImage; giftIcon.style.display = ''; }
     else giftIcon.style.display = 'none';
-    subText      = data.subText      || '';
-    subValue     = data.subValue     || '';
-    subTextSize  = data.subTextSize  || 9;
-    subValueSize = data.subValueSize || 9;
+    subText       = data.subText       || '';
+    subValue      = data.subValue      || '';
+    subTextSize   = data.subTextSize   || 9;
+    subValueSize  = data.subValueSize  || 9;
+    subTextColor  = data.subTextColor  || '#ffdc50';
+    subValueColor = data.subValueColor || '#ffdc50';
 
     const incoming = data.members || [];
 
