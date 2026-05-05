@@ -3913,11 +3913,11 @@ function getMembrosAcaoHTML(roomId) {
     padding:5px 22px; background:rgba(0,0,0,0.45);
     border-radius:20px; border:1px solid rgba(255,255,255,0.18); white-space:nowrap;
   }
-  #stage { width:100%; height:100px; overflow:hidden; position:relative; }
+  #stage { width:100%; height:130px; overflow:visible; position:relative; }
   .mc {
     position:absolute; top:4px;
-    display:flex; flex-direction:column; align-items:center; gap:4px;
-    width:80px; will-change:transform;
+    display:flex; flex-direction:column; align-items:center; gap:3px;
+    width:86px; will-change:transform;
   }
   .ma {
     width:58px; height:58px; border-radius:50%; overflow:hidden;
@@ -3929,12 +3929,14 @@ function getMembrosAcaoHTML(roomId) {
   .mn {
     font-size:10px; font-weight:700; color:#fff;
     text-shadow:0 1px 3px rgba(0,0,0,0.95);
-    max-width:80px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; text-align:center;
+    max-width:86px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; text-align:center;
+    line-height:1.2;
   }
   .msub {
     font-size:9px; font-weight:600; color:rgba(255,220,80,0.9);
     text-shadow:0 1px 3px rgba(0,0,0,0.95);
-    max-width:80px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; text-align:center;
+    max-width:86px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; text-align:center;
+    line-height:1.2;
   }
   .empty-msg { color:rgba(255,255,255,0.35); font-size:13px; padding:20px 16px; text-align:center; width:100%; }
 </style>
@@ -3955,7 +3957,7 @@ function getMembrosAcaoHTML(roomId) {
   const stage    = document.getElementById('stage');
   const emptyEl  = document.getElementById('empty-msg');
 
-  const CARD_W = 80;
+  const CARD_W = 86;
   const GAP    = 20;
   const STEP   = CARD_W + GAP;
   const SPEED  = 80;
