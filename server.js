@@ -19,7 +19,7 @@ app.get('/health', (req, res) => res.json({ status: 'ok', uptime: process.uptime
 // ============================================
 // ACCESS KEY VALIDATION
 // ============================================
-const ACCESS_KEY = 'LS2026-INS'; // Mude aqui para revogar acesso
+const ACCESS_KEY = 'LS001VINS'; // Mude aqui para revogar acesso
 
 app.get('/validate-key', (req, res) => {
   const key = req.query.k || '';
