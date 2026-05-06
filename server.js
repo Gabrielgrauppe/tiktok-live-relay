@@ -2431,19 +2431,25 @@ function getJarHTML(roomId) {
     pointer-events: none;
     display: block;
     user-select: none;
+    /* White glow around the dark outline so it's visible on any background */
+    filter: drop-shadow(0 0 6px rgba(255,255,255,0.55))
+            drop-shadow(0 0 14px rgba(180,210,255,0.35));
   }
 
-  /* Invisible glow layer sitting behind the jar for theme color effects */
+  /* Glass tint + theme glow layer sitting inside the jar */
   .jar-glow {
     position: absolute;
+    /* matches jar body interior: x=177..422 → width=245, center at 300 */
     width: 245px;
-    height: 460px;
-    bottom: 62px;
+    height: 404px;        /* y=106..510 */
+    bottom: 110px;        /* 600 - 510 = 90 + scene padding ≈ 110 */
     left: 50%;
     transform: translateX(-50%);
-    z-index: 5;
+    z-index: 6;
     pointer-events: none;
-    border-radius: 14px 14px 60px 60px;
+    border-radius: 8px 8px 55px 55px;
+    /* Subtle glass tint — visible on dark backgrounds, barely visible on bright ones */
+    background: rgba(200,220,255,0.06);
     transition: box-shadow 0.3s;
   }
 
@@ -2550,22 +2556,21 @@ function getJarHTML(roomId) {
   const physicsContainer = document.getElementById('physics');
   const jarGlow = document.getElementById('jar-glow');
 
-  // Static walls matching jar-glass.png (810x1440, displayed h=560px, centered in 600px scene).
-  // Image: left=142px, top=20px in scene. Scale=0.389.
-  // Glass inner wall left (x≈90/810 = 11%): 142+90*0.389 = 177px
-  // Glass inner wall right (x≈720/810 = 89%): 142+720*0.389 = 422px
-  // Jar opening top (y≈220/1440 = 15%): 20+220*0.389 = 106px
-  // Jar inner floor (y≈1260/1440 = 87.5%): 20+1260*0.389 = 510px
-  // NO funnel guides above opening → gifts overflow to sides when jar is full ✅
+  // Static walls matching jar-glass.png (810x1440px, h=560px displayed, 600px scene).
+  // Scale=0.389. Image left edge in scene=142px, top=20px.
+  // Left glass inner face  (~7% from image left  = 57px): 142 + 57*0.389 = 164px
+  // Right glass inner face (~93% from image left = 753px): 142 + 753*0.389 = 435px
+  // Jar opening top (y≈200/1440): 20 + 200*0.389 = 98px
+  // Jar floor      (y≈1270/1440): 20 + 1270*0.389 = 514px
   const wallOpts = { isStatic: true, friction: 0.6, restitution: 0.1, render: { visible: false } };
   World.add(world, [
-    // Jar body inner walls (y=106 to y=510)
-    Bodies.rectangle(177, 308, 6, 404, wallOpts),   // jar left wall
-    Bodies.rectangle(422, 308, 6, 404, wallOpts),   // jar right wall
-    Bodies.rectangle(300, 510, 245, 8, wallOpts),   // jar floor
+    // Jar body inner walls (y=98 to y=514)
+    Bodies.rectangle(164, 306, 8, 416, wallOpts),   // jar left wall
+    Bodies.rectangle(436, 306, 8, 416, wallOpts),   // jar right wall
+    Bodies.rectangle(300, 514, 272, 8, wallOpts),   // jar floor
     // Ground outside jar — gifts land here when they overflow
-    Bodies.rectangle(88, 595, 176, 10, wallOpts),   // ground left  (x=0..177)
-    Bodies.rectangle(511, 595, 178, 10, wallOpts),  // ground right (x=422..600)
+    Bodies.rectangle(82, 595, 164, 10, wallOpts),   // ground left
+    Bodies.rectangle(518, 595, 164, 10, wallOpts),  // ground right
     // Scene outer bounds (keep gifts in scene)
     Bodies.rectangle(-5, 300, 10, 700, wallOpts),
     Bodies.rectangle(605, 300, 10, 700, wallOpts),
@@ -2590,8 +2595,8 @@ function getJarHTML(roomId) {
     totalGifts++;
     const radius = radiusForCoins(coins) * (0.9 + Math.random() * 0.2);
     const isBig = coins >= 1000;
-    // Spawn above jar mouth — opening at x=177..422, center=300
-    const x = 220 + Math.random() * 160;  // x 220-380 (inside jar opening)
+    // Spawn above jar mouth — opening at x=164..436, center=300
+    const x = 210 + Math.random() * 180;  // x 210-390 (inside jar opening)
     const y = -10 - Math.random() * 30;
     const body = Bodies.circle(x, y, radius, {
       friction: 0.3 + Math.random() * 0.3,
@@ -2644,7 +2649,7 @@ function getJarHTML(roomId) {
       const b = activeGifts[i];
       // Safety: if a gift somehow falls below the scene, teleport it back into jar
       if (b.position.y > 650) {
-        Body.setPosition(b, { x: 300, y: 310 });
+        Body.setPosition(b, { x: 300, y: 306 });
         Body.setVelocity(b, { x: 0, y: 0 });
       }
       if (b.isSleeping) {
