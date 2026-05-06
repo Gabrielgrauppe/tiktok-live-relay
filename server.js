@@ -2431,8 +2431,11 @@ function getJarHTML(roomId) {
     pointer-events: none;
     display: block;
     user-select: none;
-    /* Invert dark outlines → white/silver, visible on any background */
-    filter: invert(1) drop-shadow(0 0 4px rgba(255,255,255,0.4));
+    /* Invert dark outlines → white/silver + strong glow to fill any thin gaps */
+    filter: invert(1)
+            drop-shadow(0 0 2px rgba(255,255,255,1))
+            drop-shadow(0 0 6px rgba(255,255,255,0.9))
+            drop-shadow(0 0 14px rgba(255,255,255,0.5));
   }
 
   /* Glass tint + theme glow layer sitting inside the jar */
