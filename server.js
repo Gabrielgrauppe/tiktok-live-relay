@@ -2415,125 +2415,126 @@ function getJarHTML(roomId) {
     z-index: 12;
   }
 
-  /* ===== MASON JAR ===== */
-  @keyframes jarShimmer {
-    0%,100% { opacity:1; }
-    50%      { opacity:0.92; }
-  }
+  /* ===== MASON JAR — REDESIGN ===== */
 
   .jar {
     position: absolute;
     left: 50%;
-    bottom: 10px;
+    bottom: 8px;
     transform: translateX(-50%);
-    width: 280px;
-    height: 450px;
+    width: 360px;
+    height: 520px;
     z-index: 10;
     pointer-events: none;
   }
 
-  /* ── Glass body ── */
-  .jar-body {
+  /* ── Metal lid ── */
+  .jar-neck-body {
     position: absolute;
-    bottom: 8px;
-    left: 16px;
-    right: 16px;
-    height: 342px;
-    background: linear-gradient(
-      110deg,
-      rgba(255,255,255,0.55) 0%,
-      rgba(235,242,250,0.30) 18%,
-      rgba(215,228,242,0.18) 50%,
-      rgba(235,242,250,0.28) 82%,
-      rgba(255,255,255,0.50) 100%
+    top: 0; left: 50%; transform: translateX(-50%);
+    width: 310px; height: 70px;
+    z-index: 14;
+  }
+  /* Flat cap on top */
+  .jar-neck-body::before {
+    content:'';
+    position: absolute;
+    top: 0; left: 14px; right: 14px; height: 22px;
+    background: linear-gradient(180deg,
+      #c8cdd4 0%, #a8afb8 40%, #b8bfc8 70%, #c4cad2 100%);
+    border-radius: 6px 6px 0 0;
+    box-shadow: 0 -3px 8px rgba(0,0,0,0.15), inset 0 3px 6px rgba(255,255,255,0.40);
+  }
+  /* Corrugated ring */
+  .jar-neck-body::after {
+    content:'';
+    position: absolute;
+    top: 20px; left: 0; right: 0; height: 50px;
+    background: repeating-linear-gradient(
+      90deg,
+      rgba(145,152,162,1)   0px,
+      rgba(192,200,210,1)   2px,
+      rgba(168,176,186,1)   4.5px,
+      rgba(145,152,162,1)   7px
     );
-    border: 2px solid rgba(190,205,220,0.70);
-    border-top: 2px solid rgba(210,220,235,0.55);
-    border-bottom: 3px solid rgba(170,190,210,0.75);
-    border-radius: 6px 6px 22px 22px;
+    border-radius: 2px;
     box-shadow:
-      inset 0 0 50px rgba(255,255,255,0.25),
-      inset 4px 0 18px rgba(255,255,255,0.30),
-      0 8px 30px rgba(0,0,0,0.18),
-      0 2px 8px rgba(0,0,0,0.10);
-    z-index: 11;
-  }
-  /* Strong left shine */
-  .jar-body::before {
-    content:'';
-    position:absolute;
-    left:10px; top:12px;
-    width:22px; height:82%;
-    background: linear-gradient(180deg, rgba(255,255,255,0.60), rgba(255,255,255,0.04));
-    border-radius:12px;
-    pointer-events:none;
-  }
-  /* Faint right highlight */
-  .jar-body::after {
-    content:'';
-    position:absolute;
-    right:14px; top:20px;
-    width:9px; height:50%;
-    background: linear-gradient(180deg, rgba(255,255,255,0.28), transparent);
-    border-radius:5px;
-    pointer-events:none;
+      inset 0 5px 10px rgba(255,255,255,0.38),
+      inset 0 -4px 8px rgba(0,0,0,0.15),
+      0 4px 10px rgba(0,0,0,0.20);
   }
 
-  /* ── Lid area: neck ring below lid ── */
+  /* ── Rim ring (glass lip below lid) ── */
   .jar-neck {
-    position:absolute;
-    top:95px;
-    left:50%; transform:translateX(-50%);
-    width:250px; height:14px;
+    position: absolute;
+    top: 68px; left: 50%; transform: translateX(-50%);
+    width: 330px; height: 20px;
     background: linear-gradient(180deg,
-      rgba(170,178,188,0.95),
-      rgba(140,150,160,0.95),
-      rgba(175,183,192,0.90));
-    border-radius:3px;
-    box-shadow: 0 3px 6px rgba(0,0,0,0.22), inset 0 1px 2px rgba(255,255,255,0.25);
-    z-index:13;
+      rgba(210,222,235,0.95) 0%,
+      rgba(185,200,220,0.92) 50%,
+      rgba(210,222,235,0.90) 100%);
+    border-radius: 4px;
+    box-shadow:
+      0 5px 10px rgba(0,0,0,0.18),
+      inset 0 2px 5px rgba(255,255,255,0.40),
+      inset 0 -2px 4px rgba(0,0,0,0.08);
+    z-index: 13;
   }
   .jar-rim { display:none; }
   .jar-rim-bottom { display:none; }
 
-  /* ── Metal lid (corrugated) ── */
-  .jar-neck-body {
-    position:absolute;
-    top:10px; left:50%; transform:translateX(-50%);
-    width:264px; height:88px;
-    z-index:14;
-  }
-  /* Corrugated band */
-  .jar-neck-body::before {
-    content:'';
-    position:absolute;
-    top:18px; left:0; right:0;
-    height:56px;
-    background: repeating-linear-gradient(
-      90deg,
-      rgba(155,162,170,0.95) 0px,
-      rgba(195,202,210,0.95) 2.5px,
-      rgba(172,179,188,0.95) 5px,
-      rgba(155,162,170,0.95) 7px
+  /* ── Glass body ── */
+  .jar-body {
+    position: absolute;
+    bottom: 6px;
+    left: 10px; right: 10px;
+    height: 420px;
+    background: linear-gradient(
+      112deg,
+      rgba(255,255,255,0.68)  0%,
+      rgba(242,248,255,0.42)  7%,
+      rgba(222,235,250,0.18) 28%,
+      rgba(212,228,245,0.13) 52%,
+      rgba(228,238,252,0.20) 75%,
+      rgba(248,253,255,0.44) 92%,
+      rgba(255,255,255,0.62) 100%
     );
-    border-radius:3px 3px 0 0;
+    border: 3px solid rgba(195,210,228,0.75);
+    border-top: 2px solid rgba(210,222,238,0.55);
+    border-bottom: 4px solid rgba(170,190,215,0.80);
+    border-radius: 10px 10px 40px 40px;
     box-shadow:
-      inset 0 4px 8px rgba(255,255,255,0.35),
-      inset 0 -3px 6px rgba(0,0,0,0.12),
-      0 2px 6px rgba(0,0,0,0.15);
+      inset 0 0 70px rgba(255,255,255,0.22),
+      inset 6px 0 28px rgba(255,255,255,0.38),
+      inset -6px 0 20px rgba(210,225,242,0.10),
+      0 14px 45px rgba(0,0,0,0.22),
+      0 4px 14px rgba(0,0,0,0.12);
+    z-index: 11;
+    overflow: hidden;
   }
-  /* Lid top flat cap */
-  .jar-neck-body::after {
-    content:'';
-    position:absolute;
-    top:0; left:8px; right:8px;
-    height:22px;
+  /* Primary left shine streak */
+  .jar-body::before {
+    content: '';
+    position: absolute;
+    left: 14px; top: 10px;
+    width: 30px; height: 86%;
     background: linear-gradient(180deg,
-      rgba(185,192,200,0.98),
-      rgba(160,168,178,0.98),
-      rgba(178,185,194,0.95));
-    border-radius:4px 4px 0 0;
-    box-shadow: 0 -2px 6px rgba(0,0,0,0.12), inset 0 2px 4px rgba(255,255,255,0.30);
+      rgba(255,255,255,0.82) 0%,
+      rgba(255,255,255,0.55) 25%,
+      rgba(255,255,255,0.20) 65%,
+      transparent 100%);
+    border-radius: 15px;
+    pointer-events: none;
+  }
+  /* Right subtle highlight */
+  .jar-body::after {
+    content: '';
+    position: absolute;
+    right: 18px; top: 18px;
+    width: 14px; height: 55%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.38), transparent);
+    border-radius: 7px;
+    pointer-events: none;
   }
 
   /* Individual gift item - positioned via transform by physics */
@@ -2679,22 +2680,21 @@ function getJarHTML(roomId) {
   const jarBody = document.getElementById('jar-body');
 
   // Static walls matching the visual jar
-  // Scene 600x600. Jar centered at x=300. Body inner edges: x=180 to x=420.
-  // Jar body bottom at y=580, top of body at y=240, neck opening ~y=200.
-  // Walls extend UP to y=100 as a funnel so every gift enters the jar.
-  // Above the jar rim (y<240), no walls → overflow spills to sides.
+  // Scene 600x600. Jar centered at x=300. Outer: x=120..480, top y=72, bottom y=592.
+  // Glass body inner edges: x=133 to x=467, top y=168, bottom y=582.
+  // Funnel guides from y=72 to y=168 direct falling gifts into the jar opening.
   const wallOpts = { isStatic: true, friction: 0.6, restitution: 0.1, render: { visible: false } };
   World.add(world, [
-    // Jar body walls (y=240 to y=580)
-    Bodies.rectangle(178, 410, 6, 340, wallOpts),  // jar left wall
-    Bodies.rectangle(422, 410, 6, 340, wallOpts),  // jar right wall
-    Bodies.rectangle(300, 583, 244, 8, wallOpts),   // jar floor
-    // Funnel guides above jar (y=60 to y=240) — angled inward to direct gifts into jar
-    Bodies.fromVertices(155, 150, [{ x: 0, y: 0 }, { x: 6, y: 0 }, { x: 28, y: 180 }, { x: 22, y: 180 }], wallOpts) || Bodies.rectangle(165, 150, 6, 180, wallOpts),
-    Bodies.fromVertices(445, 150, [{ x: 6, y: 0 }, { x: 0, y: 0 }, { x: -22, y: 180 }, { x: -16, y: 180 }], wallOpts) || Bodies.rectangle(435, 150, 6, 180, wallOpts),
+    // Jar body walls — glass inner edges: x=133 to x=467, from y=168 to y=582
+    Bodies.rectangle(133, 375, 6, 414, wallOpts),  // jar left wall
+    Bodies.rectangle(467, 375, 6, 414, wallOpts),  // jar right wall
+    Bodies.rectangle(300, 582, 334, 8, wallOpts),  // jar floor
+    // Funnel guides above jar (y=72 to y=168) — angled inward to direct gifts into jar
+    Bodies.fromVertices(125, 120, [{ x: 0, y: 0 }, { x: 8, y: 0 }, { x: 21, y: 96 }, { x: 13, y: 96 }], wallOpts) || Bodies.rectangle(130, 120, 6, 96, wallOpts),
+    Bodies.fromVertices(475, 120, [{ x: 8, y: 0 }, { x: 0, y: 0 }, { x: -13, y: 96 }, { x: -21, y: 96 }], wallOpts) || Bodies.rectangle(470, 120, 6, 96, wallOpts),
     // Ground outside jar (overflow landing)
-    Bodies.rectangle(90, 595, 180, 10, wallOpts),   // ground left
-    Bodies.rectangle(510, 595, 180, 10, wallOpts),  // ground right
+    Bodies.rectangle(65, 595, 130, 10, wallOpts),   // ground left (x=0 to x=130)
+    Bodies.rectangle(535, 595, 130, 10, wallOpts),  // ground right (x=470 to x=600)
     // Scene bounds
     Bodies.rectangle(-5, 300, 10, 700, wallOpts),   // left wall
     Bodies.rectangle(605, 300, 10, 700, wallOpts),  // right wall
@@ -2773,7 +2773,7 @@ function getJarHTML(roomId) {
       const b = activeGifts[i];
       // Safety: if a gift somehow falls below the scene, teleport it back into jar
       if (b.position.y > 650) {
-        Body.setPosition(b, { x: 300, y: 400 });
+        Body.setPosition(b, { x: 300, y: 375 });
         Body.setVelocity(b, { x: 0, y: 0 });
       }
       if (b.isSleeping) {
