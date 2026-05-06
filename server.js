@@ -2431,9 +2431,8 @@ function getJarHTML(roomId) {
     pointer-events: none;
     display: block;
     user-select: none;
-    /* White glow around the dark outline so it's visible on any background */
-    filter: drop-shadow(0 0 6px rgba(255,255,255,0.55))
-            drop-shadow(0 0 14px rgba(180,210,255,0.35));
+    /* Invert dark outlines → white/silver, visible on any background */
+    filter: invert(1) drop-shadow(0 0 4px rgba(255,255,255,0.4));
   }
 
   /* Glass tint + theme glow layer sitting inside the jar */
@@ -2448,8 +2447,7 @@ function getJarHTML(roomId) {
     z-index: 6;
     pointer-events: none;
     border-radius: 8px 8px 55px 55px;
-    /* Subtle glass tint — visible on dark backgrounds, barely visible on bright ones */
-    background: rgba(200,220,255,0.06);
+    background: transparent;
     transition: box-shadow 0.3s;
   }
 
