@@ -2415,22 +2415,10 @@ function getJarHTML(roomId) {
     z-index: 12;
   }
 
-  /* ===== CRYSTAL JAR ===== */
-  @keyframes crystalPulse {
-    0%,100% { box-shadow: inset 0 0 60px rgba(160,80,255,0.10), 0 0 40px rgba(140,60,255,0.35), 0 0 80px rgba(120,40,220,0.15); }
-    50%      { box-shadow: inset 0 0 80px rgba(160,80,255,0.18), 0 0 60px rgba(160,80,255,0.55), 0 0 120px rgba(140,50,230,0.30); }
-  }
-  @keyframes rimGlow {
-    0%,100% { box-shadow: 0 0 18px rgba(180,80,255,0.8), 0 0 40px rgba(140,50,220,0.5); }
-    50%      { box-shadow: 0 0 30px rgba(200,100,255,1.0), 0 0 60px rgba(180,80,255,0.7); }
-  }
-  @keyframes baseGlow {
-    0%,100% { box-shadow: 0 0 25px rgba(160,80,255,0.6), 0 0 50px rgba(120,40,220,0.3); }
-    50%      { box-shadow: 0 0 40px rgba(200,100,255,0.8), 0 0 80px rgba(160,60,255,0.5); }
-  }
-  @keyframes gemPulse {
-    0%,100% { opacity:0.85; filter: drop-shadow(0 0 6px rgba(200,120,255,0.9)); }
-    50%      { opacity:1;    filter: drop-shadow(0 0 12px rgba(220,140,255,1.0)); }
+  /* ===== MASON JAR ===== */
+  @keyframes jarShimmer {
+    0%,100% { opacity:1; }
+    50%      { opacity:0.92; }
   }
 
   .jar {
@@ -2438,131 +2426,114 @@ function getJarHTML(roomId) {
     left: 50%;
     bottom: 10px;
     transform: translateX(-50%);
-    width: 300px;
+    width: 280px;
     height: 450px;
     z-index: 10;
     pointer-events: none;
   }
 
-  /* Main glass body */
+  /* ── Glass body ── */
   .jar-body {
     position: absolute;
-    bottom: 62px;
+    bottom: 8px;
     left: 16px;
     right: 16px;
-    height: 330px;
-    background: linear-gradient(160deg,
-      rgba(200,140,255,0.07) 0%,
-      rgba(255,255,255,0.06) 35%,
-      rgba(160,80,255,0.05) 65%,
-      rgba(200,140,255,0.08) 100%);
-    border: 2px solid rgba(180,90,255,0.45);
-    border-bottom: 3px solid rgba(180,90,255,0.55);
-    border-radius: 30px 30px 50px 50px;
-    backdrop-filter: blur(3px);
-    animation: crystalPulse 4s ease-in-out infinite;
+    height: 342px;
+    background: linear-gradient(
+      110deg,
+      rgba(255,255,255,0.55) 0%,
+      rgba(235,242,250,0.30) 18%,
+      rgba(215,228,242,0.18) 50%,
+      rgba(235,242,250,0.28) 82%,
+      rgba(255,255,255,0.50) 100%
+    );
+    border: 2px solid rgba(190,205,220,0.70);
+    border-top: 2px solid rgba(210,220,235,0.55);
+    border-bottom: 3px solid rgba(170,190,210,0.75);
+    border-radius: 6px 6px 22px 22px;
+    box-shadow:
+      inset 0 0 50px rgba(255,255,255,0.25),
+      inset 4px 0 18px rgba(255,255,255,0.30),
+      0 8px 30px rgba(0,0,0,0.18),
+      0 2px 8px rgba(0,0,0,0.10);
     z-index: 11;
   }
-  /* Left glass shine */
+  /* Strong left shine */
   .jar-body::before {
     content:'';
     position:absolute;
-    left:10px; top:14px;
-    width:16px; height:75%;
-    background: linear-gradient(180deg, rgba(255,255,255,0.18), rgba(255,255,255,0.02));
-    border-radius:8px;
+    left:10px; top:12px;
+    width:22px; height:82%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.60), rgba(255,255,255,0.04));
+    border-radius:12px;
+    pointer-events:none;
   }
-  /* Right faint shine */
+  /* Faint right highlight */
   .jar-body::after {
     content:'';
     position:absolute;
-    right:14px; top:24px;
-    width:7px; height:55%;
-    background: linear-gradient(180deg, rgba(255,255,255,0.08), transparent);
-    border-radius:4px;
+    right:14px; top:20px;
+    width:9px; height:50%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.28), transparent);
+    border-radius:5px;
+    pointer-events:none;
   }
 
-  /* Purple neon rim (top ring) */
+  /* ── Lid area: neck ring below lid ── */
   .jar-neck {
     position:absolute;
-    top:58px;
+    top:95px;
     left:50%; transform:translateX(-50%);
-    width:220px; height:26px;
+    width:250px; height:14px;
+    background: linear-gradient(180deg,
+      rgba(170,178,188,0.95),
+      rgba(140,150,160,0.95),
+      rgba(175,183,192,0.90));
+    border-radius:3px;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.22), inset 0 1px 2px rgba(255,255,255,0.25);
     z-index:13;
   }
-  .jar-rim {
-    position:absolute;
-    inset:0;
-    background: linear-gradient(180deg, rgba(200,110,255,0.9), rgba(140,50,220,0.85));
-    border-radius:50%;
-    border:2px solid rgba(220,150,255,0.7);
-    animation: rimGlow 3s ease-in-out infinite;
-  }
-  /* Top gem diamond */
-  .jar-rim-bottom {
-    position:absolute;
-    top:50%; left:50%;
-    transform:translate(-50%,-50%);
-    width:18px; height:18px;
-    background: linear-gradient(135deg,#e0aaff,#9b30ff,#cc66ff);
-    clip-path: polygon(50% 0%,100% 50%,50% 100%,0% 50%);
-    animation: gemPulse 2.5s ease-in-out infinite;
-    z-index:14;
-  }
+  .jar-rim { display:none; }
+  .jar-rim-bottom { display:none; }
 
-  /* Neck connector */
+  /* ── Metal lid (corrugated) ── */
   .jar-neck-body {
     position:absolute;
-    top:82px; left:50%; transform:translateX(-50%);
-    width:188px; height:20px;
-    background: linear-gradient(180deg, rgba(160,80,255,0.25), rgba(120,40,200,0.15));
-    border-left:2px solid rgba(180,90,255,0.3);
-    border-right:2px solid rgba(180,90,255,0.3);
-    z-index:12;
+    top:10px; left:50%; transform:translateX(-50%);
+    width:264px; height:88px;
+    z-index:14;
   }
-
-  /* Side crystal gems */
-  .jar-gem-l, .jar-gem-r {
-    position:absolute;
-    top:50%; transform:translateY(-50%);
-    width:22px; height:28px;
-    background: linear-gradient(135deg,#c084fc,#7c3aed,#a855f7);
-    clip-path: polygon(50% 0%,100% 30%,85% 100%,15% 100%,0% 30%);
-    animation: gemPulse 3s ease-in-out infinite;
-    z-index:13;
-  }
-  .jar-gem-l { left:-8px; }
-  .jar-gem-r { right:-8px; animation-delay:1.2s; }
-
-  /* Base platform */
-  .jar-base {
-    position:absolute;
-    bottom:0; left:50%; transform:translateX(-50%);
-    width:230px; height:58px;
-    background: linear-gradient(180deg, rgba(130,50,210,0.92), rgba(60,10,120,0.95));
-    border-radius: 50% 50% 30px 30px / 28px 28px 30px 30px;
-    border:2px solid rgba(180,90,255,0.5);
-    animation: baseGlow 3.5s ease-in-out infinite;
-    z-index:12;
-  }
-  /* Base bottom line accent */
-  .jar-base::before {
+  /* Corrugated band */
+  .jar-neck-body::before {
     content:'';
     position:absolute;
-    bottom:8px; left:15%; right:15%;
-    height:2px;
-    background: linear-gradient(90deg, transparent, rgba(220,140,255,0.8), transparent);
-    border-radius:1px;
+    top:18px; left:0; right:0;
+    height:56px;
+    background: repeating-linear-gradient(
+      90deg,
+      rgba(155,162,170,0.95) 0px,
+      rgba(195,202,210,0.95) 2.5px,
+      rgba(172,179,188,0.95) 5px,
+      rgba(155,162,170,0.95) 7px
+    );
+    border-radius:3px 3px 0 0;
+    box-shadow:
+      inset 0 4px 8px rgba(255,255,255,0.35),
+      inset 0 -3px 6px rgba(0,0,0,0.12),
+      0 2px 6px rgba(0,0,0,0.15);
   }
-  /* Base heart gem */
-  .jar-base::after {
-    content:'♥';
+  /* Lid top flat cap */
+  .jar-neck-body::after {
+    content:'';
     position:absolute;
-    bottom:10px; left:50%; transform:translateX(-50%);
-    font-size:14px;
-    color:rgba(255,120,200,0.9);
-    filter: drop-shadow(0 0 6px rgba(255,100,180,0.8));
-    animation: gemPulse 2s ease-in-out infinite;
+    top:0; left:8px; right:8px;
+    height:22px;
+    background: linear-gradient(180deg,
+      rgba(185,192,200,0.98),
+      rgba(160,168,178,0.98),
+      rgba(178,185,194,0.95));
+    border-radius:4px 4px 0 0;
+    box-shadow: 0 -2px 6px rgba(0,0,0,0.12), inset 0 2px 4px rgba(255,255,255,0.30);
   }
 
   /* Individual gift item - positioned via transform by physics */
@@ -2594,11 +2565,11 @@ function getJarHTML(roomId) {
   /* Glow pulse on jar when gift arrives */
   .jar-body.pulse {
     box-shadow:
-      inset 0 0 40px rgba(100,200,255,0.05),
-      inset -15px 0 30px rgba(255,255,255,0.03),
-      0 0 50px rgba(255,200,50,0.4),
-      0 0 80px rgba(255,150,50,0.2),
-      0 10px 40px rgba(0,0,0,0.3);
+      inset 0 0 50px rgba(255,255,255,0.30),
+      inset 4px 0 18px rgba(255,255,255,0.35),
+      0 0 50px rgba(255,220,80,0.45),
+      0 0 90px rgba(255,180,40,0.25),
+      0 8px 30px rgba(0,0,0,0.18);
     transition: box-shadow 0.3s;
   }
 
@@ -2689,16 +2660,9 @@ function getJarHTML(roomId) {
 <div class="jar-scene">
   <div class="physics-container" id="physics"></div>
   <div class="jar">
-    <div class="jar-neck">
-      <div class="jar-rim"></div>
-      <div class="jar-rim-bottom"></div>
-    </div>
     <div class="jar-neck-body"></div>
-    <div class="jar-body" id="jar-body">
-      <div class="jar-gem-l"></div>
-      <div class="jar-gem-r"></div>
-    </div>
-    <div class="jar-base"></div>
+    <div class="jar-neck"></div>
+    <div class="jar-body" id="jar-body"></div>
   </div>
 </div>
 </div>
