@@ -2444,12 +2444,10 @@ function getJarHTML(roomId) {
     bottom: 86px;         /* 600 - 530 = 70 → +16 padding = 86 */
     left: 50%;
     transform: translateX(-50%);
-    z-index: 21;          /* above jar-img so border fills gaps */
+    z-index: 15;          /* behind jar-img — glow only, no border */
     pointer-events: none;
     border-radius: 10px 10px 65px 65px;
     background: transparent;
-    border: 2.5px solid rgba(255,255,255,0.75);
-    box-shadow: 0 0 8px rgba(255,255,255,0.4), 0 0 18px rgba(255,255,255,0.2);
     transition: box-shadow 0.3s;
   }
 
