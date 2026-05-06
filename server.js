@@ -2559,16 +2559,18 @@ function getJarHTML(roomId) {
   // Left glass inner face  (~7% from image left  = 57px): 142 + 57*0.389 = 164px
   // Right glass inner face (~93% from image left = 753px): 142 + 753*0.389 = 435px
   // Jar opening top (y≈200/1440): 20 + 200*0.389 = 98px
-  // Jar floor      (y≈1270/1440): 20 + 1270*0.389 = 514px
+  // Jar floor      (y≈1340/1440): 20 + 1340*0.389 = 541px → use 545
   const wallOpts = { isStatic: true, friction: 0.6, restitution: 0.1, render: { visible: false } };
   World.add(world, [
-    // Jar body inner walls (y=98 to y=514)
-    Bodies.rectangle(164, 306, 8, 416, wallOpts),   // jar left wall
-    Bodies.rectangle(436, 306, 8, 416, wallOpts),   // jar right wall
-    Bodies.rectangle(300, 514, 272, 8, wallOpts),   // jar floor
+    // Jar body inner walls — thick (20px) to prevent tunneling
+    Bodies.rectangle(158, 310, 20, 430, wallOpts),   // jar left wall
+    Bodies.rectangle(442, 310, 20, 430, wallOpts),   // jar right wall
+    Bodies.rectangle(300, 545, 300, 20, wallOpts),   // jar floor (thicker, lower)
+    // Bottom safety net — full width, catches any tunneled gifts
+    Bodies.rectangle(300, 620, 700, 20, wallOpts),
     // Ground outside jar — gifts land here when they overflow
-    Bodies.rectangle(82, 595, 164, 10, wallOpts),   // ground left
-    Bodies.rectangle(518, 595, 164, 10, wallOpts),  // ground right
+    Bodies.rectangle(75,  590, 150, 12, wallOpts),   // ground left
+    Bodies.rectangle(525, 590, 150, 12, wallOpts),   // ground right
     // Scene outer bounds (keep gifts in scene)
     Bodies.rectangle(-5, 300, 10, 700, wallOpts),
     Bodies.rectangle(605, 300, 10, 700, wallOpts),
