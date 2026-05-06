@@ -13,6 +13,7 @@ app.get('/velho-oeste.png', (req, res) => res.sendFile(__dirname + '/velho-oeste
 app.get('/crown.svg', (req, res) => res.sendFile(__dirname + '/crown.svg'));
 app.get('/jar.png', (req, res) => res.sendFile(__dirname + '/jar.png'));
 app.get('/jar-new.jpg', (req, res) => res.sendFile(__dirname + '/jar-new.jpg'));
+app.get('/jar-glass.png', (req, res) => res.sendFile(__dirname + '/jar-glass.png'));
 
 // Health check endpoint
 app.get('/', (req, res) => res.send('OK'));
@@ -2418,7 +2419,7 @@ function getJarHTML(roomId) {
 
   /* ===== JAR IMAGE ===== */
 
-  /* Real glass jar photo — mix-blend-mode:multiply makes white bg transparent */
+  /* Real glass jar — PNG with true transparency, only dark outlines remain */
   .jar-img {
     position: absolute;
     height: 560px;
@@ -2428,7 +2429,6 @@ function getJarHTML(roomId) {
     transform: translateX(-50%);
     z-index: 20;
     pointer-events: none;
-    mix-blend-mode: multiply;
     display: block;
     user-select: none;
   }
@@ -2535,7 +2535,7 @@ function getJarHTML(roomId) {
 <div class="jar-scene">
   <div class="physics-container" id="physics"></div>
   <div class="jar-glow" id="jar-glow"></div>
-  <img class="jar-img" id="jar-img" src="/jar-new.jpg" alt="" draggable="false">
+  <img class="jar-img" id="jar-img" src="/jar-glass.png" alt="" draggable="false">
 </div>
 </div>
 
@@ -2550,25 +2550,25 @@ function getJarHTML(roomId) {
   const physicsContainer = document.getElementById('physics');
   const jarGlow = document.getElementById('jar-glow');
 
-  // Static walls matching the real glass jar image (810x1440px displayed at h=560px).
-  // Scene 600x600. Image centered: left=143px, top=20px, bottom=580px, right=458px.
-  // Glass inner walls (approx 12% / 88% from image left): x≈180 and x≈420.
-  // Jar opening top (≈14% from image top): y≈98. Floor (≈87%): y≈507.
+  // Static walls matching jar-glass.png (810x1440, displayed h=560px, centered in 600px scene).
+  // Image: left=142px, top=20px in scene. Scale=0.389.
+  // Glass inner wall left (x≈90/810 = 11%): 142+90*0.389 = 177px
+  // Glass inner wall right (x≈720/810 = 89%): 142+720*0.389 = 422px
+  // Jar opening top (y≈220/1440 = 15%): 20+220*0.389 = 106px
+  // Jar inner floor (y≈1260/1440 = 87.5%): 20+1260*0.389 = 510px
+  // NO funnel guides above opening → gifts overflow to sides when jar is full ✅
   const wallOpts = { isStatic: true, friction: 0.6, restitution: 0.1, render: { visible: false } };
   World.add(world, [
-    // Jar body inner walls (y=98 to y=507)
-    Bodies.rectangle(180, 303, 6, 409, wallOpts),  // jar left wall
-    Bodies.rectangle(420, 303, 6, 409, wallOpts),  // jar right wall
-    Bodies.rectangle(300, 507, 240, 8, wallOpts),  // jar floor
-    // Funnel guides above opening (y=20 to y=98) — guide gifts into jar mouth
-    Bodies.rectangle(168, 59, 6, 78, wallOpts),    // left funnel guide
-    Bodies.rectangle(432, 59, 6, 78, wallOpts),    // right funnel guide
-    // Ground outside jar (overflow landing zones)
-    Bodies.rectangle(90, 595, 180, 10, wallOpts),   // ground left
-    Bodies.rectangle(510, 595, 180, 10, wallOpts),  // ground right
-    // Scene bounds
-    Bodies.rectangle(-5, 300, 10, 700, wallOpts),   // left wall
-    Bodies.rectangle(605, 300, 10, 700, wallOpts),  // right wall
+    // Jar body inner walls (y=106 to y=510)
+    Bodies.rectangle(177, 308, 6, 404, wallOpts),   // jar left wall
+    Bodies.rectangle(422, 308, 6, 404, wallOpts),   // jar right wall
+    Bodies.rectangle(300, 510, 245, 8, wallOpts),   // jar floor
+    // Ground outside jar — gifts land here when they overflow
+    Bodies.rectangle(88, 595, 176, 10, wallOpts),   // ground left  (x=0..177)
+    Bodies.rectangle(511, 595, 178, 10, wallOpts),  // ground right (x=422..600)
+    // Scene outer bounds (keep gifts in scene)
+    Bodies.rectangle(-5, 300, 10, 700, wallOpts),
+    Bodies.rectangle(605, 300, 10, 700, wallOpts),
   ]);
 
   let activeGifts = [];  // bodies still simulating
@@ -2590,8 +2590,8 @@ function getJarHTML(roomId) {
     totalGifts++;
     const radius = radiusForCoins(coins) * (0.9 + Math.random() * 0.2);
     const isBig = coins >= 1000;
-    // Spawn above jar mouth — jar centered at x=300, opening x=180..420
-    const x = 240 + Math.random() * 120;  // x 240-360 (jar center range)
+    // Spawn above jar mouth — opening at x=177..422, center=300
+    const x = 220 + Math.random() * 160;  // x 220-380 (inside jar opening)
     const y = -10 - Math.random() * 30;
     const body = Bodies.circle(x, y, radius, {
       friction: 0.3 + Math.random() * 0.3,
@@ -2644,7 +2644,7 @@ function getJarHTML(roomId) {
       const b = activeGifts[i];
       // Safety: if a gift somehow falls below the scene, teleport it back into jar
       if (b.position.y > 650) {
-        Body.setPosition(b, { x: 300, y: 300 });
+        Body.setPosition(b, { x: 300, y: 310 });
         Body.setVelocity(b, { x: 0, y: 0 });
       }
       if (b.isSleeping) {
