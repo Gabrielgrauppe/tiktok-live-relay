@@ -2417,30 +2417,39 @@ function getJarHTML(roomId) {
     z-index: 12;
   }
 
-  /* ===== JAR SVG ===== */
+  /* ===== JAR IMAGE ===== */
 
-  /* SVG jar drawn as vector — outline always 100% complete, no gaps */
-  .jar-svg {
+  /* Real glass jar photo — inverted so dark outlines become white */
+  .jar-img {
     position: absolute;
-    left: 0; top: 0;
-    width: 600px; height: 600px;
-    z-index: 20;
-    pointer-events: none;
-  }
-
-  /* Glass tint + theme glow layer sitting inside the jar */
-  .jar-glow {
-    position: absolute;
-    /* matches jar body interior: x=177..422 → width=245, center at 300 */
-    width: 245px;
-    height: 404px;        /* y=106..510 */
-    bottom: 110px;        /* 600 - 510 = 90 + scene padding ≈ 110 */
+    height: 560px;
+    width: auto;
+    bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
-    z-index: 6;
+    z-index: 20;
     pointer-events: none;
-    border-radius: 8px 8px 55px 55px;
+    display: block;
+    user-select: none;
+    filter: invert(1) drop-shadow(0 0 3px rgba(255,255,255,0.8));
+  }
+
+  /* Outline ring that COMPLETES the jar border wherever the photo has gaps.
+     Sized to trace the outer edge of the glass body. */
+  .jar-glow {
+    position: absolute;
+    /* outer jar body: x=148..452 → width=304, centered */
+    width: 304px;
+    height: 430px;        /* y=100..530 */
+    bottom: 86px;         /* 600 - 530 = 70 → +16 padding = 86 */
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 21;          /* above jar-img so border fills gaps */
+    pointer-events: none;
+    border-radius: 10px 10px 65px 65px;
     background: transparent;
+    border: 2.5px solid rgba(255,255,255,0.75);
+    box-shadow: 0 0 8px rgba(255,255,255,0.4), 0 0 18px rgba(255,255,255,0.2);
     transition: box-shadow 0.3s;
   }
 
@@ -2532,44 +2541,7 @@ function getJarHTML(roomId) {
 <div class="jar-scene">
   <div class="physics-container" id="physics"></div>
   <div class="jar-glow" id="jar-glow"></div>
-  <!-- Mason jar drawn in SVG — perfect unbroken outline, fully transparent interior -->
-  <svg class="jar-svg" viewBox="0 0 600 600" xmlns="http://www.w3.org/2000/svg">
-    <defs>
-      <filter id="jarGlow" x="-30%" y="-30%" width="160%" height="160%">
-        <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur"/>
-        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-      </filter>
-    </defs>
-    <!-- Jar body: physics inner walls x=164..436, outer body x=148..452 -->
-    <!-- y: opening=62, shoulder=100, body bottom=514, base curve rx=38 -->
-    <g filter="url(#jarGlow)" stroke="rgba(255,255,255,0.95)" fill="none" stroke-linecap="round" stroke-linejoin="round">
-      <!-- Main body outline -->
-      <path d="
-        M 164,102
-        L 148,102
-        Q 148,112 148,122
-        L 148,494
-        Q 148,530 186,530
-        L 414,530
-        Q 452,530 452,494
-        L 452,122
-        Q 452,112 452,102
-        L 436,102
-      " stroke-width="3.5"/>
-      <!-- Shoulder transition lines (neck meets body) -->
-      <line x1="148" y1="102" x2="164" y2="102" stroke-width="3.5"/>
-      <line x1="436" y1="102" x2="452" y2="102" stroke-width="3.5"/>
-      <!-- Neck / screw collar -->
-      <rect x="164" y="62" width="272" height="42" rx="6" stroke-width="3"/>
-      <!-- Thread detail lines on collar -->
-      <line x1="168" y1="76" x2="432" y2="76" stroke-width="1" stroke="rgba(255,255,255,0.45)"/>
-      <line x1="168" y1="89" x2="432" y2="89" stroke-width="1" stroke="rgba(255,255,255,0.45)"/>
-      <!-- Opening rim at very top -->
-      <line x1="174" y1="62" x2="426" y2="62" stroke-width="4"/>
-      <!-- Base ring at bottom -->
-      <ellipse cx="300" cy="527" rx="97" ry="6" stroke-width="1.5" stroke="rgba(255,255,255,0.4)"/>
-    </g>
-  </svg>
+  <img class="jar-img" id="jar-img" src="/jar-glass.png" alt="" draggable="false">
 </div>
 </div>
 
