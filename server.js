@@ -11,6 +11,7 @@ const PORT = process.env.PORT || 10000;
 // Serve background images for overlays
 app.get('/velho-oeste.png', (req, res) => res.sendFile(__dirname + '/velho-oeste.png'));
 app.get('/crown.svg', (req, res) => res.sendFile(__dirname + '/crown.svg'));
+app.get('/jar.png', (req, res) => res.sendFile(__dirname + '/jar.png'));
 
 // Health check endpoint
 app.get('/', (req, res) => res.send('OK'));
@@ -2414,59 +2415,39 @@ function getJarHTML(roomId) {
     z-index: 12;
   }
 
-  /* Jar body - glass effect */
+  /* Jar image */
   .jar {
     position: absolute;
     left: 50%;
-    bottom: 20px;
+    bottom: 10px;
     transform: translateX(-50%);
-    width: 280px;
-    height: 400px;
+    width: 320px;
+    height: 430px;
     z-index: 10;
     pointer-events: none;
   }
 
+  .jar-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    z-index: 15;
+    pointer-events: none;
+    filter: drop-shadow(0 0 18px rgba(160,80,255,0.6)) drop-shadow(0 0 40px rgba(120,40,220,0.3));
+  }
+
+  /* Invisible fill zone — physics gifts appear inside the jar glass area */
   .jar-body {
     position: absolute;
-    bottom: 0;
-    left: 20px;
-    right: 20px;
-    height: 340px;
-    background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 50%, rgba(255,255,255,0.08) 100%);
-    border: 3px solid rgba(255,255,255,0.25);
-    border-bottom: 4px solid rgba(255,255,255,0.35);
-    border-radius: 0 0 30px 30px;
-    backdrop-filter: blur(2px);
-    box-shadow:
-      inset 0 0 40px rgba(100,200,255,0.05),
-      inset -15px 0 30px rgba(255,255,255,0.03),
-      0 0 30px rgba(100,200,255,0.1),
-      0 10px 40px rgba(0,0,0,0.3);
-  }
-
-  /* Glass shine */
-  .jar-body::before {
-    content: '';
-    position: absolute;
-    left: 8px;
-    top: 10px;
-    width: 20px;
-    height: 80%;
-    background: linear-gradient(180deg, rgba(255,255,255,0.15), rgba(255,255,255,0.02));
-    border-radius: 10px;
-    pointer-events: none;
-  }
-
-  .jar-body::after {
-    content: '';
-    position: absolute;
-    right: 12px;
-    top: 20px;
-    width: 8px;
-    height: 60%;
-    background: linear-gradient(180deg, rgba(255,255,255,0.08), transparent);
-    border-radius: 5px;
-    pointer-events: none;
+    bottom: 60px;
+    left: 55px;
+    right: 55px;
+    height: 260px;
+    background: transparent;
+    border-radius: 20px;
+    z-index: 11;
   }
 
   /* Jar neck/rim */
@@ -2639,12 +2620,8 @@ function getJarHTML(roomId) {
 <div class="jar-scene">
   <div class="physics-container" id="physics"></div>
   <div class="jar">
-    <div class="jar-neck">
-      <div class="jar-rim"></div>
-      <div class="jar-rim-bottom"></div>
-      <div class="jar-neck-body"></div>
-    </div>
     <div class="jar-body" id="jar-body"></div>
+    <img class="jar-img" src="/jar.png" alt="">
   </div>
 </div>
 </div>
