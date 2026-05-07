@@ -2484,21 +2484,31 @@ function getJarHTML(roomId) {
 
   /* ===== THEMES ===== */
 
-  /* CLEAN — default warm gold */
+  /* CLEAN — white/silver neutral */
+  .theme-clean .jar-border {
+    border-color: #cccccc;
+    box-shadow: 0 0 14px rgba(220,220,220,0.7), 0 0 30px rgba(200,200,200,0.35), inset 0 0 10px rgba(220,220,220,0.05);
+  }
+  .theme-clean .jar-lid {
+    background: linear-gradient(180deg, #888888 0%, #555555 55%, #333333 100%);
+    border-color: #cccccc;
+    box-shadow: 0 0 16px rgba(220,220,220,0.75), 0 0 34px rgba(200,200,200,0.4);
+  }
+  .theme-clean .jar-border.pulse { box-shadow: 0 0 30px rgba(255,255,255,0.9), 0 0 65px rgba(220,220,220,0.55); }
 
-  /* NEON */
-  .theme-neon .jar-bg   { background: rgba(0,5,0,0.96); }
+  /* NEON — hot magenta/pink (unique, not used in any other theme) */
+  .theme-neon .jar-bg   { background: rgba(5,0,5,0.96); }
   .theme-neon .jar-border {
-    border-color: #39ff14;
-    box-shadow: 0 0 14px rgba(57,255,20,0.9), 0 0 30px rgba(57,255,20,0.5), inset 0 0 10px rgba(57,255,20,0.08);
+    border-color: #ff10f0;
+    box-shadow: 0 0 14px rgba(255,16,240,0.9), 0 0 30px rgba(255,16,240,0.5), inset 0 0 10px rgba(255,16,240,0.08);
   }
   .theme-neon .jar-lid {
-    background: linear-gradient(180deg, #1a6f0a 0%, #0d4006 55%, #062203 100%);
-    border-color: #39ff14;
-    box-shadow: 0 0 16px rgba(57,255,20,0.95), 0 0 34px rgba(57,255,20,0.55);
+    background: linear-gradient(180deg, #7a0070 0%, #4a0045 55%, #280025 100%);
+    border-color: #ff10f0;
+    box-shadow: 0 0 16px rgba(255,16,240,0.95), 0 0 34px rgba(255,16,240,0.55);
   }
-  .theme-neon .jar-border.pulse { box-shadow: 0 0 40px rgba(57,255,20,1.0), 0 0 80px rgba(57,255,20,0.6); }
-  .theme-neon .gift-item img { filter: drop-shadow(0 0 5px rgba(57,255,20,0.4)) drop-shadow(0 1px 3px rgba(0,0,0,0.3)); }
+  .theme-neon .jar-border.pulse { box-shadow: 0 0 40px rgba(255,16,240,1.0), 0 0 80px rgba(255,16,240,0.65); }
+  .theme-neon .gift-item img { filter: drop-shadow(0 0 5px rgba(255,16,240,0.45)) drop-shadow(0 1px 3px rgba(0,0,0,0.3)); }
 
   /* MEDIEVAL */
   .theme-medieval .jar-bg { background: rgba(5,3,0,0.96); }
