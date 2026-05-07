@@ -61,6 +61,7 @@ function getRoom(roomId) {
       jarTheme: 'clean',
       jarCustomColor: '',
       jarCapacity: 1000,
+      jarVisual: 'default',
       goalCoins: { text: '', target: 2000, current: 0, theme: 'neon', customColor: '', style: 'default' },
       goalLikes: { text: '', target: 5000, current: 0, theme: 'neon', customColor: '', style: 'default' },
       goalPix: { text: '', target: 100, current: 0, theme: 'neon', customColor: '', style: 'default' },
@@ -315,7 +316,7 @@ app.get('/sse/:roomId/jar', (req, res) => {
     'Connection': 'keep-alive'
   });
   res.write('data: {"type":"connected"}\n\n');
-  res.write(`data: ${JSON.stringify({ type: 'config', theme: room.jarTheme || 'clean', customColor: room.jarCustomColor || '', capacity: room.jarCapacity || 1000 })}\n\n`);
+  res.write(`data: ${JSON.stringify({ type: 'config', theme: room.jarTheme || 'clean', customColor: room.jarCustomColor || '', capacity: room.jarCapacity || 1000, visual: room.jarVisual || 'default' })}\n\n`);
   room.sseClients.jar.push(res);
   req.on('close', () => {
     room.sseClients.jar = room.sseClients.jar.filter(c => c !== res);
@@ -561,10 +562,11 @@ wss.on('connection', (ws) => {
       if (msg.type === 'jar-config') {
         room.jarTheme = msg.theme || 'clean';
         room.jarCustomColor = msg.customColor || '';
+        room.jarVisual = msg.visual || 'default';
         if (typeof msg.capacity === 'number' && msg.capacity > 0) {
           room.jarCapacity = msg.capacity;
         }
-        const event = JSON.stringify({ type: 'config', theme: room.jarTheme, customColor: room.jarCustomColor, capacity: room.jarCapacity });
+        const event = JSON.stringify({ type: 'config', theme: room.jarTheme, customColor: room.jarCustomColor, capacity: room.jarCapacity, visual: room.jarVisual });
         room.sseClients.jar.forEach(client => {
           try { client.write(`data: ${event}\n\n`); } catch (e) {}
         });
@@ -2412,7 +2414,13 @@ function getJarHTML(roomId) {
     z-index: 12;
   }
 
-  /* ===== RECTANGULAR JAR ===== */
+  /* ===== VISUAL SWITCHING ===== */
+  /* Default: show jar, hide chest */
+  .chest-only { display: none !important; }
+  .visual-chest .chest-only { display: block !important; }
+  .visual-chest .default-only { display: none !important; }
+
+  /* ===== RECTANGULAR JAR (default visual) ===== */
 
   /* Dark interior background — behind physics gifts */
   .jar-bg {
@@ -2595,16 +2603,203 @@ function getJarHTML(roomId) {
   /* CUSTOM */
   .theme-custom .jar-border { border-color: rgba(255,255,255,0.35); box-shadow: 0 0 14px rgba(255,255,255,0.25); }
   .theme-custom .jar-lid { background: linear-gradient(180deg, #444, #1a1a1a); border-color: rgba(255,255,255,0.35); box-shadow: 0 0 14px rgba(255,255,255,0.2); }
+
+  /* ===== TREASURE CHEST VISUAL ===== */
+
+  /* CSS variables per theme (used by chest) */
+  #theme-wrapper          { --ch:#d4a520; --cw:110,56,18; --cwb:85,38,10;  --cl:#2a1808; --cg:212,165,32;  --cg2:212,165,32; }
+  #theme-wrapper.theme-clean    { --ch:#cccccc; --cw:80,80,80;  --cwb:50,50,50;  --cl:#2a2a2a; --cg:200,200,200; --cg2:200,200,200; }
+  #theme-wrapper.theme-neon     { --ch:#00d4ff; --cw:0,28,55;   --cwb:0,16,38;   --cl:#001428; --cg:0,212,255;  --cg2:0,212,255; }
+  #theme-wrapper.theme-medieval { --ch:#b8860b; --cw:90,50,10;  --cwb:60,30,5;   --cl:#5a1000; --cg:184,134,11; --cg2:184,134,11; }
+  #theme-wrapper.theme-fire     { --ch:#ff6b35; --cw:100,28,0;  --cwb:65,14,0;   --cl:#3d0e00; --cg:255,107,53; --cg2:255,107,53; }
+  #theme-wrapper.theme-ice      { --ch:#87ceeb; --cw:0,38,75;   --cwb:0,22,55;   --cl:#001228; --cg:135,206,235; --cg2:135,206,235; }
+  #theme-wrapper.theme-royalty  { --ch:#ffd700; --cw:55,18,90;  --cwb:35,8,60;   --cl:#160038; --cg:255,215,0;  --cg2:186,133,255; }
+  #theme-wrapper.theme-retro    { --ch:#39ff14; --cw:0,45,0;    --cwb:0,25,0;    --cl:#001800; --cg:57,255,20;  --cg2:57,255,20; }
+  #theme-wrapper.theme-custom   { --ch:rgba(255,255,255,0.4); --cw:55,55,55; --cwb:35,35,35; --cl:#181818; --cg:200,200,200; --cg2:200,200,200; }
+
+  /* Dark interior behind gifts */
+  .chest-bg {
+    position: absolute;
+    left: 153px; top: 373px;
+    width: 294px; height: 197px;
+    background: rgba(4,3,2,0.96);
+    border-radius: 2px 2px 4px 4px;
+    z-index: 8;
+    pointer-events: none;
+  }
+
+  /* Body frame: gold border + inset wood panels, transparent center */
+  .chest-body {
+    position: absolute;
+    left: 150px; top: 370px;
+    width: 300px; height: 202px;
+    border: 3px solid var(--ch);
+    border-radius: 2px 2px 5px 5px;
+    box-shadow:
+      inset 22px 0 0 0 rgb(var(--cw)),
+      inset -22px 0 0 0 rgb(var(--cw)),
+      inset 0 -26px 0 0 rgb(var(--cwb)),
+      0 0 18px rgba(var(--cg),0.72),
+      0 0 38px rgba(var(--cg2),0.36);
+    z-index: 20;
+    pointer-events: none;
+  }
+
+  /* Inner gold lines: right-edge of left strip, left-edge of right strip */
+  .chest-body::before {
+    content:'';
+    position:absolute;
+    top:0; bottom:26px; left:22px;
+    width:2px;
+    background: var(--ch);
+    box-shadow: 254px 0 0 0 var(--ch);
+  }
+
+  /* Gold line above bottom strip */
+  .chest-body::after {
+    content:'';
+    position:absolute;
+    left:0; right:0; bottom:26px;
+    height:2px;
+    background: var(--ch);
+  }
+
+  /* Center vertical divider (splits interior into 2 panels like the photo) */
+  .chest-divider {
+    position: absolute;
+    left: 300px; top: 370px;
+    width: 2px; height: 176px;
+    background: var(--ch);
+    transform: translateX(-50%);
+    z-index: 21;
+    pointer-events: none;
+  }
+
+  /* Corner rivets (decorative) */
+  .chest-rivets {
+    position: absolute;
+    left: 150px; top: 370px;
+    width: 300px; height: 202px;
+    z-index: 22;
+    pointer-events: none;
+  }
+  .chest-rivets::before {
+    content:'';
+    position:absolute;
+    width:10px; height:10px;
+    border-radius:50%;
+    background: radial-gradient(circle at 35% 35%, #ffe066, var(--ch));
+    top:5px; left:5px;
+    box-shadow:
+      280px 0 0 0 var(--ch),
+      0 177px 0 0 var(--ch),
+      280px 177px 0 0 var(--ch);
+  }
+
+  /* Open lid — wood exterior */
+  .chest-lid-outer {
+    position: absolute;
+    left: 142px; top: 215px;
+    width: 316px; height: 155px;
+    background: linear-gradient(180deg,
+      #2d1206 0%, #6b3410 18%,
+      #8b4513 35%, #7a3c12 50%,
+      #8b4513 65%, #6b3410 82%,
+      #2d1206 100%);
+    border: 3px solid var(--ch);
+    border-radius: 5px 5px 0 0;
+    box-shadow:
+      0 0 18px rgba(var(--cg),0.72),
+      0 0 38px rgba(var(--cg2),0.36);
+    z-index: 23;
+    pointer-events: none;
+  }
+
+  /* Gold band on lid + keyhole */
+  .chest-lid-outer::before {
+    content:'';
+    position:absolute;
+    left:12px; right:12px; top:22px;
+    height:3px;
+    background: linear-gradient(90deg, transparent, var(--ch) 20%, #ffe066 50%, var(--ch) 80%, transparent);
+    border-radius:2px;
+    box-shadow: 0 96px 0 0 rgba(var(--cg),0.5);
+  }
+  .chest-lid-outer::after {
+    content:'';
+    position:absolute;
+    left:50%; top:50%;
+    transform:translate(-50%,-50%);
+    width:14px; height:14px;
+    border-radius:50%;
+    border:3px solid var(--ch);
+    background:rgba(var(--cg),0.2);
+    box-shadow: 0 7px 0 2px var(--ch);
+  }
+
+  /* Lid inner lining — themed color, shows when open */
+  .chest-lid-lining {
+    position: absolute;
+    left: 150px; top: 225px;
+    width: 300px; height: 145px;
+    background: var(--cl);
+    border-radius: 3px 3px 0 0;
+    z-index: 24;
+    pointer-events: none;
+    overflow: hidden;
+  }
+
+  /* Horizontal wood plank lines on lining */
+  .chest-lid-lining::before {
+    content:'';
+    position:absolute;
+    inset:0;
+    background: repeating-linear-gradient(
+      180deg,
+      transparent 0px, transparent 27px,
+      rgba(0,0,0,0.28) 27px, rgba(0,0,0,0.28) 29px
+    );
+  }
+
+  /* Subtle shimmer on lining */
+  .chest-lid-lining::after {
+    content:'';
+    position:absolute;
+    inset:0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.06) 0%, transparent 50%, rgba(0,0,0,0.15) 100%);
+  }
+
+  /* Pulse on gift arrival (chest) */
+  .chest-body.pulse {
+    box-shadow:
+      inset 22px 0 0 0 rgb(var(--cw)),
+      inset -22px 0 0 0 rgb(var(--cw)),
+      inset 0 -26px 0 0 rgb(var(--cwb)),
+      0 0 35px rgba(var(--cg),0.95),
+      0 0 70px rgba(var(--cg2),0.6);
+    transition: box-shadow 0s;
+  }
 </style>
 </head>
 <body>
 
-<div id="theme-wrapper" class="theme-clean">
+<div id="theme-wrapper" class="theme-clean visual-default">
 <div class="jar-scene">
-  <div class="jar-bg"></div>
+  <!-- Shared physics layer -->
   <div class="physics-container" id="physics"></div>
-  <div class="jar-border" id="jar-border"></div>
-  <div class="jar-lid"></div>
+
+  <!-- DEFAULT JAR visual -->
+  <div class="jar-bg default-only"></div>
+  <div class="jar-border default-only" id="jar-border"></div>
+  <div class="jar-lid default-only"></div>
+
+  <!-- TREASURE CHEST visual -->
+  <div class="chest-bg chest-only"></div>
+  <div class="chest-body chest-only" id="chest-body"></div>
+  <div class="chest-divider chest-only"></div>
+  <div class="chest-rivets chest-only"></div>
+  <div class="chest-lid-lining chest-only"></div>
+  <div class="chest-lid-outer chest-only"></div>
 </div>
 </div>
 
@@ -2617,7 +2812,9 @@ function getJarHTML(roomId) {
   const world = engine.world;
 
   const physicsContainer = document.getElementById('physics');
-  const jarBorder = document.getElementById('jar-border');
+  const jarBorder  = document.getElementById('jar-border');
+  const chestBody  = document.getElementById('chest-body');
+  const themeWrapper = document.getElementById('theme-wrapper');
 
   // Scene: 600×600px
   // jar-bg / jar-border: left=160, top=175, width=280, height=395
@@ -2673,8 +2870,10 @@ function getJarHTML(roomId) {
   }
 
   function addGift(giftImage, giftName, count, coins) {
-    jarBorder.classList.add('pulse');
-    setTimeout(() => jarBorder.classList.remove('pulse'), 400);
+    const isChest = themeWrapper.classList.contains('visual-chest');
+    const pulseEl = isChest ? chestBody : jarBorder;
+    pulseEl.classList.add('pulse');
+    setTimeout(() => pulseEl.classList.remove('pulse'), 400);
     const n = Math.min(count, 5);
     for (let i = 0; i < n; i++) setTimeout(() => spawnOne(giftImage, coins), i * 130);
   }
@@ -2707,9 +2906,9 @@ function getJarHTML(roomId) {
     activeGifts = []; pinnedGifts = []; totalGifts = 0;
   }
 
-  const themeWrapper = document.getElementById('theme-wrapper');
-  function applyTheme(theme, customColor) {
-    themeWrapper.className = 'theme-' + (theme || 'clean');
+  function applyTheme(theme, customColor, visual) {
+    const v = visual || 'default';
+    themeWrapper.className = 'theme-' + (theme || 'clean') + ' visual-' + v;
     document.body.style.background = (theme === 'custom' && customColor) ? customColor : 'transparent';
   }
 
@@ -2719,7 +2918,7 @@ function getJarHTML(roomId) {
     if (msg.type === 'gift')   addGift(msg.giftImage, msg.giftName, msg.count||1, msg.coins||0);
     if (msg.type === 'reset')  resetJar();
     if (msg.type === 'config') {
-      applyTheme(msg.theme, msg.customColor);
+      applyTheme(msg.theme, msg.customColor, msg.visual);
       if (typeof msg.capacity === 'number' && msg.capacity > 0) maxCapacity = msg.capacity;
     }
   };
