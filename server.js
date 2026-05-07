@@ -2387,8 +2387,6 @@ function getJarHTML(roomId) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap');
-
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     background: transparent;
@@ -2398,7 +2396,6 @@ function getJarHTML(roomId) {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-family: 'Orbitron', sans-serif;
   }
 
   .jar-scene {
@@ -2407,327 +2404,197 @@ function getJarHTML(roomId) {
     height: 600px;
   }
 
-  /* Physics container — above jar body, below jar outline */
+  /* Physics gifts layer */
   .physics-container {
     position: absolute;
     inset: 0;
-    width: 100%;
-    height: 100%;
     pointer-events: none;
     z-index: 12;
   }
 
-  /* ===== CSS JAR ===== */
-  @keyframes crystalPulse {
-    0%,100% { box-shadow: inset 0 0 60px rgba(160,80,255,0.10), 0 0 40px rgba(140,60,255,0.35), 0 0 80px rgba(120,40,220,0.15); }
-    50%      { box-shadow: inset 0 0 80px rgba(160,80,255,0.18), 0 0 60px rgba(160,80,255,0.55), 0 0 120px rgba(140,50,230,0.30); }
-  }
-  @keyframes rimGlow {
-    0%,100% { box-shadow: 0 0 18px rgba(180,80,255,0.8), 0 0 40px rgba(140,50,220,0.5); }
-    50%      { box-shadow: 0 0 30px rgba(200,100,255,1.0), 0 0 60px rgba(180,80,255,0.7); }
-  }
-  @keyframes baseGlow {
-    0%,100% { box-shadow: 0 0 25px rgba(160,80,255,0.6), 0 0 50px rgba(120,40,220,0.3); }
-    50%      { box-shadow: 0 0 40px rgba(200,100,255,0.8), 0 0 80px rgba(160,60,255,0.5); }
-  }
-  @keyframes gemPulse {
-    0%,100% { opacity:0.85; filter: drop-shadow(0 0 6px rgba(200,120,255,0.9)); }
-    50%      { opacity:1;    filter: drop-shadow(0 0 12px rgba(220,140,255,1.0)); }
-  }
+  /* ===== RECTANGULAR JAR ===== */
 
-  .jar {
+  /* Dark interior background — behind physics gifts */
+  .jar-bg {
     position: absolute;
-    left: 50%;
-    bottom: 10px;
-    transform: translateX(-50%);
-    width: 300px;
-    height: 450px;
-    z-index: 10;
+    left: 160px; top: 175px;
+    width: 280px; height: 395px;
+    background: rgba(3, 4, 10, 0.94);
+    border-radius: 4px 4px 6px 6px;
+    z-index: 8;
     pointer-events: none;
   }
 
-  /* Main glass body */
-  .jar-body {
+  /* Jar body border — rendered ON TOP of gifts */
+  .jar-border {
     position: absolute;
-    bottom: 62px;
-    left: 16px;
-    right: 16px;
-    height: 330px;
-    background: linear-gradient(160deg,
-      rgba(200,140,255,0.07) 0%,
-      rgba(255,255,255,0.06) 35%,
-      rgba(160,80,255,0.05) 65%,
-      rgba(200,140,255,0.08) 100%);
-    border: 2px solid rgba(180,90,255,0.45);
-    border-bottom: 3px solid rgba(180,90,255,0.55);
-    border-radius: 30px 30px 50px 50px;
-    backdrop-filter: blur(3px);
-    animation: crystalPulse 4s ease-in-out infinite;
-    z-index: 11;
-  }
-  /* Left glass shine */
-  .jar-body::before {
-    content:'';
-    position:absolute;
-    left:10px; top:14px;
-    width:16px; height:75%;
-    background: linear-gradient(180deg, rgba(255,255,255,0.18), rgba(255,255,255,0.02));
-    border-radius:8px;
-  }
-  /* Right faint shine */
-  .jar-body::after {
-    content:'';
-    position:absolute;
-    right:14px; top:24px;
-    width:7px; height:55%;
-    background: linear-gradient(180deg, rgba(255,255,255,0.08), transparent);
-    border-radius:4px;
+    left: 160px; top: 175px;
+    width: 280px; height: 395px;
+    border: 2.5px solid #c87941;
+    border-radius: 4px 4px 6px 6px;
+    box-shadow:
+      0 0 14px rgba(200,121,65,0.85),
+      0 0 30px rgba(180,100,40,0.5),
+      inset 0 0 10px rgba(200,121,65,0.08);
+    z-index: 20;
+    pointer-events: none;
+    transition: box-shadow 0.3s, border-color 0.3s;
   }
 
-  /* Rim (lid) */
-  .jar-neck {
-    position:absolute;
-    top:58px;
-    left:50%; transform:translateX(-50%);
-    width:220px; height:26px;
-    z-index:13;
-  }
-  .jar-rim {
-    position:absolute;
-    inset:0;
-    background: linear-gradient(180deg, rgba(200,110,255,0.9), rgba(140,50,220,0.85));
-    border-radius:50%;
-    border:2px solid rgba(220,150,255,0.7);
-    animation: rimGlow 3s ease-in-out infinite;
-  }
-  /* Gem on lid */
-  .jar-rim-bottom {
-    position:absolute;
-    top:50%; left:50%;
-    transform:translate(-50%,-50%);
-    width:18px; height:18px;
-    background: linear-gradient(135deg,#e0aaff,#9b30ff,#cc66ff);
-    clip-path: polygon(50% 0%,100% 50%,50% 100%,0% 50%);
-    animation: gemPulse 2.5s ease-in-out infinite;
-    z-index:14;
-  }
-
-  /* Neck connector */
-  .jar-neck-body {
-    position:absolute;
-    top:82px; left:50%; transform:translateX(-50%);
-    width:188px; height:20px;
-    background: linear-gradient(180deg, rgba(160,80,255,0.25), rgba(120,40,200,0.15));
-    border-left:2px solid rgba(180,90,255,0.3);
-    border-right:2px solid rgba(180,90,255,0.3);
-    z-index:12;
-  }
-
-  /* Side gems */
-  .jar-gem-l, .jar-gem-r {
-    position:absolute;
-    top:50%; transform:translateY(-50%);
-    width:22px; height:28px;
-    background: linear-gradient(135deg,#c084fc,#7c3aed,#a855f7);
-    clip-path: polygon(50% 0%,100% 30%,85% 100%,15% 100%,0% 30%);
-    animation: gemPulse 3s ease-in-out infinite;
-    z-index:13;
-  }
-  .jar-gem-l { left:-8px; }
-  .jar-gem-r { right:-8px; animation-delay:1.2s; }
-
-  /* Base platform */
-  .jar-base {
-    position:absolute;
-    bottom:0; left:50%; transform:translateX(-50%);
-    width:230px; height:58px;
-    background: linear-gradient(180deg, rgba(130,50,210,0.92), rgba(60,10,120,0.95));
-    border-radius: 50% 50% 30px 30px / 28px 28px 30px 30px;
-    border:2px solid rgba(180,90,255,0.5);
-    animation: baseGlow 3.5s ease-in-out infinite;
-    z-index:12;
-  }
-  .jar-base::before {
-    content:'';
-    position:absolute;
-    bottom:8px; left:15%; right:15%;
-    height:2px;
-    background: linear-gradient(90deg, transparent, rgba(220,140,255,0.8), transparent);
-    border-radius:1px;
-  }
-  .jar-base::after {
-    content:'\\2665';
-    position:absolute;
-    bottom:10px; left:50%; transform:translateX(-50%);
-    font-size:14px;
-    color:rgba(255,120,200,0.9);
-    filter: drop-shadow(0 0 6px rgba(255,100,180,0.8));
-    animation: gemPulse 2s ease-in-out infinite;
+  /* Flat lid — on top of everything */
+  .jar-lid {
+    position: absolute;
+    left: 152px; top: 143px;
+    width: 296px; height: 32px;
+    background: linear-gradient(180deg, #c08030 0%, #8a5520 55%, #5c3610 100%);
+    border: 2.5px solid #d4813c;
+    border-radius: 5px;
+    box-shadow:
+      0 0 16px rgba(212,129,60,0.95),
+      0 0 34px rgba(180,100,30,0.55);
+    z-index: 22;
+    pointer-events: none;
+    transition: background 0.3s, border-color 0.3s, box-shadow 0.3s;
   }
 
   /* Individual gift item */
   .gift-item {
     position: absolute;
-    left: 0;
-    top: 0;
-    width: 32px;
-    height: 32px;
+    left: 0; top: 0;
     pointer-events: none;
     will-change: transform;
   }
   .gift-item img {
-    width: 100%;
-    height: 100%;
+    width: 100%; height: 100%;
     object-fit: contain;
-    filter: drop-shadow(0 1px 3px rgba(0,0,0,0.3));
-  }
-
-  /* Big gift (1000+ coins) */
-  .gift-item.gift-big {
-    width: 48px;
-    height: 48px;
+    filter: drop-shadow(0 1px 3px rgba(0,0,0,0.4));
   }
   .gift-item.gift-big img {
     filter: drop-shadow(0 0 8px rgba(255,215,0,0.6)) drop-shadow(0 2px 4px rgba(0,0,0,0.4));
   }
 
-  /* Glow pulse on jar when gift arrives */
-  .jar-body.pulse {
+  /* Pulse on gift arrival */
+  .jar-border.pulse {
     box-shadow:
-      inset 0 0 40px rgba(100,200,255,0.05),
-      inset -15px 0 30px rgba(255,255,255,0.03),
-      0 0 50px rgba(255,200,50,0.4),
-      0 0 80px rgba(255,150,50,0.2),
-      0 10px 40px rgba(0,0,0,0.3);
-    transition: box-shadow 0.3s;
+      0 0 28px rgba(255,200,80,0.95),
+      0 0 60px rgba(255,160,40,0.65),
+      inset 0 0 18px rgba(255,200,80,0.18);
+    transition: box-shadow 0s;
   }
 
-  /* ===== JAR THEMES ===== */
+  /* ===== THEMES ===== */
 
-  /* THEME: NEON */
-  .theme-neon .jar-body {
-    box-shadow: inset 0 0 40px rgba(57,255,20,0.08), 0 0 30px rgba(57,255,20,0.3), 0 0 60px rgba(0,255,255,0.15), 0 10px 40px rgba(0,0,0,0.3);
-    border-color: rgba(57,255,20,0.4);
-  }
-  .theme-neon .jar-rim { background: linear-gradient(180deg, #39ff14, #00e5ff, #39ff14); border-color: rgba(57,255,20,0.7); animation: none; box-shadow: 0 0 18px rgba(57,255,20,0.8); }
-  .theme-neon .jar-rim-bottom { background: linear-gradient(135deg,#39ff14,#00e5ff,#39ff14); }
-  .theme-neon .jar-base { background: linear-gradient(180deg, rgba(0,80,0,0.92), rgba(0,40,0,0.95)); border-color: rgba(57,255,20,0.5); animation: none; box-shadow: 0 0 25px rgba(57,255,20,0.4); }
-  .theme-neon .jar-gem-l, .theme-neon .jar-gem-r { background: linear-gradient(135deg,#39ff14,#00e5ff); }
-  .theme-neon .gift-item img { filter: drop-shadow(0 0 6px rgba(57,255,20,0.5)) drop-shadow(0 1px 3px rgba(0,0,0,0.3)); }
-  .theme-neon .jar-body.pulse { box-shadow: inset 0 0 40px rgba(57,255,20,0.1), 0 0 60px rgba(57,255,20,0.5), 0 0 100px rgba(0,255,255,0.3), 0 10px 40px rgba(0,0,0,0.3) !important; }
+  /* CLEAN — default warm gold */
 
-  /* THEME: MEDIEVAL */
-  .theme-medieval .jar-body {
-    box-shadow: inset 0 0 30px rgba(139,90,43,0.1), 0 0 20px rgba(139,90,43,0.3), 0 10px 40px rgba(0,0,0,0.4);
-    border-color: rgba(184,134,11,0.5);
-    background: linear-gradient(160deg, rgba(139,90,43,0.12) 0%, rgba(255,215,0,0.05) 50%, rgba(139,90,43,0.10) 100%);
-    animation: none;
+  /* NEON */
+  .theme-neon .jar-bg   { background: rgba(0,5,0,0.96); }
+  .theme-neon .jar-border {
+    border-color: #39ff14;
+    box-shadow: 0 0 14px rgba(57,255,20,0.9), 0 0 30px rgba(57,255,20,0.5), inset 0 0 10px rgba(57,255,20,0.08);
   }
-  .theme-medieval .jar-rim { background: linear-gradient(180deg, #b8860b, #8b5a2b, #b8860b); border-color: rgba(184,134,11,0.6); animation: none; box-shadow: 0 0 18px rgba(184,134,11,0.6); }
-  .theme-medieval .jar-rim-bottom { background: linear-gradient(135deg,#ffd700,#8b5a2b,#ffd700); clip-path: polygon(50% 0%,100% 50%,50% 100%,0% 50%); }
-  .theme-medieval .jar-base { background: linear-gradient(180deg, rgba(80,50,10,0.92), rgba(40,20,0,0.95)); border-color: rgba(184,134,11,0.5); animation: none; box-shadow: 0 0 25px rgba(184,134,11,0.3); }
-  .theme-medieval .jar-gem-l, .theme-medieval .jar-gem-r { background: linear-gradient(135deg,#b8860b,#8b5a2b,#ffd700); }
+  .theme-neon .jar-lid {
+    background: linear-gradient(180deg, #1a6f0a 0%, #0d4006 55%, #062203 100%);
+    border-color: #39ff14;
+    box-shadow: 0 0 16px rgba(57,255,20,0.95), 0 0 34px rgba(57,255,20,0.55);
+  }
+  .theme-neon .jar-border.pulse { box-shadow: 0 0 40px rgba(57,255,20,1.0), 0 0 80px rgba(57,255,20,0.6); }
+  .theme-neon .gift-item img { filter: drop-shadow(0 0 5px rgba(57,255,20,0.4)) drop-shadow(0 1px 3px rgba(0,0,0,0.3)); }
+
+  /* MEDIEVAL */
+  .theme-medieval .jar-bg { background: rgba(5,3,0,0.96); }
+  .theme-medieval .jar-border {
+    border-color: #b8860b;
+    box-shadow: 0 0 14px rgba(184,134,11,0.85), 0 0 30px rgba(139,90,43,0.5);
+  }
+  .theme-medieval .jar-lid {
+    background: linear-gradient(180deg, #8b6914 0%, #5a3d08 55%, #3d2804 100%);
+    border-color: #b8860b;
+    box-shadow: 0 0 16px rgba(184,134,11,0.9), 0 0 34px rgba(139,90,43,0.5);
+  }
   .theme-medieval .gift-item img { filter: drop-shadow(0 0 4px rgba(184,134,11,0.4)) drop-shadow(0 1px 3px rgba(0,0,0,0.4)); }
 
-  /* THEME: RETRO */
-  .theme-retro .jar-body {
-    box-shadow: inset 0 0 20px rgba(57,255,20,0.05), 0 0 20px rgba(57,255,20,0.2), 0 10px 40px rgba(0,0,0,0.3);
-    border-color: rgba(57,255,20,0.3);
-    animation: none;
-    image-rendering: pixelated;
+  /* RETRO */
+  .theme-retro .jar-bg { background: rgba(0,5,0,0.97); }
+  .theme-retro .jar-border {
+    border-color: #39ff14;
+    border-radius: 0;
+    box-shadow: 0 0 10px rgba(57,255,20,0.8), 0 0 22px rgba(57,255,20,0.4);
   }
-  .theme-retro .jar-rim { background: linear-gradient(180deg, #39ff14, #006400); border-color: #39ff14; animation: none; box-shadow: 0 0 12px rgba(57,255,20,0.7); border-radius: 4px; }
-  .theme-retro .jar-rim-bottom { background: #39ff14; clip-path: none; width:12px; height:12px; border-radius:0; }
-  .theme-retro .jar-base { background: linear-gradient(180deg, #003300, #001a00); border-color: #39ff14; animation: none; border-radius: 4px; }
-  .theme-retro .jar-gem-l, .theme-retro .jar-gem-r { background: #39ff14; clip-path: none; width:8px; height:40%; border-radius:2px; }
+  .theme-retro .jar-bg { border-radius: 0; }
+  .theme-retro .jar-lid {
+    background: #003300;
+    border-color: #39ff14;
+    border-radius: 2px;
+    box-shadow: 0 0 12px rgba(57,255,20,0.8);
+  }
 
-  /* THEME: FIRE */
-  @keyframes fireJarGlow {
-    0%, 100% { box-shadow: inset 0 0 40px rgba(255,69,0,0.05), 0 0 30px rgba(255,107,53,0.3), 0 0 60px rgba(255,69,0,0.15), 0 10px 40px rgba(0,0,0,0.3); }
-    50% { box-shadow: inset 0 0 40px rgba(255,69,0,0.1), 0 0 50px rgba(255,107,53,0.5), 0 0 80px rgba(255,69,0,0.3), 0 10px 40px rgba(0,0,0,0.3); }
+  /* FIRE */
+  @keyframes fireGlowBorder {
+    0%,100% { box-shadow: 0 0 14px rgba(255,107,53,0.85), 0 0 30px rgba(255,69,0,0.5), inset 0 0 10px rgba(255,107,53,0.08); }
+    50%      { box-shadow: 0 0 24px rgba(255,107,53,1.0),  0 0 55px rgba(255,69,0,0.7),  inset 0 0 18px rgba(255,107,53,0.14); }
   }
-  .theme-fire .jar-body {
-    border-color: rgba(255,107,53,0.4);
-    background: linear-gradient(160deg, rgba(255,107,53,0.08) 0%, rgba(255,69,0,0.04) 50%, rgba(255,140,0,0.08) 100%);
-    animation: fireJarGlow 3s ease-in-out infinite;
+  .theme-fire .jar-bg { background: rgba(5,2,0,0.96); }
+  .theme-fire .jar-border {
+    border-color: #ff6b35;
+    animation: fireGlowBorder 2.5s ease-in-out infinite;
   }
-  .theme-fire .jar-rim { background: linear-gradient(180deg, #ff6b35, #ff4500, #ff6b35); border-color: rgba(255,107,53,0.7); animation: none; box-shadow: 0 0 18px rgba(255,107,53,0.8); }
-  .theme-fire .jar-rim-bottom { background: linear-gradient(135deg,#fff44f,#ff6b35,#ff4500); }
-  .theme-fire .jar-base { background: linear-gradient(180deg, rgba(120,30,0,0.92), rgba(60,10,0,0.95)); border-color: rgba(255,107,53,0.5); animation: none; box-shadow: 0 0 25px rgba(255,107,53,0.4); }
-  .theme-fire .jar-gem-l, .theme-fire .jar-gem-r { background: linear-gradient(135deg,#ff6b35,#ff4500,#fff44f); }
+  .theme-fire .jar-lid {
+    background: linear-gradient(180deg, #cc4400 0%, #7a2000 55%, #3d0d00 100%);
+    border-color: #ff6b35;
+    box-shadow: 0 0 16px rgba(255,107,53,0.95), 0 0 34px rgba(255,69,0,0.55);
+  }
+  .theme-fire .jar-border.pulse { box-shadow: 0 0 45px rgba(255,107,53,1.0), 0 0 90px rgba(255,69,0,0.7) !important; }
   .theme-fire .gift-item img { filter: drop-shadow(0 0 5px rgba(255,107,53,0.5)) drop-shadow(0 1px 3px rgba(0,0,0,0.3)); }
-  .theme-fire .jar-body.pulse { box-shadow: inset 0 0 40px rgba(255,69,0,0.1), 0 0 70px rgba(255,107,53,0.6), 0 0 120px rgba(255,69,0,0.3), 0 10px 40px rgba(0,0,0,0.3) !important; }
 
-  /* THEME: ICE */
-  @keyframes iceJarGlow {
-    0%,100% { box-shadow: inset 0 0 40px rgba(135,206,235,0.08), 0 0 30px rgba(135,206,235,0.3), 0 0 60px rgba(100,200,255,0.15), 0 10px 40px rgba(0,0,0,0.3); }
-    50%      { box-shadow: inset 0 0 60px rgba(135,206,235,0.14), 0 0 50px rgba(135,206,235,0.5), 0 0 90px rgba(100,200,255,0.25), 0 10px 40px rgba(0,0,0,0.3); }
+  /* ICE */
+  @keyframes iceGlowBorder {
+    0%,100% { box-shadow: 0 0 14px rgba(135,206,235,0.85), 0 0 30px rgba(100,200,255,0.45), inset 0 0 10px rgba(135,206,235,0.08); }
+    50%      { box-shadow: 0 0 24px rgba(135,206,235,1.0),  0 0 55px rgba(100,200,255,0.65), inset 0 0 18px rgba(135,206,235,0.14); }
   }
-  @keyframes iceRimGlow {
-    0%,100% { box-shadow: 0 0 18px rgba(135,206,235,0.8), 0 0 40px rgba(100,200,255,0.5); }
-    50%      { box-shadow: 0 0 30px rgba(200,240,255,1.0), 0 0 60px rgba(135,206,235,0.7); }
+  .theme-ice .jar-bg { background: rgba(0,5,10,0.96); }
+  .theme-ice .jar-border {
+    border-color: #87ceeb;
+    animation: iceGlowBorder 3s ease-in-out infinite;
   }
-  @keyframes iceBaseGlow {
-    0%,100% { box-shadow: 0 0 25px rgba(135,206,235,0.5), 0 0 50px rgba(100,200,255,0.3); }
-    50%      { box-shadow: 0 0 40px rgba(200,240,255,0.7), 0 0 80px rgba(135,206,235,0.4); }
+  .theme-ice .jar-lid {
+    background: linear-gradient(180deg, #4fc3f7 0%, #1a7fa8 55%, #0d4f6b 100%);
+    border-color: #87ceeb;
+    box-shadow: 0 0 16px rgba(135,206,235,0.95), 0 0 34px rgba(100,200,255,0.55);
   }
-  .theme-ice .jar-body {
-    border-color: rgba(135,206,235,0.5);
-    background: linear-gradient(160deg, rgba(135,206,235,0.10) 0%, rgba(255,255,255,0.08) 35%, rgba(100,200,255,0.07) 65%, rgba(135,206,235,0.10) 100%);
-    animation: iceJarGlow 4s ease-in-out infinite;
-  }
-  .theme-ice .jar-rim { background: linear-gradient(180deg, #b0e8ff, #87ceeb, #b0e8ff); border-color: rgba(200,240,255,0.8); animation: iceRimGlow 3s ease-in-out infinite; }
-  .theme-ice .jar-rim-bottom { background: linear-gradient(135deg,#ffffff,#87ceeb,#4fc3f7); }
-  .theme-ice .jar-base { background: linear-gradient(180deg, rgba(30,80,130,0.92), rgba(10,40,80,0.95)); border-color: rgba(135,206,235,0.5); animation: iceBaseGlow 3.5s ease-in-out infinite; }
-  .theme-ice .jar-base::after { content:'\\2744'; color:rgba(200,240,255,0.9); filter: drop-shadow(0 0 6px rgba(135,206,235,0.8)); }
-  .theme-ice .jar-gem-l, .theme-ice .jar-gem-r { background: linear-gradient(135deg,#b0e8ff,#4fc3f7,#87ceeb); }
+  .theme-ice .jar-border.pulse { box-shadow: 0 0 40px rgba(135,206,235,1.0), 0 0 80px rgba(100,200,255,0.65) !important; }
   .theme-ice .gift-item img { filter: drop-shadow(0 0 5px rgba(135,206,235,0.5)) drop-shadow(0 1px 3px rgba(0,0,0,0.3)); }
-  .theme-ice .jar-body.pulse { box-shadow: inset 0 0 40px rgba(135,206,235,0.12), 0 0 60px rgba(135,206,235,0.55), 0 0 100px rgba(100,200,255,0.3), 0 10px 40px rgba(0,0,0,0.3) !important; }
 
-  /* THEME: ROYALTY */
-  @keyframes royalJarGlow {
-    0%, 100% { box-shadow: inset 0 0 40px rgba(186,133,255,0.05), 0 0 30px rgba(255,215,0,0.2), 0 0 60px rgba(186,133,255,0.15), 0 10px 40px rgba(0,0,0,0.3); }
-    50% { box-shadow: inset 0 0 40px rgba(186,133,255,0.1), 0 0 50px rgba(255,215,0,0.5), 0 0 80px rgba(186,133,255,0.3), 0 10px 40px rgba(0,0,0,0.3); }
+  /* ROYALTY */
+  @keyframes royalGlowBorder {
+    0%,100% { box-shadow: 0 0 14px rgba(255,215,0,0.7), 0 0 30px rgba(186,133,255,0.4); }
+    50%      { box-shadow: 0 0 24px rgba(255,215,0,1.0), 0 0 55px rgba(186,133,255,0.65); }
   }
-  .theme-royalty .jar-body {
-    border-color: rgba(255,215,0,0.4);
-    animation: royalJarGlow 4s ease-in-out infinite;
+  .theme-royalty .jar-bg { background: rgba(5,0,10,0.96); }
+  .theme-royalty .jar-border {
+    border-color: #ffd700;
+    animation: royalGlowBorder 3.5s ease-in-out infinite;
   }
-  .theme-royalty .jar-rim { background: linear-gradient(180deg, #ffd700, #ba85ff, #ffd700); border-color: rgba(255,215,0,0.6); animation: none; box-shadow: 0 0 18px rgba(255,215,0,0.8); }
-  .theme-royalty .jar-rim-bottom { background: linear-gradient(135deg,#ffd700,#ba85ff,#ffd700); }
-  .theme-royalty .jar-base { background: linear-gradient(180deg, rgba(80,30,120,0.92), rgba(40,10,70,0.95)); border-color: rgba(255,215,0,0.4); animation: none; box-shadow: 0 0 25px rgba(255,215,0,0.3); }
-  .theme-royalty .jar-gem-l, .theme-royalty .jar-gem-r { background: linear-gradient(135deg,#ffd700,#ba85ff,#6a0dad); }
-  .theme-royalty .gift-item img { filter: drop-shadow(0 0 6px rgba(255,215,0,0.5)) drop-shadow(0 0 4px rgba(186,133,255,0.3)); }
-  .theme-royalty .jar-body.pulse { box-shadow: inset 0 0 40px rgba(186,133,255,0.1), 0 0 60px rgba(255,215,0,0.6), 0 0 100px rgba(186,133,255,0.3), 0 10px 40px rgba(0,0,0,0.3) !important; }
+  .theme-royalty .jar-lid {
+    background: linear-gradient(180deg, #7c3aed 0%, #4c1d95 55%, #2d0f6b 100%);
+    border-color: #ffd700;
+    box-shadow: 0 0 16px rgba(255,215,0,0.9), 0 0 34px rgba(186,133,255,0.55);
+  }
+  .theme-royalty .jar-border.pulse { box-shadow: 0 0 40px rgba(255,215,0,1.0), 0 0 80px rgba(186,133,255,0.65) !important; }
+  .theme-royalty .gift-item img { filter: drop-shadow(0 0 5px rgba(255,215,0,0.4)) drop-shadow(0 0 3px rgba(186,133,255,0.3)); }
 
-  /* THEME: CLEAN */
-  .theme-clean .jar-body { animation: none; box-shadow: 0 0 20px rgba(180,90,255,0.2); }
-  .theme-clean .jar-rim { animation: none; }
-  .theme-clean .jar-base { animation: none; }
-
-  /* THEME: CUSTOM */
-  .theme-custom .jar-body { border-color: rgba(255,255,255,0.2); animation: none; }
-  .theme-custom .jar-rim { animation: none; }
-  .theme-custom .jar-base { animation: none; }
+  /* CUSTOM */
+  .theme-custom .jar-border { border-color: rgba(255,255,255,0.35); box-shadow: 0 0 14px rgba(255,255,255,0.25); }
+  .theme-custom .jar-lid { background: linear-gradient(180deg, #444, #1a1a1a); border-color: rgba(255,255,255,0.35); box-shadow: 0 0 14px rgba(255,255,255,0.2); }
 </style>
 </head>
 <body>
 
 <div id="theme-wrapper" class="theme-clean">
 <div class="jar-scene">
+  <div class="jar-bg"></div>
   <div class="physics-container" id="physics"></div>
-  <div class="jar">
-    <div class="jar-neck">
-      <div class="jar-rim"></div>
-      <div class="jar-rim-bottom"></div>
-    </div>
-    <div class="jar-neck-body"></div>
-    <div class="jar-body" id="jar-body">
-      <div class="jar-gem-l"></div>
-      <div class="jar-gem-r"></div>
-    </div>
-    <div class="jar-base"></div>
-  </div>
+  <div class="jar-border" id="jar-border"></div>
+  <div class="jar-lid"></div>
 </div>
 </div>
 
@@ -2740,36 +2607,31 @@ function getJarHTML(roomId) {
   const world = engine.world;
 
   const physicsContainer = document.getElementById('physics');
-  const jarBody = document.getElementById('jar-body');
+  const jarBorder = document.getElementById('jar-border');
 
-  // Scene: 600x600px. Jar CSS: width=300px, centered → left=150, right=450.
-  // Body: left=150+16=166, right=450-16=434. Bottom=600-10-62=528. Top=528-330=198.
-  // Neck opening: width=188px centered → x=206..394. Top y≈82+10=92 (neck-body top).
+  // Scene: 600×600px
+  // jar-bg / jar-border: left=160, top=175, width=280, height=395
+  //   → right=440, bottom=570
+  // Left wall inner x: 160 + 2(border) + 4 = 166
+  // Right wall inner x: 440 - 2(border) - 4 = 434
+  // Floor y: 570 - 2(border) - 5 = 563
   const wallOpts = { isStatic: true, friction: 0.6, restitution: 0.1, render: { visible: false } };
   World.add(world, [
-    // Jar body inner walls
-    Bodies.rectangle(172, 365, 12, 340, wallOpts),   // left wall (x=166+3=169→172)
-    Bodies.rectangle(428, 365, 12, 340, wallOpts),   // right wall (x=434-3=431→428)
-    Bodies.rectangle(300, 532, 262, 14, wallOpts),   // floor (bottom of body y=528+4=532)
-    // Safety net below floor
-    Bodies.rectangle(300, 610, 700, 14, wallOpts),
-    // Ground outside (overflow landing)
-    Bodies.rectangle(85,  570, 170, 10, wallOpts),   // ground left
-    Bodies.rectangle(515, 570, 170, 10, wallOpts),   // ground right
-    // Scene outer bounds
-    Bodies.rectangle(-5,  300, 10, 700, wallOpts),
-    Bodies.rectangle(605, 300, 10, 700, wallOpts),
+    Bodies.rectangle(166, 372, 12, 395, wallOpts),   // left wall
+    Bodies.rectangle(434, 372, 12, 395, wallOpts),   // right wall
+    Bodies.rectangle(300, 563, 274, 12, wallOpts),   // floor
+    Bodies.rectangle(300, 615, 700, 14, wallOpts),   // safety net
+    Bodies.rectangle(85,  590, 170, 10, wallOpts),   // ground left
+    Bodies.rectangle(515, 590, 170, 10, wallOpts),   // ground right
+    Bodies.rectangle(-5,  300, 10,  700, wallOpts),  // scene left
+    Bodies.rectangle(605, 300, 10,  700, wallOpts),  // scene right
   ]);
 
-  let activeGifts = [];
-  let pinnedGifts = [];
-  let totalGifts  = 0;
-  let maxCapacity = 1000;
+  let activeGifts = [], pinnedGifts = [], totalGifts = 0, maxCapacity = 1000;
 
   function radiusForCoins(coins) {
     const c = Math.max(1, coins || 1);
-    const r = 10 + Math.log10(c + 1) * 8.5;
-    return Math.max(11, Math.min(46, r));
+    return Math.max(11, Math.min(46, 10 + Math.log10(c + 1) * 8.5));
   }
 
   function spawnOne(giftImage, coins) {
@@ -2777,14 +2639,13 @@ function getJarHTML(roomId) {
     totalGifts++;
     const radius = radiusForCoins(coins) * (0.9 + Math.random() * 0.2);
     const isBig  = coins >= 1000;
-    // Spawn above jar mouth — neck opening x=206..394, centered around 300
-    const x = 240 + Math.random() * 120;
+    const x = 230 + Math.random() * 140;  // inside x=166..434
     const y = -10 - Math.random() * 30;
     const body = Bodies.circle(x, y, radius, {
-      friction:       0.3 + Math.random() * 0.3,
+      friction: 0.3 + Math.random() * 0.3,
       frictionStatic: 0.2 + Math.random() * 0.3,
-      restitution:    0.15 + Math.random() * 0.2,
-      density:        0.001 + Math.random() * 0.003,
+      restitution: 0.15 + Math.random() * 0.2,
+      density: 0.001 + Math.random() * 0.003,
       sleepThreshold: 60,
     });
     Body.setVelocity(body, { x: (Math.random() - 0.5) * 3, y: 1 + Math.random() * 1.5 });
@@ -2793,71 +2654,50 @@ function getJarHTML(roomId) {
 
     const el = document.createElement('div');
     el.className = 'gift-item' + (isBig ? ' gift-big' : '');
-    el.style.width  = (radius * 2) + 'px';
-    el.style.height = (radius * 2) + 'px';
+    const sz = radius * 2;
+    el.style.cssText = 'width:' + sz + 'px;height:' + sz + 'px;';
     el.innerHTML = '<img src="' + giftImage + '" alt="" onerror="this.src=\\'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 36 36%22><text y=%2228%22 font-size=%2228%22>🎁</text></svg>\\'">';
     physicsContainer.appendChild(el);
-
-    body.giftEl     = el;
-    body.giftRadius = radius;
-    body.sleepFrames = 0;
+    body.giftEl = el; body.giftRadius = radius; body.sleepFrames = 0;
     activeGifts.push(body);
   }
 
   function addGift(giftImage, giftName, count, coins) {
-    const safeCount = Math.min(count, 5);
-    jarBody.classList.add('pulse');
-    setTimeout(() => jarBody.classList.remove('pulse'), 400);
-    for (let c = 0; c < safeCount; c++) {
-      setTimeout(() => spawnOne(giftImage, coins), c * 130);
-    }
+    jarBorder.classList.add('pulse');
+    setTimeout(() => jarBorder.classList.remove('pulse'), 400);
+    const n = Math.min(count, 5);
+    for (let i = 0; i < n; i++) setTimeout(() => spawnOne(giftImage, coins), i * 130);
   }
 
   function updateGiftTransform(b) {
-    const el = b.giftEl;
-    if (!el) return;
+    if (!b.giftEl) return;
     const r = b.giftRadius;
-    el.style.transform = 'translate(' + (b.position.x - r) + 'px, ' + (b.position.y - r) + 'px) rotate(' + b.angle + 'rad)';
+    b.giftEl.style.transform = 'translate(' + (b.position.x-r) + 'px,' + (b.position.y-r) + 'px) rotate(' + b.angle + 'rad)';
   }
 
   Events.on(engine, 'beforeUpdate', () => {
     for (let i = activeGifts.length - 1; i >= 0; i--) {
       const b = activeGifts[i];
-      if (b.position.y > 650) {
-        Body.setPosition(b, { x: 300, y: 400 });
-        Body.setVelocity(b, { x: 0, y: 0 });
-      }
+      if (b.position.y > 650) { Body.setPosition(b, {x:300,y:450}); Body.setVelocity(b, {x:0,y:0}); }
       if (b.isSleeping) {
         b.sleepFrames++;
         if (b.sleepFrames > 90) {
-          Body.setStatic(b, true);
-          updateGiftTransform(b);
-          pinnedGifts.push(b);
-          activeGifts.splice(i, 1);
+          Body.setStatic(b, true); updateGiftTransform(b);
+          pinnedGifts.push(b); activeGifts.splice(i, 1);
         }
-      } else {
-        b.sleepFrames = 0;
-      }
+      } else b.sleepFrames = 0;
     }
   });
 
-  function loop() {
-    Engine.update(engine, 1000 / 60);
-    for (const b of activeGifts) updateGiftTransform(b);
-    requestAnimationFrame(loop);
-  }
+  function loop() { Engine.update(engine, 1000/60); for (const b of activeGifts) updateGiftTransform(b); requestAnimationFrame(loop); }
   loop();
 
   function resetJar() {
-    for (const b of activeGifts) { World.remove(world, b); if (b.giftEl) b.giftEl.remove(); }
-    for (const b of pinnedGifts) { World.remove(world, b); if (b.giftEl) b.giftEl.remove(); }
-    activeGifts = [];
-    pinnedGifts = [];
-    totalGifts  = 0;
+    [...activeGifts, ...pinnedGifts].forEach(b => { World.remove(world,b); if(b.giftEl) b.giftEl.remove(); });
+    activeGifts = []; pinnedGifts = []; totalGifts = 0;
   }
 
   const themeWrapper = document.getElementById('theme-wrapper');
-
   function applyTheme(theme, customColor) {
     themeWrapper.className = 'theme-' + (theme || 'clean');
     document.body.style.background = (theme === 'custom' && customColor) ? customColor : 'transparent';
@@ -2866,7 +2706,7 @@ function getJarHTML(roomId) {
   const evtSource = new EventSource('${sseUrl}');
   evtSource.onmessage = (e) => {
     const msg = JSON.parse(e.data);
-    if (msg.type === 'gift')   addGift(msg.giftImage, msg.giftName, msg.count || 1, msg.coins || 0);
+    if (msg.type === 'gift')   addGift(msg.giftImage, msg.giftName, msg.count||1, msg.coins||0);
     if (msg.type === 'reset')  resetJar();
     if (msg.type === 'config') {
       applyTheme(msg.theme, msg.customColor);
