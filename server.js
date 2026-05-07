@@ -4002,7 +4002,7 @@ function getMembrosHTML(roomId) {
   .mc {
     position: absolute; top: 4px;
     display: flex; flex-direction: column; align-items: center; gap: 5px;
-    width: 76px; will-change: transform;
+    width: 130px; will-change: transform;
   }
   .ma {
     width: 58px; height: 58px; border-radius: 50%; overflow: hidden;
@@ -4015,7 +4015,7 @@ function getMembrosHTML(roomId) {
     font-family: 'Poppins', sans-serif;
     font-size: 15px; font-weight: 700; color: #fff;
     text-shadow: 0 1px 3px rgba(0,0,0,0.95);
-    max-width: 76px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; text-align: center;
+    max-width: 130px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; text-align: center;
   }
   .empty-msg { color: rgba(255,255,255,0.35); font-size: 13px; padding: 20px 16px; text-align: center; width: 100%; }
 </style>
@@ -4035,9 +4035,9 @@ function getMembrosHTML(roomId) {
   const stage   = document.getElementById('stage');
   const emptyEl = document.getElementById('empty-msg');
 
-  const CARD_W  = 76;
+  const CARD_W  = 130;
   const GAP     = 22;
-  const STEP    = CARD_W + GAP; // 98px per slot
+  const STEP    = CARD_W + GAP; // 152px per slot
   const SPEED   = 80;           // px per second
 
   let cards      = [];       // [{el, x, userId}]
@@ -4167,7 +4167,7 @@ function getMembrosAcaoHTML(roomId) {
   .mc {
     position:absolute; top:4px;
     display:flex; flex-direction:column; align-items:center; gap:3px;
-    width:86px; will-change:transform;
+    width:130px; will-change:transform;
   }
   .ma {
     width:58px; height:58px; border-radius:50%; overflow:hidden;
@@ -4180,7 +4180,7 @@ function getMembrosAcaoHTML(roomId) {
     font-family:'Poppins',sans-serif;
     font-size:15px; font-weight:700; color:#fff;
     text-shadow:0 1px 3px rgba(0,0,0,0.95);
-    max-width:86px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; text-align:center;
+    max-width:130px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; text-align:center;
     line-height:1.2;
   }
   .msub {
@@ -4208,7 +4208,7 @@ function getMembrosAcaoHTML(roomId) {
   const stage    = document.getElementById('stage');
   const emptyEl  = document.getElementById('empty-msg');
 
-  const CARD_W = 86;
+  const CARD_W = 130;
   const GAP    = 20;
   const STEP   = CARD_W + GAP;
   const SPEED  = 80;
