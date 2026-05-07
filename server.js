@@ -2431,7 +2431,7 @@ function getJarHTML(roomId) {
     pointer-events: none;
     display: block;
     user-select: none;
-    filter: invert(1) drop-shadow(0 0 3px rgba(255,255,255,0.8));
+    filter: invert(1) drop-shadow(0 0 5px rgba(255,255,255,0.95)) drop-shadow(0 0 2px rgba(255,255,255,1));
   }
 
   /* Outline ring that COMPLETES the jar border wherever the photo has gaps.
