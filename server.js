@@ -65,8 +65,8 @@ function getRoom(roomId) {
       goalCoins: { text: '', target: 2000, current: 0, theme: 'neon', customColor: '', style: 'default' },
       goalLikes: { text: '', target: 5000, current: 0, theme: 'neon', customColor: '', style: 'default' },
       goalPix: { text: '', target: 100, current: 0, theme: 'neon', customColor: '', style: 'default' },
-      membros: { title: 'Membros', members: [] },
-      membrosAcao: { title: 'Membros Ação', members: [], giftName: 'Heart Me', giftImage: '', subText: '', subTextSize: 9, subValueSize: 9, subTextColor: '#ffdc50', subValueColor: '#ffdc50' },
+      membros: { title: 'Membros', members: [], nameFont: '' },
+      membrosAcao: { title: 'Membros Ação', members: [], giftName: 'Heart Me', giftImage: '', subText: '', subTextSize: 9, subValueSize: 9, subTextColor: '#ffdc50', subValueColor: '#ffdc50', nameFont: '', subTextFont: '', valueFont: '' },
       topScore: { title: 'TOP', desc: '', subtitle: 'PONTUAÇÃO', name: '', avatar: '', valor: 0 },
       topGift: null,
       topCombo: null,
@@ -593,6 +593,7 @@ wss.on('connection', (ws) => {
       // Membros
       if (msg.type === 'membros-title') {
         room.membros.title = msg.title || 'Membros';
+        room.membros.nameFont = msg.nameFont ?? room.membros.nameFont;
         const event = JSON.stringify({ type: 'full', data: room.membros });
         room.sseClients.membros.forEach(c => { try { c.write(`data: ${event}\n\n`); } catch(e){} });
       }
@@ -626,6 +627,9 @@ wss.on('connection', (ws) => {
         room.membrosAcao.subValueSize  = msg.subValueSize  ?? room.membrosAcao.subValueSize;
         room.membrosAcao.subTextColor  = msg.subTextColor  ?? room.membrosAcao.subTextColor;
         room.membrosAcao.subValueColor = msg.subValueColor ?? room.membrosAcao.subValueColor;
+        room.membrosAcao.nameFont      = msg.nameFont      ?? room.membrosAcao.nameFont;
+        room.membrosAcao.subTextFont   = msg.subTextFont   ?? room.membrosAcao.subTextFont;
+        room.membrosAcao.valueFont     = msg.valueFont     ?? room.membrosAcao.valueFont;
         const ev = JSON.stringify({ type: 'full', data: room.membrosAcao });
         room.sseClients.membrosAcao.forEach(c => { try { c.write(`data: ${ev}\n\n`); } catch(e){} });
       }
@@ -3960,7 +3964,7 @@ function getMembrosHTML(roomId) {
 <html>
 <head>
 <meta charset="UTF-8">
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Press+Start+2P&family=Cinzel:wght@700&family=Russo+One&family=Rajdhani:wght@700&display=swap" rel="stylesheet">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { background: transparent; overflow: hidden; font-family: 'Segoe UI', sans-serif; }
@@ -4049,8 +4053,10 @@ function getMembrosHTML(roomId) {
     if (msg.type === 'full') render(msg.data);
   };
 
+  let nameFont = '';
   function render(data) {
     titleEl.textContent = data.title || 'Membros';
+    nameFont = data.nameFont || '';
     const members = data.members || [];
 
     // RESET: if members list is empty, clear everything
@@ -4077,7 +4083,7 @@ function getMembrosHTML(roomId) {
       const av = m.profilePictureUrl
         ? '<img src="' + esc(m.profilePictureUrl) + '" onerror="this.parentElement.innerHTML=String.fromCodePoint(128100)">'
         : String.fromCodePoint(128100);
-      el.innerHTML = '<div class="ma">' + av + '</div><div class="mn">' + esc(m.nickname) + '</div>';
+      el.innerHTML = '<div class="ma">' + av + '</div><div class="mn" style="' + (nameFont ? 'font-family:' + nameFont + ',sans-serif;' : '') + '">' + esc(m.nickname) + '</div>';
       stage.appendChild(el);
 
       // Place at end of queue, always past the right edge
@@ -4128,7 +4134,7 @@ function getMembrosAcaoHTML(roomId) {
 <html>
 <head>
 <meta charset="UTF-8">
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Press+Start+2P&family=Cinzel:wght@700&family=Russo+One&family=Rajdhani:wght@700&display=swap" rel="stylesheet">
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
   body { background:transparent; overflow:hidden; font-family:'Segoe UI',sans-serif; }
@@ -4204,6 +4210,9 @@ function getMembrosAcaoHTML(roomId) {
   let subValueSize  = 9;
   let subTextColor  = '#ffdc50';
   let subValueColor = '#ffdc50';
+  let acaoNameFont    = '';
+  let acaoSubTextFont = '';
+  let acaoValueFont   = '';
   let animId        = null;
 
   const evtSource = new EventSource('${sseUrl}');
@@ -4229,6 +4238,7 @@ function getMembrosAcaoHTML(roomId) {
       const st = document.createElement('span');
       st.style.fontSize = subTextSize + 'px';
       st.style.color = subTextColor;
+      if (acaoSubTextFont) st.style.fontFamily = acaoSubTextFont + ',sans-serif';
       st.textContent = subText;
       sub.appendChild(st);
     }
@@ -4237,6 +4247,7 @@ function getMembrosAcaoHTML(roomId) {
       const sv = document.createElement('span');
       sv.style.fontSize = subValueSize + 'px';
       sv.style.color = subValueColor;
+      if (acaoValueFont) sv.style.fontFamily = acaoValueFont + ',sans-serif';
       sv.textContent = val;
       sub.appendChild(sv);
     }
@@ -4252,6 +4263,9 @@ function getMembrosAcaoHTML(roomId) {
     subValueSize  = data.subValueSize  || 9;
     subTextColor  = data.subTextColor  || '#ffdc50';
     subValueColor = data.subValueColor || '#ffdc50';
+    acaoNameFont    = data.nameFont    || '';
+    acaoSubTextFont = data.subTextFont || '';
+    acaoValueFont   = data.valueFont   || '';
 
     const incoming = data.members || [];
 
@@ -4297,6 +4311,7 @@ function getMembrosAcaoHTML(roomId) {
       const nm = document.createElement('div');
       nm.className = 'mn';
       nm.textContent = m.nickname || m.userId;
+      if (acaoNameFont) nm.style.fontFamily = acaoNameFont + ',sans-serif';
 
       el.appendChild(av);
       el.appendChild(nm);
