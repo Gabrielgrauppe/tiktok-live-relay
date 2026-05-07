@@ -4013,7 +4013,7 @@ function getMembrosHTML(roomId) {
   .ma img { width: 100%; height: 100%; object-fit: cover; }
   .mn {
     font-family: 'Poppins', sans-serif;
-    font-size: 10px; font-weight: 700; color: #fff;
+    font-size: 15px; font-weight: 700; color: #fff;
     text-shadow: 0 1px 3px rgba(0,0,0,0.95);
     max-width: 76px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; text-align: center;
   }
@@ -4178,7 +4178,7 @@ function getMembrosAcaoHTML(roomId) {
   .ma img { width:100%; height:100%; object-fit:cover; }
   .mn {
     font-family:'Poppins',sans-serif;
-    font-size:10px; font-weight:700; color:#fff;
+    font-size:15px; font-weight:700; color:#fff;
     text-shadow:0 1px 3px rgba(0,0,0,0.95);
     max-width:86px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; text-align:center;
     line-height:1.2;
