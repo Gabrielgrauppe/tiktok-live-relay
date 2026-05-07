@@ -2496,19 +2496,19 @@ function getJarHTML(roomId) {
   }
   .theme-clean .jar-border.pulse { box-shadow: 0 0 30px rgba(255,255,255,0.9), 0 0 65px rgba(220,220,220,0.55); }
 
-  /* NEON — hot magenta/pink (unique, not used in any other theme) */
-  .theme-neon .jar-bg   { background: rgba(5,0,5,0.96); }
+  /* NEON — #00d4ff electric cyan (matches scoreboard neon theme) */
+  .theme-neon .jar-bg   { background: rgba(0,5,20,0.96); }
   .theme-neon .jar-border {
-    border-color: #ff10f0;
-    box-shadow: 0 0 14px rgba(255,16,240,0.9), 0 0 30px rgba(255,16,240,0.5), inset 0 0 10px rgba(255,16,240,0.08);
+    border-color: #00d4ff;
+    box-shadow: 0 0 14px rgba(0,212,255,0.9), 0 0 30px rgba(0,212,255,0.5), inset 0 0 10px rgba(0,212,255,0.08);
   }
   .theme-neon .jar-lid {
-    background: linear-gradient(180deg, #7a0070 0%, #4a0045 55%, #280025 100%);
-    border-color: #ff10f0;
-    box-shadow: 0 0 16px rgba(255,16,240,0.95), 0 0 34px rgba(255,16,240,0.55);
+    background: linear-gradient(180deg, #005f80 0%, #003050 55%, #001828 100%);
+    border-color: #00d4ff;
+    box-shadow: 0 0 16px rgba(0,212,255,0.95), 0 0 34px rgba(0,212,255,0.55);
   }
-  .theme-neon .jar-border.pulse { box-shadow: 0 0 40px rgba(255,16,240,1.0), 0 0 80px rgba(255,16,240,0.65); }
-  .theme-neon .gift-item img { filter: drop-shadow(0 0 5px rgba(255,16,240,0.45)) drop-shadow(0 1px 3px rgba(0,0,0,0.3)); }
+  .theme-neon .jar-border.pulse { box-shadow: 0 0 40px rgba(0,212,255,1.0), 0 0 80px rgba(0,212,255,0.65); }
+  .theme-neon .gift-item img { filter: drop-shadow(0 0 5px rgba(0,212,255,0.45)) drop-shadow(0 1px 3px rgba(0,0,0,0.3)); }
 
   /* MEDIEVAL */
   .theme-medieval .jar-bg { background: rgba(5,3,0,0.96); }
