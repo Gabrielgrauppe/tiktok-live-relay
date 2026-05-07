@@ -4072,6 +4072,12 @@ function getMembrosHTML(roomId) {
     emptyEl.style.display = 'none';
     vw = stage.offsetWidth || window.innerWidth || 800;
 
+    // Update font on ALL existing name elements
+    cards.forEach(card => {
+      const nm = card.el.querySelector('.mn');
+      if (nm) nm.style.fontFamily = nameFont ? nameFont + ',sans-serif' : '';
+    });
+
     // Only add members that aren't already on stage
     const newMembers = members.filter(m => !renderedIds.has(m.userId));
 
@@ -4282,9 +4288,13 @@ function getMembrosAcaoHTML(roomId) {
     emptyEl.style.display = 'none';
     vw = stage.offsetWidth || window.innerWidth || 800;
 
-    // Update sub text/value on ALL existing cards (config or value may have changed)
+    // Update sub text/value AND fonts on ALL existing cards
     cards.forEach(card => {
       const member = incoming.find(m => m.userId === card.userId);
+      // Update name font
+      const nm = card.el.querySelector('.mn');
+      if (nm) nm.style.fontFamily = acaoNameFont ? acaoNameFont + ',sans-serif' : '';
+      // Rebuild sub element (picks up new fonts/colors/text)
       let old = card.el.querySelector('.msub');
       if (old) old.remove();
       const fresh = buildSubEl(member);
