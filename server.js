@@ -3964,7 +3964,7 @@ function getMembrosHTML(roomId) {
 <html>
 <head>
 <meta charset="UTF-8">
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Press+Start+2P&family=Cinzel:wght@700&family=Russo+One&family=Rajdhani:wght@700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700;900&family=Orbitron:wght@700;900&family=Press+Start+2P&family=Cinzel:wght@700&family=Russo+One&family=Rajdhani:wght@700&display=swap" rel="stylesheet">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { background: transparent; overflow: hidden; font-family: 'Segoe UI', sans-serif; }
@@ -4012,6 +4012,7 @@ function getMembrosHTML(roomId) {
   }
   .ma img { width: 100%; height: 100%; object-fit: cover; }
   .mn {
+    font-family: 'Poppins', sans-serif;
     font-size: 10px; font-weight: 700; color: #fff;
     text-shadow: 0 1px 3px rgba(0,0,0,0.95);
     max-width: 76px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; text-align: center;
@@ -4140,7 +4141,7 @@ function getMembrosAcaoHTML(roomId) {
 <html>
 <head>
 <meta charset="UTF-8">
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Press+Start+2P&family=Cinzel:wght@700&family=Russo+One&family=Rajdhani:wght@700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700;900&family=Orbitron:wght@700;900&family=Press+Start+2P&family=Cinzel:wght@700&family=Russo+One&family=Rajdhani:wght@700&display=swap" rel="stylesheet">
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
   body { background:transparent; overflow:hidden; font-family:'Segoe UI',sans-serif; }
@@ -4176,6 +4177,7 @@ function getMembrosAcaoHTML(roomId) {
   }
   .ma img { width:100%; height:100%; object-fit:cover; }
   .mn {
+    font-family:'Poppins',sans-serif;
     font-size:10px; font-weight:700; color:#fff;
     text-shadow:0 1px 3px rgba(0,0,0,0.95);
     max-width:86px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; text-align:center;
