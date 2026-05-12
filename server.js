@@ -171,11 +171,18 @@ app.get('/api/admin/reset-password', async (req, res) => {
 // ============================================
 let emailTransporter = null;
 if (process.env.GMAIL_USER && process.env.GMAIL_PASS) {
+  const gmailPass = process.env.GMAIL_PASS.replace(/\s/g, ''); // remove spaces if any
   emailTransporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_PASS }
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
+    auth: { user: process.env.GMAIL_USER, pass: gmailPass }
   });
-  console.log('[Email] Gmail transporter ready');
+  // Verify connection on startup
+  emailTransporter.verify((err) => {
+    if (err) console.error('[Email] Gmail verify failed:', err.message);
+    else console.log('[Email] Gmail transporter ready and verified ✅');
+  });
 } else {
   console.log('[Email] No GMAIL credentials — forgot password disabled');
 }
@@ -205,8 +212,25 @@ app.post('/api/forgot-password', express.json(), async (req, res) => {
     });
     res.json({ ok: true });
   } catch(e) {
-    console.error('[Email] Send error:', e.message);
+    console.error('[Email] Send error:', e.message, '| code:', e.code, '| response:', e.response);
     res.json({ ok: false, error: 'Erro ao enviar email. Tente novamente.' });
+  }
+});
+
+// Admin: test email
+app.get('/api/admin/test-email', async (req, res) => {
+  if (req.query.secret !== ADMIN_SECRET) return res.status(403).json({ error: 'Acesso negado' });
+  if (!emailTransporter) return res.json({ ok: false, error: 'Transporter não configurado' });
+  try {
+    await emailTransporter.sendMail({
+      from: `"Live Stream INS" <${process.env.GMAIL_USER}>`,
+      to: process.env.GMAIL_USER,
+      subject: '✅ Teste de email - Live Stream INS',
+      text: 'Se você recebeu isso, o email está funcionando!'
+    });
+    res.json({ ok: true, message: 'Email enviado para ' + process.env.GMAIL_USER });
+  } catch(e) {
+    res.json({ ok: false, error: e.message, code: e.code });
   }
 });
 
