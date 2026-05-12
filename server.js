@@ -7,6 +7,7 @@ const path = require('path');
 const crypto = require('crypto');
 
 const app = express();
+app.set('trust proxy', 1); // trust Render's proxy for real IP
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
 
@@ -79,10 +80,17 @@ function makeToken() {
 function getSubscriptionStatus(acc) {
   const now = Date.now();
   if (acc.subscription === 'active' && acc.subscriptionEnd && acc.subscriptionEnd > now) return 'active';
-  if (acc.trialEnds && acc.trialEnds > now) return 'trial';
+  if (acc.subscription === 'trial' && acc.trialEnds && acc.trialEnds > now) return 'trial';
+  if (acc.subscription === 'pending_payment') return 'pending_payment'; // needs card setup
   // Legacy accounts without subscriptionEnd (treat as active)
   if (acc.subscription === 'active' && !acc.subscriptionEnd && !acc.trialEnds) return 'active';
   return 'expired';
+}
+
+// Get real IP from request
+function getClientIp(req) {
+  const forwarded = req.headers['x-forwarded-for'];
+  return (forwarded ? forwarded.split(',')[0].trim() : req.socket?.remoteAddress) || 'unknown';
 }
 
 // Register
@@ -94,16 +102,29 @@ app.post('/api/register', express.json(), async (req, res) => {
   if (!email.includes('@')) return res.json({ ok: false, error: 'Email inválido' });
   const key = username.toLowerCase().trim();
   if (await getAccount(key)) return res.json({ ok: false, error: 'Nome de usuário já está em uso' });
-  // Check email already used
   const emailUsed = Object.values(accounts).find(a => a.email && a.email.toLowerCase() === email.toLowerCase().trim());
   if (emailUsed) return res.json({ ok: false, error: 'Email já cadastrado em outra conta' });
+
+  // Option 2: Check if IP already used a trial
+  const clientIp = getClientIp(req);
+  const ipUsedTrial = Object.values(accounts).find(a => a.registrationIp === clientIp && (a.trialEnds || a.subscription === 'active'));
+  const skipTrial = !!ipUsedTrial;
+
   const salt = crypto.randomBytes(16).toString('hex');
   const hash = hashPass(password, salt);
   const token = makeToken();
-  const trialEnds = Date.now() + 3 * 24 * 60 * 60 * 1000; // 3 days trial
-  const data = { username: username.trim(), email: email.toLowerCase().trim(), hash, salt, token, createdAt: Date.now(), lastLogin: Date.now(), subscription: 'trial', trialEnds };
+
+  // Option 3: Trial requires card — start as 'pending_payment', MP trial set up after
+  // If IP already used trial → go straight to 'expired' (must subscribe)
+  const subscription = skipTrial ? 'expired' : 'pending_payment';
+  const data = {
+    username: username.trim(), email: email.toLowerCase().trim(),
+    hash, salt, token, createdAt: Date.now(), lastLogin: Date.now(),
+    subscription, registrationIp: clientIp
+  };
   await saveAccount(key, data);
-  res.json({ ok: true, token, username: username.trim(), subscription: 'trial', trialEnds });
+  console.log(`[Register] ${key} | IP: ${clientIp} | skipTrial: ${skipTrial}`);
+  res.json({ ok: true, token, username: username.trim(), subscription, needsPaymentSetup: !skipTrial });
 });
 
 // Login
@@ -302,16 +323,29 @@ app.post('/api/subscribe', express.json(), async (req, res) => {
   const acc = await getAccount(key);
   if (!acc || acc.token !== token) return res.json({ ok: false, error: 'Sessão inválida' });
   const plans = {
-    monthly: { label: 'Mensal', amount: 60, frequency: 1, frequencyType: 'months' },
-    annual:  { label: 'Anual',  amount: 600, frequency: 12, frequencyType: 'months' }
+    trial:   { label: '3 dias grátis + Mensal', amount: 60,  frequency: 1,  frequencyType: 'months', trial: true },
+    monthly: { label: 'Mensal',                 amount: 60,  frequency: 1,  frequencyType: 'months', trial: false },
+    annual:  { label: 'Anual',                  amount: 600, frequency: 12, frequencyType: 'months', trial: false }
   };
   const planInfo = plans[plan];
   if (!planInfo) return res.json({ ok: false, error: 'Plano inválido' });
+
+  const autoRecurring = {
+    frequency: planInfo.frequency,
+    frequency_type: planInfo.frequencyType,
+    transaction_amount: planInfo.amount,
+    currency_id: 'BRL'
+  };
+  // Add free trial if this is the trial setup
+  if (planInfo.trial) {
+    autoRecurring.free_trial = { frequency: 3, frequency_type: 'days' };
+  }
+
   const result = await mpRequest('POST', '/preapproval', {
     reason: `Live Stream INS - ${planInfo.label}`,
     external_reference: key,
     payer_email: acc.email || `${key}@livestreamin.app`,
-    auto_recurring: { frequency: planInfo.frequency, frequency_type: planInfo.frequencyType, transaction_amount: planInfo.amount, currency_id: 'BRL' },
+    auto_recurring: autoRecurring,
     notification_url: `${RELAY_URL}/mp/webhook`,
     back_url: `${RELAY_URL}/subscription/success`,
     status: 'pending'
@@ -348,13 +382,25 @@ app.post('/mp/webhook', express.json(), async (req, res) => {
     if (!acc) return;
     if (sub.status === 'authorized') {
       const isAnnual = sub.auto_recurring?.frequency === 12 && sub.auto_recurring?.frequency_type === 'months';
+      const hasTrial = !!sub.auto_recurring?.free_trial;
       const months = isAnnual ? 12 : 1;
-      acc.subscription = 'active';
-      acc.subscriptionEnd = Date.now() + months * 30 * 24 * 60 * 60 * 1000;
-      acc.subscriptionPlan = isAnnual ? 'annual' : 'monthly';
-      acc.mpSubscriptionId = sub.id;
-      await saveAccount(username, acc);
-      console.log(`[MP] ✅ Subscription activated for ${username} until ${new Date(acc.subscriptionEnd).toISOString()}`);
+
+      if (hasTrial && acc.subscription === 'pending_payment') {
+        // Card set up for trial — activate trial period
+        acc.subscription = 'trial';
+        acc.trialEnds = Date.now() + 3 * 24 * 60 * 60 * 1000;
+        acc.mpSubscriptionId = sub.id;
+        await saveAccount(username, acc);
+        console.log(`[MP] ✅ Trial activated for ${username} until ${new Date(acc.trialEnds).toISOString()}`);
+      } else {
+        // Regular subscription activated
+        acc.subscription = 'active';
+        acc.subscriptionEnd = Date.now() + months * 30 * 24 * 60 * 60 * 1000;
+        acc.subscriptionPlan = isAnnual ? 'annual' : 'monthly';
+        acc.mpSubscriptionId = sub.id;
+        await saveAccount(username, acc);
+        console.log(`[MP] ✅ Subscription activated for ${username} until ${new Date(acc.subscriptionEnd).toISOString()}`);
+      }
     } else if (sub.status === 'cancelled') {
       console.log(`[MP] Subscription cancelled for ${username}`);
     }
