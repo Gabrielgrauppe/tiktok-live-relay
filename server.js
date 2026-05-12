@@ -1,6 +1,9 @@
 const express = require('express');
 const http = require('http');
 const { WebSocketServer } = require('ws');
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
 
 const app = express();
 const server = http.createServer(app);
@@ -14,6 +17,69 @@ app.get('/crown.svg', (req, res) => res.sendFile(__dirname + '/crown.svg'));
 app.get('/jar.png', (req, res) => res.sendFile(__dirname + '/jar.png'));
 app.get('/jar-new.jpg', (req, res) => res.sendFile(__dirname + '/jar-new.jpg'));
 app.get('/jar-glass.png', (req, res) => res.sendFile(__dirname + '/jar-glass.png'));
+
+// ============================================
+// ACCOUNTS SYSTEM
+// ============================================
+const ACCOUNTS_FILE = path.join(__dirname, 'accounts.json');
+let accounts = {};
+try { accounts = JSON.parse(fs.readFileSync(ACCOUNTS_FILE, 'utf-8')); } catch(e) { accounts = {}; }
+
+function saveAccountsFile() {
+  try { fs.writeFileSync(ACCOUNTS_FILE, JSON.stringify(accounts, null, 2)); } catch(e) {}
+}
+
+function hashPass(password, salt) {
+  return crypto.createHash('sha256').update(salt + password + 'LSI_SALT_2025').digest('hex');
+}
+
+function makeToken() {
+  return crypto.randomBytes(32).toString('hex');
+}
+
+// Register
+app.post('/api/register', express.json(), (req, res) => {
+  const { username, password } = req.body || {};
+  if (!username || !password) return res.json({ ok: false, error: 'Preencha todos os campos' });
+  if (username.trim().length < 3) return res.json({ ok: false, error: 'Nome de usuário deve ter pelo menos 3 caracteres' });
+  if (password.length < 6) return res.json({ ok: false, error: 'Senha deve ter pelo menos 6 caracteres' });
+  const key = username.toLowerCase().trim();
+  if (accounts[key]) return res.json({ ok: false, error: 'Nome de usuário já está em uso' });
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = hashPass(password, salt);
+  const token = makeToken();
+  accounts[key] = {
+    username: username.trim(),
+    hash, salt, token,
+    createdAt: Date.now(),
+    lastLogin: Date.now(),
+    subscription: 'active'
+  };
+  saveAccountsFile();
+  res.json({ ok: true, token, username: username.trim(), subscription: 'active' });
+});
+
+// Login
+app.post('/api/login', express.json(), (req, res) => {
+  const { username, password } = req.body || {};
+  const key = (username || '').toLowerCase().trim();
+  const acc = accounts[key];
+  if (!acc) return res.json({ ok: false, error: 'Usuário não encontrado' });
+  if (hashPass(password, acc.salt) !== acc.hash) return res.json({ ok: false, error: 'Senha incorreta' });
+  acc.token = makeToken();
+  acc.lastLogin = Date.now();
+  saveAccountsFile();
+  res.json({ ok: true, token: acc.token, username: acc.username, subscription: acc.subscription || 'active' });
+});
+
+// Validate token (auto-login)
+app.post('/api/validate-token', express.json(), (req, res) => {
+  const { username, token } = req.body || {};
+  const key = (username || '').toLowerCase().trim();
+  const acc = accounts[key];
+  if (!acc || acc.token !== token) return res.json({ ok: false, error: 'Sessão expirada' });
+  res.json({ ok: true, username: acc.username, subscription: acc.subscription || 'active' });
+});
 
 // Health check endpoint
 app.get('/', (req, res) => res.send('OK'));
