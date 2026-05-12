@@ -167,24 +167,41 @@ app.get('/api/admin/reset-password', async (req, res) => {
 });
 
 // ============================================
-// EMAIL - Forgot Password
+// EMAIL - Forgot Password (via Resend HTTP API)
 // ============================================
-let emailTransporter = null;
-if (process.env.GMAIL_USER && process.env.GMAIL_PASS) {
-  const gmailPass = process.env.GMAIL_PASS.replace(/\s/g, ''); // remove spaces if any
-  emailTransporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 465,
-    secure: true,
-    auth: { user: process.env.GMAIL_USER, pass: gmailPass }
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+if (RESEND_API_KEY) console.log('[Email] Resend API key loaded ✅');
+else console.log('[Email] No RESEND_API_KEY — forgot password disabled');
+
+async function sendEmail(to, subject, html) {
+  if (!RESEND_API_KEY) throw new Error('RESEND_API_KEY not set');
+  const body = JSON.stringify({
+    from: 'Live Stream INS <onboarding@resend.dev>',
+    to: [to],
+    subject,
+    html
   });
-  // Verify connection on startup
-  emailTransporter.verify((err) => {
-    if (err) console.error('[Email] Gmail verify failed:', err.message);
-    else console.log('[Email] Gmail transporter ready and verified ✅');
+  return new Promise((resolve, reject) => {
+    const req = https.request({
+      hostname: 'api.resend.com', port: 443, path: '/emails', method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(body)
+      }
+    }, (res) => {
+      let raw = '';
+      res.on('data', d => raw += d);
+      res.on('end', () => {
+        const parsed = (() => { try { return JSON.parse(raw); } catch(e) { return {}; } })();
+        if (res.statusCode >= 200 && res.statusCode < 300) resolve(parsed);
+        else reject(new Error(parsed.message || parsed.name || `HTTP ${res.statusCode}`));
+      });
+    });
+    req.on('error', reject);
+    req.write(body);
+    req.end();
   });
-} else {
-  console.log('[Email] No GMAIL credentials — forgot password disabled');
 }
 
 const resetCodes = new Map(); // email -> { code, username, expires }
@@ -192,27 +209,25 @@ const resetCodes = new Map(); // email -> { code, username, expires }
 app.post('/api/forgot-password', express.json(), async (req, res) => {
   const { email } = req.body || {};
   if (!email) return res.json({ ok: false, error: 'Informe o email' });
-  if (!emailTransporter) return res.json({ ok: false, error: 'Serviço de email não configurado' });
+  if (!RESEND_API_KEY) return res.json({ ok: false, error: 'Serviço de email não configurado' });
   const emailLow = email.toLowerCase().trim();
   const acc = Object.values(accounts).find(a => a.email && a.email.toLowerCase() === emailLow);
   if (!acc) return res.json({ ok: false, error: 'Nenhuma conta encontrada com esse email' });
   const code = String(Math.floor(100000 + Math.random() * 900000));
   resetCodes.set(emailLow, { code, username: acc.username.toLowerCase(), expires: Date.now() + 15 * 60 * 1000 });
   try {
-    await emailTransporter.sendMail({
-      from: `"Live Stream INS" <${process.env.GMAIL_USER}>`,
-      to: email,
-      subject: '🔑 Código de recuperação - Live Stream INS',
-      html: `<div style="font-family:sans-serif;max-width:420px;margin:0 auto;padding:32px;background:#0e1120;color:#e2e8f0;border-radius:16px;">
+    await sendEmail(email, '🔑 Código de recuperação - Live Stream INS',
+      `<div style="font-family:sans-serif;max-width:420px;margin:0 auto;padding:32px;background:#0e1120;color:#e2e8f0;border-radius:16px;">
         <h2 style="color:#a78bfa;margin-bottom:12px;">Recuperação de senha</h2>
         <p style="margin-bottom:20px;">Use o código abaixo para redefinir sua senha. Ele expira em <strong>15 minutos</strong>.</p>
         <div style="font-size:40px;font-weight:bold;letter-spacing:10px;color:#fff;background:rgba(124,58,237,0.25);padding:24px;border-radius:12px;text-align:center;margin-bottom:20px;">${code}</div>
         <p style="color:rgba(255,255,255,0.4);font-size:12px;">Se você não solicitou isso, ignore este email.</p>
       </div>`
-    });
+    );
+    console.log(`[Email] Reset code sent to ${emailLow}`);
     res.json({ ok: true });
   } catch(e) {
-    console.error('[Email] Send error:', e.message, '| code:', e.code, '| response:', e.response);
+    console.error('[Email] Send error:', e.message);
     res.json({ ok: false, error: 'Erro ao enviar email. Tente novamente.' });
   }
 });
@@ -220,17 +235,13 @@ app.post('/api/forgot-password', express.json(), async (req, res) => {
 // Admin: test email
 app.get('/api/admin/test-email', async (req, res) => {
   if (req.query.secret !== ADMIN_SECRET) return res.status(403).json({ error: 'Acesso negado' });
-  if (!emailTransporter) return res.json({ ok: false, error: 'Transporter não configurado' });
+  if (!RESEND_API_KEY) return res.json({ ok: false, error: 'RESEND_API_KEY não configurado' });
+  const target = req.query.to || 'livestreaminsofc@gmail.com';
   try {
-    await emailTransporter.sendMail({
-      from: `"Live Stream INS" <${process.env.GMAIL_USER}>`,
-      to: process.env.GMAIL_USER,
-      subject: '✅ Teste de email - Live Stream INS',
-      text: 'Se você recebeu isso, o email está funcionando!'
-    });
-    res.json({ ok: true, message: 'Email enviado para ' + process.env.GMAIL_USER });
+    await sendEmail(target, '✅ Teste de email - Live Stream INS', '<p>Se você recebeu isso, o email está funcionando! ✅</p>');
+    res.json({ ok: true, message: 'Email enviado para ' + target });
   } catch(e) {
-    res.json({ ok: false, error: e.message, code: e.code });
+    res.json({ ok: false, error: e.message });
   }
 });
 
