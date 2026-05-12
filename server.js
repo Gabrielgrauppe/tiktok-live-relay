@@ -1,9 +1,11 @@
 const express = require('express');
 const http = require('http');
+const https = require('https');
 const { WebSocketServer } = require('ws');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const nodemailer = require('nodemailer');
 
 const app = express();
 const server = http.createServer(app);
@@ -74,20 +76,35 @@ function makeToken() {
   return crypto.randomBytes(32).toString('hex');
 }
 
+// Subscription status helper
+function getSubscriptionStatus(acc) {
+  const now = Date.now();
+  if (acc.subscription === 'active' && acc.subscriptionEnd && acc.subscriptionEnd > now) return 'active';
+  if (acc.trialEnds && acc.trialEnds > now) return 'trial';
+  // Legacy accounts without subscriptionEnd (treat as active)
+  if (acc.subscription === 'active' && !acc.subscriptionEnd && !acc.trialEnds) return 'active';
+  return 'expired';
+}
+
 // Register
 app.post('/api/register', express.json(), async (req, res) => {
-  const { username, password } = req.body || {};
-  if (!username || !password) return res.json({ ok: false, error: 'Preencha todos os campos' });
+  const { username, password, email } = req.body || {};
+  if (!username || !password || !email) return res.json({ ok: false, error: 'Preencha todos os campos' });
   if (username.trim().length < 3) return res.json({ ok: false, error: 'Nome de usuário deve ter pelo menos 3 caracteres' });
   if (password.length < 6) return res.json({ ok: false, error: 'Senha deve ter pelo menos 6 caracteres' });
+  if (!email.includes('@')) return res.json({ ok: false, error: 'Email inválido' });
   const key = username.toLowerCase().trim();
   if (await getAccount(key)) return res.json({ ok: false, error: 'Nome de usuário já está em uso' });
+  // Check email already used
+  const emailUsed = Object.values(accounts).find(a => a.email && a.email.toLowerCase() === email.toLowerCase().trim());
+  if (emailUsed) return res.json({ ok: false, error: 'Email já cadastrado em outra conta' });
   const salt = crypto.randomBytes(16).toString('hex');
   const hash = hashPass(password, salt);
   const token = makeToken();
-  const data = { username: username.trim(), hash, salt, token, createdAt: Date.now(), lastLogin: Date.now(), subscription: 'active' };
+  const trialEnds = Date.now() + 3 * 24 * 60 * 60 * 1000; // 3 days trial
+  const data = { username: username.trim(), email: email.toLowerCase().trim(), hash, salt, token, createdAt: Date.now(), lastLogin: Date.now(), subscription: 'trial', trialEnds };
   await saveAccount(key, data);
-  res.json({ ok: true, token, username: username.trim(), subscription: 'active' });
+  res.json({ ok: true, token, username: username.trim(), subscription: 'trial', trialEnds });
 });
 
 // Login
@@ -100,7 +117,8 @@ app.post('/api/login', express.json(), async (req, res) => {
   acc.token = makeToken();
   acc.lastLogin = Date.now();
   await saveAccount(key, acc);
-  res.json({ ok: true, token: acc.token, username: acc.username, subscription: acc.subscription || 'active' });
+  const status = getSubscriptionStatus(acc);
+  res.json({ ok: true, token: acc.token, username: acc.username, subscription: status, trialEnds: acc.trialEnds, subscriptionEnd: acc.subscriptionEnd });
 });
 
 // Validate token (auto-login)
@@ -109,7 +127,8 @@ app.post('/api/validate-token', express.json(), async (req, res) => {
   const key = (username || '').toLowerCase().trim();
   const acc = await getAccount(key);
   if (!acc || acc.token !== token) return res.json({ ok: false, error: 'Sessão expirada' });
-  res.json({ ok: true, username: acc.username, subscription: acc.subscription || 'active' });
+  const status = getSubscriptionStatus(acc);
+  res.json({ ok: true, username: acc.username, subscription: status, trialEnds: acc.trialEnds, subscriptionEnd: acc.subscriptionEnd });
 });
 
 // Health check endpoint
@@ -145,6 +164,176 @@ app.get('/api/admin/reset-password', async (req, res) => {
   acc.token = makeToken(); // invalida sessão atual
   await saveAccount(key, acc);
   res.json({ ok: true, message: `Senha de "${acc.username}" resetada com sucesso!` });
+});
+
+// ============================================
+// EMAIL - Forgot Password
+// ============================================
+let emailTransporter = null;
+if (process.env.GMAIL_USER && process.env.GMAIL_PASS) {
+  emailTransporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_PASS }
+  });
+  console.log('[Email] Gmail transporter ready');
+} else {
+  console.log('[Email] No GMAIL credentials — forgot password disabled');
+}
+
+const resetCodes = new Map(); // email -> { code, username, expires }
+
+app.post('/api/forgot-password', express.json(), async (req, res) => {
+  const { email } = req.body || {};
+  if (!email) return res.json({ ok: false, error: 'Informe o email' });
+  if (!emailTransporter) return res.json({ ok: false, error: 'Serviço de email não configurado' });
+  const emailLow = email.toLowerCase().trim();
+  const acc = Object.values(accounts).find(a => a.email && a.email.toLowerCase() === emailLow);
+  if (!acc) return res.json({ ok: false, error: 'Nenhuma conta encontrada com esse email' });
+  const code = String(Math.floor(100000 + Math.random() * 900000));
+  resetCodes.set(emailLow, { code, username: acc.username.toLowerCase(), expires: Date.now() + 15 * 60 * 1000 });
+  try {
+    await emailTransporter.sendMail({
+      from: `"Live Stream INS" <${process.env.GMAIL_USER}>`,
+      to: email,
+      subject: '🔑 Código de recuperação - Live Stream INS',
+      html: `<div style="font-family:sans-serif;max-width:420px;margin:0 auto;padding:32px;background:#0e1120;color:#e2e8f0;border-radius:16px;">
+        <h2 style="color:#a78bfa;margin-bottom:12px;">Recuperação de senha</h2>
+        <p style="margin-bottom:20px;">Use o código abaixo para redefinir sua senha. Ele expira em <strong>15 minutos</strong>.</p>
+        <div style="font-size:40px;font-weight:bold;letter-spacing:10px;color:#fff;background:rgba(124,58,237,0.25);padding:24px;border-radius:12px;text-align:center;margin-bottom:20px;">${code}</div>
+        <p style="color:rgba(255,255,255,0.4);font-size:12px;">Se você não solicitou isso, ignore este email.</p>
+      </div>`
+    });
+    res.json({ ok: true });
+  } catch(e) {
+    console.error('[Email] Send error:', e.message);
+    res.json({ ok: false, error: 'Erro ao enviar email. Tente novamente.' });
+  }
+});
+
+app.post('/api/reset-password', express.json(), async (req, res) => {
+  const { email, code, newPassword } = req.body || {};
+  if (!email || !code || !newPassword) return res.json({ ok: false, error: 'Dados incompletos' });
+  if (newPassword.length < 6) return res.json({ ok: false, error: 'Senha deve ter pelo menos 6 caracteres' });
+  const emailLow = email.toLowerCase().trim();
+  const entry = resetCodes.get(emailLow);
+  if (!entry) return res.json({ ok: false, error: 'Nenhum código enviado para este email' });
+  if (Date.now() > entry.expires) { resetCodes.delete(emailLow); return res.json({ ok: false, error: 'Código expirado. Solicite um novo.' }); }
+  if (entry.code !== code.trim()) return res.json({ ok: false, error: 'Código incorreto' });
+  const acc = await getAccount(entry.username);
+  if (!acc) return res.json({ ok: false, error: 'Conta não encontrada' });
+  const salt = crypto.randomBytes(16).toString('hex');
+  acc.hash = hashPass(newPassword, salt);
+  acc.salt = salt;
+  acc.token = makeToken();
+  await saveAccount(entry.username, acc);
+  resetCodes.delete(emailLow);
+  res.json({ ok: true });
+});
+
+// ============================================
+// MERCADOPAGO - Subscriptions
+// ============================================
+const MP_ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN;
+const RELAY_URL = 'https://tiktok-live-relay.onrender.com';
+
+async function mpRequest(method, mpPath, body) {
+  return new Promise((resolve) => {
+    const data = body ? JSON.stringify(body) : null;
+    const opts = {
+      hostname: 'api.mercadopago.com', port: 443, path: mpPath, method,
+      headers: {
+        'Authorization': `Bearer ${MP_ACCESS_TOKEN}`,
+        'Content-Type': 'application/json',
+        ...(data ? { 'Content-Length': Buffer.byteLength(data) } : {})
+      }
+    };
+    const req = https.request(opts, (res) => {
+      let raw = '';
+      res.on('data', d => raw += d);
+      res.on('end', () => { try { resolve(JSON.parse(raw)); } catch(e) { resolve({ error: 'parse error' }); } });
+    });
+    req.on('error', e => resolve({ error: e.message }));
+    if (data) req.write(data);
+    req.end();
+  });
+}
+
+// Create subscription and return payment link
+app.post('/api/subscribe', express.json(), async (req, res) => {
+  if (!MP_ACCESS_TOKEN) return res.json({ ok: false, error: 'MercadoPago não configurado' });
+  const { username, token, plan } = req.body || {};
+  if (!username || !token || !plan) return res.json({ ok: false, error: 'Dados incompletos' });
+  const key = username.toLowerCase().trim();
+  const acc = await getAccount(key);
+  if (!acc || acc.token !== token) return res.json({ ok: false, error: 'Sessão inválida' });
+  const plans = {
+    monthly: { label: 'Mensal', amount: 60, frequency: 1, frequencyType: 'months' },
+    annual:  { label: 'Anual',  amount: 600, frequency: 12, frequencyType: 'months' }
+  };
+  const planInfo = plans[plan];
+  if (!planInfo) return res.json({ ok: false, error: 'Plano inválido' });
+  const result = await mpRequest('POST', '/preapproval', {
+    reason: `Live Stream INS - ${planInfo.label}`,
+    external_reference: key,
+    payer_email: acc.email || `${key}@livestreamin.app`,
+    auto_recurring: { frequency: planInfo.frequency, frequency_type: planInfo.frequencyType, transaction_amount: planInfo.amount, currency_id: 'BRL' },
+    notification_url: `${RELAY_URL}/mp/webhook`,
+    back_url: `${RELAY_URL}/subscription/success`,
+    status: 'pending'
+  });
+  if (!result.init_point) {
+    console.error('[MP] Subscribe error:', JSON.stringify(result));
+    return res.json({ ok: false, error: 'Erro ao criar assinatura. Tente novamente.' });
+  }
+  acc.mpSubscriptionId = result.id;
+  await saveAccount(key, acc);
+  res.json({ ok: true, url: result.init_point });
+});
+
+// Check subscription status (called after user pays)
+app.post('/api/check-subscription', express.json(), async (req, res) => {
+  const { username, token } = req.body || {};
+  const key = (username || '').toLowerCase().trim();
+  const acc = await getAccount(key);
+  if (!acc || acc.token !== token) return res.json({ ok: false, error: 'Sessão inválida' });
+  const status = getSubscriptionStatus(acc);
+  res.json({ ok: true, subscription: status, trialEnds: acc.trialEnds, subscriptionEnd: acc.subscriptionEnd });
+});
+
+// MercadoPago webhook — called when payment status changes
+app.post('/mp/webhook', express.json(), async (req, res) => {
+  res.sendStatus(200); // always respond 200 first
+  const { type, data } = req.body || {};
+  if (type !== 'subscription_preapproval' || !data?.id) return;
+  try {
+    const sub = await mpRequest('GET', `/preapproval/${data.id}`, null);
+    const username = (sub.external_reference || '').toLowerCase().trim();
+    if (!username) return;
+    const acc = await getAccount(username);
+    if (!acc) return;
+    if (sub.status === 'authorized') {
+      const isAnnual = sub.auto_recurring?.frequency === 12 && sub.auto_recurring?.frequency_type === 'months';
+      const months = isAnnual ? 12 : 1;
+      acc.subscription = 'active';
+      acc.subscriptionEnd = Date.now() + months * 30 * 24 * 60 * 60 * 1000;
+      acc.subscriptionPlan = isAnnual ? 'annual' : 'monthly';
+      acc.mpSubscriptionId = sub.id;
+      await saveAccount(username, acc);
+      console.log(`[MP] ✅ Subscription activated for ${username} until ${new Date(acc.subscriptionEnd).toISOString()}`);
+    } else if (sub.status === 'cancelled') {
+      console.log(`[MP] Subscription cancelled for ${username}`);
+    }
+  } catch(e) { console.error('[MP] Webhook error:', e.message); }
+});
+
+// Success page after payment
+app.get('/subscription/success', (req, res) => {
+  res.send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Obrigado! - Live Stream INS</title>
+  <style>*{margin:0;padding:0;box-sizing:border-box;}body{background:#0e1120;color:#e2e8f0;font-family:'Segoe UI',sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;}
+  .card{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:20px;padding:48px 40px;max-width:420px;text-align:center;}
+  .icon{font-size:72px;margin-bottom:20px;}h1{font-size:24px;color:#4ade80;margin-bottom:10px;}p{color:rgba(255,255,255,0.5);line-height:1.6;}</style></head>
+  <body><div class="card"><div class="icon">✅</div><h1>Pagamento realizado!</h1>
+  <p>Sua assinatura será ativada em instantes.<br>Volte ao app e clique em <strong>"Verificar acesso"</strong>.</p></div></body></html>`);
 });
 
 // ============================================
