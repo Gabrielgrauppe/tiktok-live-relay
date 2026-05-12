@@ -116,8 +116,11 @@ app.post('/api/validate-token', express.json(), async (req, res) => {
 app.get('/', (req, res) => res.send('OK'));
 app.get('/health', (req, res) => res.json({ status: 'ok', uptime: process.uptime(), rooms: Object.keys(rooms).length }));
 
+const ADMIN_SECRET = 'LSI_ADMIN_2025_Gabriel'; // chave secreta do admin
+
 // Admin: list all usernames (no passwords)
 app.get('/api/admin/accounts', (req, res) => {
+  if (req.query.secret !== ADMIN_SECRET) return res.status(403).json({ error: 'Acesso negado' });
   const list = Object.values(accounts).map(a => ({
     username: a.username,
     createdAt: new Date(a.createdAt).toISOString(),
@@ -125,6 +128,23 @@ app.get('/api/admin/accounts', (req, res) => {
     subscription: a.subscription
   }));
   res.json({ total: list.length, accounts: list });
+});
+
+// Admin: reset password
+app.get('/api/admin/reset-password', async (req, res) => {
+  if (req.query.secret !== ADMIN_SECRET) return res.status(403).json({ error: 'Acesso negado' });
+  const { username, newpassword } = req.query;
+  if (!username || !newpassword) return res.json({ ok: false, error: 'Informe username e newpassword' });
+  if (newpassword.length < 6) return res.json({ ok: false, error: 'Senha precisa ter pelo menos 6 caracteres' });
+  const key = username.toLowerCase().trim();
+  const acc = await getAccount(key);
+  if (!acc) return res.json({ ok: false, error: 'Usuário não encontrado' });
+  const salt = crypto.randomBytes(16).toString('hex');
+  acc.hash = hashPass(newpassword, salt);
+  acc.salt = salt;
+  acc.token = makeToken(); // invalida sessão atual
+  await saveAccount(key, acc);
+  res.json({ ok: true, message: `Senha de "${acc.username}" resetada com sucesso!` });
 });
 
 // ============================================
