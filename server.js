@@ -51,7 +51,10 @@ function getRoom(roomId) {
         topScore: [],
         topGift: [],
         topCombo: [],
-        alert: []
+        alert: [],
+        alertScene1: [], alertScene2: [], alertScene3: [],
+        desejo: [],
+        galeria: []
       },
       coinsRanking: {},
       likesRanking: {},
@@ -69,6 +72,9 @@ function getRoom(roomId) {
       membros: { title: 'Membros', members: [], nameFont: '' },
       membrosAcao: { title: 'Membros Ação', members: [], giftName: 'Heart Me', giftImage: '', subText: '', subTextSize: 9, subValueSize: 9, subTextColor: '#ffdc50', subValueColor: '#ffdc50', nameFont: '', subTextFont: '', valueFont: '' },
       topScore: { title: 'TOP', desc: '', subtitle: 'PONTUAÇÃO', name: '', avatar: '', valor: 0, theme: 'dourado', customColor: '#c9a44a' },
+      alertTheme: 'roxo',
+      desejo: { name: 'Desejo do Streamer', giftName: '', giftImage: '', target: 1, current: 0, theme: 'neon', customColor: '', nameColor: '#ffffff', countColor: '#ffd700' },
+      galeria: { league: 'D', title: 'Galeria de Presentes', progress: {}, theme: 'neon', titleColor: '#ffffff', nameColor: '#00d4ff', counterColor: '#ffd700', customColor: '', completeColor: '#ffd700' },
       topGift: null,
       topCombo: null,
       topGiftConfig: { label: 'Maior Presente', labelColor: '#ffffff', nameColor: '#FFD700', valueColor: '#ffffff' },
@@ -221,10 +227,36 @@ app.get('/overlay/:roomId/top-combo', (req, res) => {
   res.send(getTopComboHTML(req.params.roomId));
 });
 
-// Alert overlay
+// Alert overlay (legacy single scene)
 app.get('/overlay/:roomId/alert', (req, res) => {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.send(getAlertHTML(req.params.roomId));
+});
+
+// Alert overlays per scene
+app.get('/overlay/:roomId/alert/scene1', (req, res) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(getAlertSceneHTML(req.params.roomId, 1));
+});
+app.get('/overlay/:roomId/alert/scene2', (req, res) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(getAlertSceneHTML(req.params.roomId, 2));
+});
+app.get('/overlay/:roomId/alert/scene3', (req, res) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(getAlertSceneHTML(req.params.roomId, 3));
+});
+
+// Desejo do Streamer overlay
+app.get('/overlay/:roomId/desejo', (req, res) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(getDesejoOverlayHTML(req.params.roomId));
+});
+
+// Galeria de Presentes overlay
+app.get('/overlay/:roomId/galeria', (req, res) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(getGaleriaOverlayHTML(req.params.roomId));
 });
 
 // ============================================
@@ -422,13 +454,59 @@ app.get('/sse/:roomId/timer', (req, res) => {
   });
 });
 
-// Alert SSE
+// Alert SSE (legacy)
 app.get('/sse/:roomId/alert', (req, res) => {
   const room = getRoom(req.params.roomId);
   res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
   res.write('data: {"type":"connected"}\n\n');
   room.sseClients.alert.push(res);
   req.on('close', () => { room.sseClients.alert = room.sseClients.alert.filter(c => c !== res); });
+});
+
+// Alert scene SSE
+app.get('/sse/:roomId/alert/scene1', (req, res) => {
+  const room = getRoom(req.params.roomId);
+  res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
+  res.write('data: {"type":"connected"}\n\n');
+  res.write(`data: ${JSON.stringify({ type: 'config', theme: room.alertTheme || 'roxo' })}\n\n`);
+  room.sseClients.alertScene1.push(res);
+  req.on('close', () => { room.sseClients.alertScene1 = room.sseClients.alertScene1.filter(c => c !== res); });
+});
+app.get('/sse/:roomId/alert/scene2', (req, res) => {
+  const room = getRoom(req.params.roomId);
+  res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
+  res.write('data: {"type":"connected"}\n\n');
+  res.write(`data: ${JSON.stringify({ type: 'config', theme: room.alertTheme || 'roxo' })}\n\n`);
+  room.sseClients.alertScene2.push(res);
+  req.on('close', () => { room.sseClients.alertScene2 = room.sseClients.alertScene2.filter(c => c !== res); });
+});
+app.get('/sse/:roomId/alert/scene3', (req, res) => {
+  const room = getRoom(req.params.roomId);
+  res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
+  res.write('data: {"type":"connected"}\n\n');
+  res.write(`data: ${JSON.stringify({ type: 'config', theme: room.alertTheme || 'roxo' })}\n\n`);
+  room.sseClients.alertScene3.push(res);
+  req.on('close', () => { room.sseClients.alertScene3 = room.sseClients.alertScene3.filter(c => c !== res); });
+});
+
+// Desejo do Streamer SSE
+app.get('/sse/:roomId/desejo', (req, res) => {
+  const room = getRoom(req.params.roomId);
+  res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
+  res.write('data: {"type":"connected"}\n\n');
+  res.write(`data: ${JSON.stringify({ type: 'config', state: room.desejo })}\n\n`);
+  room.sseClients.desejo.push(res);
+  req.on('close', () => { room.sseClients.desejo = room.sseClients.desejo.filter(c => c !== res); });
+});
+
+// Galeria de Presentes SSE
+app.get('/sse/:roomId/galeria', (req, res) => {
+  const room = getRoom(req.params.roomId);
+  res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
+  res.write('data: {"type":"connected"}\n\n');
+  res.write(`data: ${JSON.stringify({ type: 'config', ...room.galeria })}\n\n`);
+  room.sseClients.galeria.push(res);
+  req.on('close', () => { room.sseClients.galeria = room.sseClients.galeria.filter(c => c !== res); });
 });
 
 // ============================================
@@ -707,17 +785,82 @@ wss.on('connection', (ws) => {
         room.sseClients.topCombo.forEach(c => { try { c.write(`data: ${JSON.stringify({ type: 'full', data: null, config: room.topComboConfig })}\n\n`); } catch(e){} });
       }
 
-      // Alert trigger
+      // Alert trigger (scene-aware)
       if (msg.type === 'alert-trigger') {
         const ev = JSON.stringify({
           type: 'alert',
-          alertType: msg.alertType,
+          alertType: msg.alertType || '',
           nickname: msg.nickname || '',
           profilePic: msg.profilePic || '',
           message: msg.message || '',
-          giftImage: msg.giftImage || ''
+          giftImage: msg.giftImage || '',
+          giftCount: msg.giftCount || 0
         });
+        const scene = parseInt(msg.scene) || 1;
+        const sceneKey = 'alertScene' + scene;
+        (room.sseClients[sceneKey] || []).forEach(c => { try { c.write(`data: ${ev}\n\n`); } catch(e){} });
+        // Also legacy channel
         room.sseClients.alert.forEach(c => { try { c.write(`data: ${ev}\n\n`); } catch(e){} });
+      }
+
+      // Alert config (theme)
+      if (msg.type === 'alert-config') {
+        room.alertTheme = msg.theme || 'roxo';
+        const ev = JSON.stringify({ type: 'config', theme: room.alertTheme });
+        ['alertScene1','alertScene2','alertScene3','alert'].forEach(k => {
+          (room.sseClients[k] || []).forEach(c => { try { c.write(`data: ${ev}\n\n`); } catch(e){} });
+        });
+      }
+
+      // Desejo config
+      if (msg.type === 'desejo-config') {
+        const { type: _t, ...cfg } = msg;
+        Object.assign(room.desejo, cfg);
+        const ev = JSON.stringify({ type: 'config', state: room.desejo });
+        room.sseClients.desejo.forEach(c => { try { c.write(`data: ${ev}\n\n`); } catch(e){} });
+      }
+
+      // Desejo increment
+      if (msg.type === 'desejo-increment') {
+        room.desejo.current = Math.min((room.desejo.current || 0) + (msg.amount || 1), room.desejo.target || 1);
+        const ev = JSON.stringify({ type: 'increment', current: room.desejo.current, target: room.desejo.target });
+        room.sseClients.desejo.forEach(c => { try { c.write(`data: ${ev}\n\n`); } catch(e){} });
+      }
+
+      // Desejo reset
+      if (msg.type === 'desejo-reset') {
+        room.desejo.current = 0;
+        const ev = JSON.stringify({ type: 'reset', target: room.desejo.target });
+        room.sseClients.desejo.forEach(c => { try { c.write(`data: ${ev}\n\n`); } catch(e){} });
+      }
+
+      // Galeria config
+      if (msg.type === 'galeria-config') {
+        room.galeria.league       = msg.league       || 'D';
+        room.galeria.title        = msg.title        || 'Galeria de Presentes';
+        room.galeria.progress     = msg.progress     || {};
+        room.galeria.theme        = msg.theme        || 'neon';
+        room.galeria.titleColor   = msg.titleColor   || '#ffffff';
+        room.galeria.nameColor    = msg.nameColor    || '#00d4ff';
+        room.galeria.counterColor = msg.counterColor || '#ffd700';
+        room.galeria.customColor  = msg.customColor  || '';
+        room.galeria.completeColor = msg.completeColor || '#ffd700';
+        const ev = JSON.stringify({ type: 'config', ...room.galeria });
+        room.sseClients.galeria.forEach(c => { try { c.write(`data: ${ev}\n\n`); } catch(e){} });
+      }
+
+      // Galeria progress
+      if (msg.type === 'galeria-progress') {
+        room.galeria.progress = msg.progress || {};
+        const ev = JSON.stringify({ type: 'progress', progress: room.galeria.progress, giftName: msg.giftName });
+        room.sseClients.galeria.forEach(c => { try { c.write(`data: ${ev}\n\n`); } catch(e){} });
+      }
+
+      // Galeria reset
+      if (msg.type === 'galeria-reset') {
+        room.galeria.progress = {};
+        const ev = JSON.stringify({ type: 'config', ...room.galeria });
+        room.sseClients.galeria.forEach(c => { try { c.write(`data: ${ev}\n\n`); } catch(e){} });
       }
 
     } catch (e) {}
@@ -4948,6 +5091,420 @@ function getAlertHTML(roomId) {
       if (data.type === 'alert') showAlert(data);
     } catch(err) {}
   };
+</script>
+</body>
+</html>`;
+}
+
+function getAlertSceneHTML(roomId, scene) {
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Cinzel:wght@700;900&family=Press+Start+2P&family=Russo+One&family=Rajdhani:wght@700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: transparent; overflow: hidden; width: 100vw; height: 100vh; display: flex; align-items: flex-end; justify-content: flex-start; padding: 28px; }
+  #alert-box {
+    display: none; align-items: center; gap: 16px; border-radius: 18px;
+    padding: 16px 22px; min-width: 300px; max-width: 520px;
+    animation-duration: 0.5s; animation-fill-mode: both;
+  }
+  #alert-box.show { display: flex !important; animation-name: slideIn; }
+  #alert-box.hide { display: flex !important; animation-name: slideOut; }
+  @keyframes slideIn { from { opacity: 0; transform: translateX(-90px); } to { opacity: 1; transform: translateX(0); } }
+  @keyframes slideOut { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(-90px); } }
+  #alert-avatar { width: 68px; height: 68px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+  #alert-info { flex: 1; min-width: 0; }
+  #alert-nickname { font-size: 19px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #alert-message { font-size: 14px; font-weight: 400; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #alert-gift-wrap { display: none; flex-direction: column; align-items: center; flex-shrink: 0; gap: 2px; }
+  #alert-gift-img { width: 58px; height: 58px; object-fit: contain; }
+  #alert-gift-count { font-family: 'Segoe UI', sans-serif; font-size: 15px; font-weight: 800; color: #fff; text-shadow: 0 1px 6px rgba(0,0,0,0.8); }
+  .t-roxo { background: linear-gradient(135deg, rgba(15,15,30,0.93) 0%, rgba(35,10,65,0.93) 100%); border: 2px solid rgba(190,100,255,0.65); box-shadow: 0 0 32px rgba(160,60,255,0.45), inset 0 0 20px rgba(160,60,255,0.1); }
+  .t-roxo #alert-avatar { border: 3px solid rgba(210,130,255,0.9); background: rgba(80,50,120,0.5); }
+  .t-roxo #alert-nickname { font-family: 'Segoe UI', sans-serif; color: #fff; text-shadow: 0 0 14px rgba(200,130,255,0.9); }
+  .t-roxo #alert-message  { font-family: 'Segoe UI', sans-serif; color: #d8b4ff; }
+  .t-neon { background: linear-gradient(135deg, rgba(0,10,35,0.93) 0%, rgba(0,25,55,0.93) 100%); border: 2px solid #00d4ff; box-shadow: 0 0 28px rgba(0,212,255,0.45), inset 0 0 20px rgba(0,212,255,0.08); }
+  .t-neon #alert-avatar { border: 3px solid #00d4ff; background: rgba(0,50,80,0.5); }
+  .t-neon #alert-nickname { font-family: 'Orbitron', sans-serif; font-size: 16px; color: #00d4ff; text-shadow: 0 0 14px rgba(0,212,255,0.9); }
+  .t-neon #alert-message  { font-family: 'Orbitron', sans-serif; font-size: 11px; color: #ff3366; text-shadow: 0 0 8px rgba(255,51,102,0.7); }
+  .t-medieval { background: linear-gradient(135deg, rgba(20,14,4,0.96) 0%, rgba(45,32,8,0.96) 100%); border: 3px solid #8b7355; box-shadow: 0 4px 22px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,215,0,0.18); border-radius: 12px; }
+  .t-medieval #alert-avatar { border: 3px solid #8b7355; background: rgba(50,35,10,0.6); }
+  .t-medieval #alert-nickname { font-family: 'Cinzel', serif; color: #ffd700; text-shadow: 0 2px 6px rgba(0,0,0,0.8); }
+  .t-medieval #alert-message  { font-family: 'Cinzel', serif; font-size: 13px; color: #e8d4a0; }
+  .t-retro { background: #0a0a0a; border: 3px solid #00ff41; box-shadow: 0 0 12px rgba(0,255,65,0.5), inset 0 0 14px rgba(0,255,65,0.06); border-radius: 4px; }
+  .t-retro #alert-avatar { border: 3px solid #00ff41; background: #111; border-radius: 4px; }
+  .t-retro #alert-nickname { font-family: 'Press Start 2P', monospace; font-size: 11px; color: #00ff41; }
+  .t-retro #alert-message  { font-family: 'Press Start 2P', monospace; font-size: 9px; color: #ff00ff; margin-top: 7px; }
+  .t-fire { background: linear-gradient(160deg, rgba(50,12,0,0.95) 0%, rgba(85,28,0,0.95) 100%); border: 2px solid #ff6600; box-shadow: 0 0 32px rgba(255,100,0,0.45), inset 0 -8px 28px rgba(255,50,0,0.18); }
+  .t-fire #alert-avatar { border: 3px solid #ff6600; background: rgba(80,20,0,0.5); }
+  .t-fire #alert-nickname { font-family: 'Russo One', sans-serif; color: #ffd700; text-shadow: 0 0 12px rgba(255,120,0,0.85); }
+  .t-fire #alert-message  { font-family: 'Russo One', sans-serif; font-size: 13px; color: #ffaa44; }
+  .t-ice { background: linear-gradient(160deg, rgba(5,18,38,0.93) 0%, rgba(10,38,78,0.93) 100%); border: 2px solid rgba(150,220,255,0.65); box-shadow: 0 0 26px rgba(100,200,255,0.35), inset 0 0 20px rgba(200,240,255,0.07); }
+  .t-ice #alert-avatar { border: 3px solid rgba(150,220,255,0.8); background: rgba(10,50,90,0.5); }
+  .t-ice #alert-nickname { font-family: 'Rajdhani', sans-serif; font-size: 21px; color: #b0e0ff; text-shadow: 0 0 14px rgba(150,220,255,0.75); }
+  .t-ice #alert-message  { font-family: 'Rajdhani', sans-serif; font-size: 15px; color: #e0f4ff; }
+  .t-clean { background: transparent; border: none; box-shadow: none; padding: 8px 4px; }
+  .t-clean #alert-avatar { border: 3px solid rgba(255,255,255,0.85); box-shadow: 0 2px 12px rgba(0,0,0,0.7); }
+  .t-clean #alert-nickname { font-family: 'Segoe UI', sans-serif; font-size: 20px; color: #fff; text-shadow: 0 2px 8px rgba(0,0,0,0.95), 0 0 20px rgba(0,0,0,0.8); }
+  .t-clean #alert-message  { font-family: 'Segoe UI', sans-serif; color: rgba(255,255,255,0.92); text-shadow: 0 2px 6px rgba(0,0,0,0.95); }
+</style>
+</head>
+<body>
+<div id="alert-box" class="t-roxo">
+  <img id="alert-avatar" src="" alt="">
+  <div id="alert-info">
+    <div id="alert-nickname"></div>
+    <div id="alert-message"></div>
+  </div>
+  <div id="alert-gift-wrap">
+    <img id="alert-gift-img" src="" alt="">
+    <span id="alert-gift-count"></span>
+  </div>
+</div>
+<script>
+  var box = document.getElementById('alert-box');
+  var avatarEl = document.getElementById('alert-avatar');
+  var nicknameEl = document.getElementById('alert-nickname');
+  var messageEl = document.getElementById('alert-message');
+  var giftWrapEl = document.getElementById('alert-gift-wrap');
+  var giftImgEl = document.getElementById('alert-gift-img');
+  var giftCountEl = document.getElementById('alert-gift-count');
+  var currentTheme = 'roxo';
+  var hideTimer = null;
+  var THEMES = ['roxo','neon','medieval','retro','fire','ice','clean'];
+  function applyTheme(t) {
+    if (THEMES.indexOf(t) === -1) t = 'roxo';
+    currentTheme = t;
+    THEMES.forEach(function(th) { box.classList.remove('t-' + th); });
+    box.classList.add('t-' + t);
+  }
+  function showAlert(data) {
+    if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
+    box.className = 't-' + currentTheme;
+    void box.offsetWidth;
+    avatarEl.src = data.profilePic || '';
+    nicknameEl.textContent = data.nickname || '';
+    messageEl.textContent = data.message || '';
+    if (data.giftImage) {
+      giftImgEl.src = data.giftImage;
+      giftCountEl.textContent = (data.giftCount && data.giftCount > 1) ? 'x' + data.giftCount : '';
+      giftWrapEl.style.display = 'flex';
+    } else {
+      giftWrapEl.style.display = 'none';
+    }
+    box.classList.add('show');
+    hideTimer = setTimeout(function() {
+      box.classList.remove('show');
+      box.classList.add('hide');
+      setTimeout(function() { box.className = 't-' + currentTheme; }, 550);
+    }, 8000);
+  }
+  function connect() {
+    var es = new EventSource('/sse/${roomId}/alert/scene${scene}');
+    es.onmessage = function(e) {
+      try {
+        var d = JSON.parse(e.data);
+        if (d.type === 'alert') showAlert(d);
+        if (d.type === 'config') applyTheme(d.theme);
+      } catch(err) {}
+    };
+    es.onerror = function() { es.close(); setTimeout(connect, 3000); };
+  }
+  connect();
+</script>
+</body>
+</html>`;
+}
+
+function getDesejoOverlayHTML(roomId) {
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Cinzel:wght@700;900&family=Press+Start+2P&family=Russo+One&family=Rajdhani:wght@700&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:transparent; overflow:hidden; width:100vw; height:100vh; display:flex; align-items:center; justify-content:center; }
+  #dw { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px 28px; gap:10px; border-radius:20px; min-width:190px; animation-duration:0.4s; animation-fill-mode:both; }
+  #dw-title { font-size:15px; font-weight:700; text-align:center; letter-spacing:1px; }
+  #dw-img-wrap { position:relative; width:110px; height:110px; display:flex; align-items:center; justify-content:center; }
+  #dw-img { width:88px; height:88px; object-fit:contain; animation: floatGift 3s ease-in-out infinite; }
+  @keyframes floatGift { 0%,100% { transform: translateY(0px) rotate(-3deg); } 50% { transform: translateY(-10px) rotate(3deg); } }
+  .dw-sparkle { position:absolute; font-size:13px; pointer-events:none; animation: sparkleAnim 2.2s ease-in-out infinite; }
+  .dw-sp1 { top:4px; left:4px; animation-delay:0s; } .dw-sp2 { top:4px; right:4px; animation-delay:0.75s; }
+  .dw-sp3 { bottom:4px; left:8px; animation-delay:1.5s; } .dw-sp4 { bottom:4px; right:8px; animation-delay:0.4s; }
+  @keyframes sparkleAnim { 0% { opacity:0; transform:scale(0) rotate(0deg); } 50% { opacity:1; transform:scale(1.2) rotate(180deg); } 100% { opacity:0; transform:scale(0) rotate(360deg); } }
+  #dw-counter { font-size:38px; font-weight:900; letter-spacing:2px; text-align:center; transition: transform 0.1s; }
+  #dw-counter.bump { animation: counterBump 0.5s ease-out; }
+  @keyframes counterBump { 0% { transform: scale(1); } 30% { transform: scale(1.35); } 60% { transform: scale(0.95); } 100% { transform: scale(1); } }
+  #dw-complete { font-size:14px; font-weight:800; letter-spacing:2px; text-transform:uppercase; opacity:0; transition:opacity 0.4s; }
+  #dw-complete.show { opacity:1; animation: completePulse 1.2s ease-in-out infinite; }
+  @keyframes completePulse { 0%,100% { opacity:0.7; } 50% { opacity:1; } }
+  .t-neon { background:linear-gradient(160deg,rgba(0,10,35,0.93),rgba(0,28,60,0.93)); border:2px solid #00d4ff; box-shadow:0 0 30px rgba(0,212,255,0.45),inset 0 0 20px rgba(0,212,255,0.08); }
+  .t-neon #dw-title { font-family:'Orbitron',sans-serif; font-size:13px; } .t-neon #dw-counter { font-family:'Orbitron',sans-serif; } .t-neon #dw-complete { font-family:'Orbitron',sans-serif; color:#00d4ff; } .t-neon #dw-img { filter: drop-shadow(0 0 10px rgba(0,212,255,0.5)); }
+  .t-roxo { background:linear-gradient(160deg,rgba(15,10,35,0.93),rgba(35,10,65,0.93)); border:2px solid rgba(190,100,255,0.65); box-shadow:0 0 30px rgba(160,60,255,0.4),inset 0 0 20px rgba(160,60,255,0.08); }
+  .t-roxo #dw-title { font-family:'Segoe UI',sans-serif; } .t-roxo #dw-counter { font-family:'Segoe UI',sans-serif; } .t-roxo #dw-complete { font-family:'Segoe UI',sans-serif; color:#d8b4ff; } .t-roxo #dw-img { filter: drop-shadow(0 0 10px rgba(180,80,255,0.5)); }
+  .t-medieval { background:linear-gradient(160deg,rgba(20,14,4,0.96),rgba(45,32,8,0.96)); border:3px solid #8b7355; box-shadow:0 4px 22px rgba(0,0,0,0.65),inset 0 1px 0 rgba(255,215,0,0.15); border-radius:12px; }
+  .t-medieval #dw-title { font-family:'Cinzel',serif; } .t-medieval #dw-counter { font-family:'Cinzel',serif; } .t-medieval #dw-complete { font-family:'Cinzel',serif; color:#ffd700; } .t-medieval #dw-img { filter: drop-shadow(0 0 8px rgba(255,200,0,0.4)); }
+  .t-retro { background:#0a0a0a; border:3px solid #00ff41; box-shadow:0 0 12px rgba(0,255,65,0.5),inset 0 0 14px rgba(0,255,65,0.05); border-radius:4px; }
+  .t-retro #dw-title { font-family:'Press Start 2P',monospace; font-size:9px; color:#00ff41 !important; } .t-retro #dw-counter { font-family:'Press Start 2P',monospace; font-size:28px; } .t-retro #dw-complete { font-family:'Press Start 2P',monospace; font-size:9px; color:#ff00ff !important; } .t-retro #dw-img { image-rendering:pixelated; filter: drop-shadow(0 0 6px rgba(0,255,65,0.4)); }
+  .t-fire { background:linear-gradient(160deg,rgba(50,12,0,0.95),rgba(85,28,0,0.95)); border:2px solid #ff6600; box-shadow:0 0 32px rgba(255,100,0,0.45),inset 0 -8px 28px rgba(255,50,0,0.15); }
+  .t-fire #dw-title { font-family:'Russo One',sans-serif; } .t-fire #dw-counter { font-family:'Russo One',sans-serif; } .t-fire #dw-complete { font-family:'Russo One',sans-serif; color:#ffd700; } .t-fire #dw-img { filter: drop-shadow(0 0 12px rgba(255,120,0,0.6)); }
+  .t-ice { background:linear-gradient(160deg,rgba(5,18,38,0.93),rgba(10,38,78,0.93)); border:2px solid rgba(150,220,255,0.65); box-shadow:0 0 26px rgba(100,200,255,0.35),inset 0 0 20px rgba(200,240,255,0.06); }
+  .t-ice #dw-title { font-family:'Rajdhani',sans-serif; font-size:17px; } .t-ice #dw-counter { font-family:'Rajdhani',sans-serif; font-size:44px; } .t-ice #dw-complete { font-family:'Rajdhani',sans-serif; color:#b0e0ff; } .t-ice #dw-img { filter: drop-shadow(0 0 10px rgba(150,220,255,0.5)); }
+  .t-clean { background:transparent; border:none; box-shadow:none; }
+  .t-clean #dw-title { font-family:'Segoe UI',sans-serif; text-shadow:0 2px 8px rgba(0,0,0,0.95); } .t-clean #dw-counter { font-family:'Segoe UI',sans-serif; text-shadow:0 2px 10px rgba(0,0,0,0.95); } .t-clean #dw-complete { font-family:'Segoe UI',sans-serif; } .t-clean #dw-img { filter: drop-shadow(0 4px 12px rgba(0,0,0,0.8)); }
+  .t-custom { border:2px solid rgba(255,255,255,0.3); }
+  .t-custom #dw-title { font-family:'Segoe UI',sans-serif; } .t-custom #dw-counter { font-family:'Segoe UI',sans-serif; } .t-custom #dw-complete { font-family:'Segoe UI',sans-serif; }
+</style>
+</head>
+<body>
+<div id="dw" class="t-neon">
+  <div id="dw-title" style="color:#fff;">Desejo do Streamer</div>
+  <div id="dw-img-wrap">
+    <img id="dw-img" src="" alt="">
+    <span class="dw-sparkle dw-sp1">✨</span><span class="dw-sparkle dw-sp2">⭐</span>
+    <span class="dw-sparkle dw-sp3">✨</span><span class="dw-sparkle dw-sp4">⭐</span>
+  </div>
+  <div id="dw-counter" style="color:#ffd700;">0 / 1</div>
+  <div id="dw-complete">✨ COMPLETO! ✨</div>
+</div>
+<script>
+  var dw = document.getElementById('dw');
+  var titleEl = document.getElementById('dw-title');
+  var imgEl = document.getElementById('dw-img');
+  var counterEl = document.getElementById('dw-counter');
+  var completeEl = document.getElementById('dw-complete');
+  var THEMES = ['neon','roxo','medieval','retro','fire','ice','clean','custom'];
+  var state = { name:'Desejo do Streamer', giftImage:'', target:1, current:0, theme:'neon', customColor:'', nameColor:'#ffffff', countColor:'#ffd700' };
+  function applyState(s) {
+    state = s;
+    THEMES.forEach(function(t){ dw.classList.remove('t-'+t); });
+    dw.classList.add('t-' + (s.theme||'neon'));
+    if (s.theme === 'custom' && s.customColor) dw.style.background = s.customColor;
+    else dw.style.background = '';
+    titleEl.textContent = s.name || 'Desejo do Streamer';
+    titleEl.style.color = s.nameColor || '#ffffff';
+    counterEl.style.color = s.countColor || '#ffd700';
+    imgEl.src = s.giftImage || '';
+    updateCounter(s.current, s.target, false);
+  }
+  function updateCounter(current, target, animate) {
+    state.current = current; state.target = target;
+    counterEl.textContent = current + ' / ' + target;
+    if (animate) { counterEl.classList.remove('bump'); void counterEl.offsetWidth; counterEl.classList.add('bump'); }
+    if (current >= target && target > 0) completeEl.classList.add('show');
+    else completeEl.classList.remove('show');
+  }
+  function connect() {
+    var es = new EventSource('/sse/${roomId}/desejo');
+    es.onmessage = function(e) {
+      try {
+        var d = JSON.parse(e.data);
+        if (d.type === 'config') applyState(d.state);
+        if (d.type === 'increment') updateCounter(d.current, d.target, true);
+        if (d.type === 'reset') updateCounter(0, d.target, false);
+      } catch(err) {}
+    };
+    es.onerror = function() { es.close(); setTimeout(connect, 3000); };
+  }
+  connect();
+</script>
+</body>
+</html>`;
+}
+
+function getGaleriaOverlayHTML(roomId) {
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Cinzel:wght@700;900&family=Press+Start+2P&family=Russo+One&family=Rajdhani:wght@700&family=Poppins:wght@700;900&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:transparent; overflow:hidden; width:100vw; height:100vh; display:flex; align-items:center; justify-content:center; }
+  #gw { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:22px 30px; gap:8px; border-radius:20px; min-width:210px; }
+  #gw-title { font-size:12px; font-weight:700; text-align:center; letter-spacing:1.5px; color:#fff; text-transform:uppercase; }
+  #gw-content { display:flex; flex-direction:column; align-items:center; gap:6px; transition: opacity 0.35s ease-in-out; }
+  #gw-content.fading { opacity:0; }
+  #gw-img-wrap { position:relative; width:110px; height:110px; display:flex; align-items:center; justify-content:center; }
+  #gw-img { width:88px; height:88px; object-fit:contain; animation: galeriaFloat 3s ease-in-out infinite; }
+  @keyframes galeriaFloat { 0%,100% { transform: translateY(0px) rotate(-3deg); } 50% { transform: translateY(-10px) rotate(3deg); } }
+  .gw-sparkle { position:absolute; font-size:13px; pointer-events:none; animation: gSparkle 2.2s ease-in-out infinite; }
+  .gw-sp1 { top:4px; left:4px; animation-delay:0s; } .gw-sp2 { top:4px; right:4px; animation-delay:0.75s; }
+  .gw-sp3 { bottom:4px; left:8px; animation-delay:1.5s; } .gw-sp4 { bottom:4px; right:8px; animation-delay:0.4s; }
+  @keyframes gSparkle { 0% { opacity:0; transform:scale(0) rotate(0deg); } 50% { opacity:1; transform:scale(1.2) rotate(180deg); } 100% { opacity:0; transform:scale(0) rotate(360deg); } }
+  #gw-gift-name { font-size:13px; font-weight:700; color:#00d4ff; text-align:center; letter-spacing:0.5px; }
+  #gw-counter { font-size:32px; font-weight:900; color:#ffd700; letter-spacing:2px; text-align:center; }
+  #gw-counter.bump { animation: gBump 0.5s ease-out; }
+  @keyframes gBump { 0% { transform:scale(1); } 30% { transform:scale(1.35); } 60% { transform:scale(0.95); } 100% { transform:scale(1); } }
+  #gw-dots { display:flex; gap:5px; margin-top:4px; }
+  .gw-dot { width:7px; height:7px; border-radius:50%; background:rgba(255,255,255,0.2); transition: background 0.3s; }
+  #gw { --gw-done-color: #ffd700; }
+  #gw.gw-complete { border-color: var(--gw-done-color) !important; animation: gwDonePulse 1.8s ease-in-out infinite !important; }
+  @keyframes gwDonePulse {
+    0%,100% { box-shadow: 0 0 30px color-mix(in srgb, var(--gw-done-color) 50%, transparent), inset 0 0 16px color-mix(in srgb, var(--gw-done-color) 12%, transparent); }
+    50%      { box-shadow: 0 0 65px color-mix(in srgb, var(--gw-done-color) 85%, transparent), 0 0 110px color-mix(in srgb, var(--gw-done-color) 30%, transparent), inset 0 0 30px color-mix(in srgb, var(--gw-done-color) 22%, transparent); border-color: var(--gw-done-color); }
+  }
+  #gw-badge { font-size:11px; font-weight:800; letter-spacing:2.5px; text-transform:uppercase; color: var(--gw-done-color); height:16px; opacity:0; transition:opacity 0.4s; }
+  #gw.gw-complete #gw-badge { opacity:1; animation: gwBadgePulse 1.4s ease-in-out infinite; }
+  @keyframes gwBadgePulse { 0%,100% { opacity:0.75; transform:scale(1); } 50% { opacity:1; transform:scale(1.07); } }
+  .t-neon { background:linear-gradient(160deg,rgba(0,10,35,0.93),rgba(0,28,60,0.93)); border:2px solid #00d4ff; box-shadow:0 0 32px rgba(0,212,255,0.45),inset 0 0 20px rgba(0,212,255,0.08); }
+  .t-neon #gw-title { font-family:'Orbitron',sans-serif; } .t-neon #gw-gift-name { font-family:'Orbitron',sans-serif; font-size:11px; } .t-neon #gw-counter { font-family:'Orbitron',sans-serif; } .t-neon #gw-img { filter: drop-shadow(0 0 12px rgba(0,212,255,0.55)); } .t-neon .gw-dot.active { background:#00d4ff; box-shadow:0 0 6px rgba(0,212,255,0.8); }
+  .t-roxo { background:linear-gradient(160deg,rgba(15,10,35,0.93),rgba(35,10,65,0.93)); border:2px solid rgba(190,100,255,0.65); box-shadow:0 0 30px rgba(160,60,255,0.4),inset 0 0 20px rgba(160,60,255,0.08); }
+  .t-roxo #gw-title { font-family:'Segoe UI',sans-serif; } .t-roxo #gw-gift-name { font-family:'Segoe UI',sans-serif; } .t-roxo #gw-counter { font-family:'Segoe UI',sans-serif; } .t-roxo #gw-img { filter: drop-shadow(0 0 10px rgba(180,80,255,0.5)); } .t-roxo .gw-dot.active { background:#d8b4ff; box-shadow:0 0 6px rgba(180,80,255,0.8); }
+  .t-medieval { background:linear-gradient(160deg,rgba(20,14,4,0.96),rgba(45,32,8,0.96)); border:3px solid #8b7355; box-shadow:0 4px 22px rgba(0,0,0,0.65),inset 0 1px 0 rgba(255,215,0,0.15); border-radius:12px; }
+  .t-medieval #gw-title { font-family:'Cinzel',serif; } .t-medieval #gw-gift-name { font-family:'Cinzel',serif; } .t-medieval #gw-counter { font-family:'Cinzel',serif; } .t-medieval #gw-img { filter: drop-shadow(0 0 8px rgba(255,200,0,0.4)); } .t-medieval .gw-dot.active { background:#ffd700; box-shadow:0 0 6px rgba(255,215,0,0.8); }
+  .t-retro { background:#0a0a0a; border:3px solid #00ff41; box-shadow:0 0 12px rgba(0,255,65,0.5),inset 0 0 14px rgba(0,255,65,0.05); border-radius:4px; }
+  .t-retro #gw-title { font-family:'Press Start 2P',monospace; font-size:7px; } .t-retro #gw-gift-name { font-family:'Press Start 2P',monospace; font-size:8px; } .t-retro #gw-counter { font-family:'Press Start 2P',monospace; font-size:22px; } .t-retro #gw-img { image-rendering:pixelated; filter: drop-shadow(0 0 6px rgba(0,255,65,0.4)); } .t-retro .gw-dot.active { background:#00ff41; box-shadow:0 0 6px rgba(0,255,65,0.8); }
+  .t-fire { background:linear-gradient(160deg,rgba(50,12,0,0.95),rgba(85,28,0,0.95)); border:2px solid #ff6600; box-shadow:0 0 32px rgba(255,100,0,0.45),inset 0 -8px 28px rgba(255,50,0,0.15); }
+  .t-fire #gw-title { font-family:'Russo One',sans-serif; } .t-fire #gw-gift-name { font-family:'Russo One',sans-serif; } .t-fire #gw-counter { font-family:'Russo One',sans-serif; } .t-fire #gw-img { filter: drop-shadow(0 0 12px rgba(255,120,0,0.6)); } .t-fire .gw-dot.active { background:#ff6600; box-shadow:0 0 6px rgba(255,100,0,0.8); }
+  .t-ice { background:linear-gradient(160deg,rgba(5,18,38,0.93),rgba(10,38,78,0.93)); border:2px solid rgba(150,220,255,0.65); box-shadow:0 0 26px rgba(100,200,255,0.35),inset 0 0 20px rgba(200,240,255,0.06); }
+  .t-ice #gw-title { font-family:'Rajdhani',sans-serif; font-size:16px; } .t-ice #gw-gift-name { font-family:'Rajdhani',sans-serif; font-size:16px; } .t-ice #gw-counter { font-family:'Rajdhani',sans-serif; font-size:40px; } .t-ice #gw-img { filter: drop-shadow(0 0 10px rgba(150,220,255,0.5)); } .t-ice .gw-dot.active { background:#b0e0ff; box-shadow:0 0 6px rgba(150,220,255,0.8); }
+  .t-clean { background:transparent; border:none; box-shadow:none; }
+  .t-clean #gw-title { font-family:'Segoe UI',sans-serif; text-shadow:0 2px 8px rgba(0,0,0,0.95); } .t-clean #gw-gift-name { font-family:'Segoe UI',sans-serif; text-shadow:0 2px 8px rgba(0,0,0,0.95); } .t-clean #gw-counter { font-family:'Segoe UI',sans-serif; text-shadow:0 2px 10px rgba(0,0,0,0.95); } .t-clean #gw-img { filter: drop-shadow(0 4px 12px rgba(0,0,0,0.8)); } .t-clean .gw-dot.active { background:rgba(255,255,255,0.8); }
+  .t-custom { border:2px solid rgba(255,255,255,0.3); }
+  .t-custom #gw-title { font-family:'Segoe UI',sans-serif; } .t-custom #gw-gift-name { font-family:'Segoe UI',sans-serif; } .t-custom #gw-counter { font-family:'Segoe UI',sans-serif; } .t-custom .gw-dot.active { background:rgba(255,255,255,0.8); }
+</style>
+</head>
+<body>
+<div id="gw" class="t-neon">
+  <div id="gw-title">Galeria de Presentes</div>
+  <div id="gw-content">
+    <div id="gw-img-wrap">
+      <img id="gw-img" src="" alt="">
+      <span class="gw-sparkle gw-sp1">✨</span><span class="gw-sparkle gw-sp2">⭐</span>
+      <span class="gw-sparkle gw-sp3">✨</span><span class="gw-sparkle gw-sp4">⭐</span>
+    </div>
+    <div id="gw-gift-name"></div>
+    <div id="gw-counter">0 / 10</div>
+  </div>
+  <div id="gw-dots"></div>
+  <div id="gw-badge">⭐ META BATIDA! ⭐</div>
+</div>
+<script>
+  var LIGA_D = [
+    { name:'TikTok', target:10, image:'https://p16-webcast.tiktokcdn.com/img/maliva/webcast-va/802a21ae29f9fae5abe3693de9f874bd~tplv-obj.webp' },
+    { name:'Rose', target:10, image:'https://p16-webcast.tiktokcdn.com/img/maliva/webcast-va/eba3a9bb85c33e017f3648eaf88d7189~tplv-obj.webp' },
+    { name:'Finger Heart', target:6, image:'https://p16-webcast.tiktokcdn.com/img/maliva/webcast-va/a4c4dc437fd3a6632aba149769491f49.png~tplv-obj.webp' },
+    { name:'Friendship Necklace', target:5, image:'https://p16-webcast.tiktokcdn.com/img/maliva/webcast-va/resource/e033c3f28632e233bebac1668ff66a2f.png~tplv-obj.webp' },
+    { name:'Perfume', target:3, image:'https://p16-webcast.tiktokcdn.com/img/maliva/webcast-va/20b8f61246c7b6032777bb81bf4ee055~tplv-obj.webp' },
+    { name:'Doughnut', target:3, image:'https://p16-webcast.tiktokcdn.com/img/maliva/webcast-va/4e7ad6bdf0a1d860c538f38026d4e812~tplv-obj.webp' },
+    { name:'Hat and Mustache', target:3, image:'https://p16-webcast.tiktokcdn.com/img/maliva/webcast-va/2f1e4f3f5c728ffbfa35705b480fdc92~tplv-obj.webp' },
+    { name:'Hand Hearts', target:3, image:'https://p16-webcast.tiktokcdn.com/img/maliva/webcast-va/6cd022271dc4669d182cad856384870f~tplv-obj.webp' },
+    { name:'Hearts', target:2, image:'https://p16-webcast.tiktokcdn.com/img/maliva/webcast-va/934b5a10dee8376df5870a61d2ea5cb6.png~tplv-obj.webp' },
+    { name:'Corgi', target:2, image:'https://p16-webcast.tiktokcdn.com/img/maliva/webcast-va/148eef0884fdb12058d1c6897d1e02b9~tplv-obj.webp' }
+  ];
+  var LIGA_C = [
+    { name:'Rose', target:20, image:'https://p16-webcast.tiktokcdn.com/img/maliva/webcast-va/eba3a9bb85c33e017f3648eaf88d7189~tplv-obj.webp' },
+    { name:'Finger Heart', target:15, image:'https://p16-webcast.tiktokcdn.com/img/maliva/webcast-va/a4c4dc437fd3a6632aba149769491f49.png~tplv-obj.webp' },
+    { name:'Rosa', target:15, image:'https://p16-webcast.tiktokcdn.com/img/maliva/webcast-va/eb77ead5c3abb6da6034d3cf6cfeb438~tplv-obj.webp' },
+    { name:'Doughnut', target:10, image:'https://p16-webcast.tiktokcdn.com/img/maliva/webcast-va/4e7ad6bdf0a1d860c538f38026d4e812~tplv-obj.webp' },
+    { name:'Hat and Mustache', target:6, image:'https://p16-webcast.tiktokcdn.com/img/maliva/webcast-va/2f1e4f3f5c728ffbfa35705b480fdc92~tplv-obj.webp' },
+    { name:'Hand Hearts', target:6, image:'https://p16-webcast.tiktokcdn.com/img/maliva/webcast-va/6cd022271dc4669d182cad856384870f~tplv-obj.webp' },
+    { name:'Hearts', target:5, image:'https://p16-webcast.tiktokcdn.com/img/maliva/webcast-va/934b5a10dee8376df5870a61d2ea5cb6.png~tplv-obj.webp' },
+    { name:'Corgi', target:3, image:'https://p16-webcast.tiktokcdn.com/img/maliva/webcast-va/148eef0884fdb12058d1c6897d1e02b9~tplv-obj.webp' },
+    { name:'Money Gun', target:2, image:'https://p16-webcast.tiktokcdn.com/img/maliva/webcast-va/e0589e95a2b41970f0f30f6202f5fce6~tplv-obj.webp' },
+    { name:'DJ Glasses', target:2, image:'https://p16-webcast.tiktokcdn.com/img/maliva/webcast-va/resource/d4aad726e2759e54a924fbcd628ea143.png~tplv-obj.webp' },
+    { name:'Swan', target:1, image:'https://p16-webcast.tiktokcdn.com/img/maliva/webcast-va/97a26919dbf6afe262c97e22a83f4bf1~tplv-obj.webp' },
+    { name:'Galaxy', target:1, image:'https://p16-webcast.tiktokcdn.com/img/maliva/webcast-va/resource/79a02148079526539f7599150da9fd28.png~tplv-obj.webp' },
+    { name:'Fireworks', target:1, image:'https://p16-webcast.tiktokcdn.com/img/maliva/webcast-va/9494c8a0bc5c03521ef65368e59cc2b8~tplv-obj.webp' },
+    { name:'Whale Diving', target:1, image:'https://p16-webcast.tiktokcdn.com/img/maliva/webcast-va/46fa70966d8e931497f5289060f9a794~tplv-obj.webp' },
+    { name:'Meteor Shower', target:1, image:'https://p16-webcast.tiktokcdn.com/img/maliva/webcast-va/71883933511237f7eaa1bf8cd12ed575~tplv-obj.webp' }
+  ];
+  var THEMES = ['neon','roxo','medieval','retro','fire','ice','clean','custom'];
+  var state = { league:'D', title:'Galeria de Presentes', progress:{}, theme:'neon', titleColor:'#ffffff', nameColor:'#00d4ff', counterColor:'#ffd700', customColor:'' };
+  var currIdx = 0;
+  var timer = null;
+  var gwEl = document.getElementById('gw');
+  var titleEl = document.getElementById('gw-title');
+  var contentEl = document.getElementById('gw-content');
+  var imgEl = document.getElementById('gw-img');
+  var nameEl = document.getElementById('gw-gift-name');
+  var counterEl = document.getElementById('gw-counter');
+  var dotsEl = document.getElementById('gw-dots');
+  function applyVisual(s) {
+    THEMES.forEach(function(t){ gwEl.classList.remove('t-'+t); });
+    gwEl.classList.add('t-' + (s.theme || 'neon'));
+    if (s.theme === 'custom' && s.customColor) gwEl.style.background = s.customColor;
+    else gwEl.style.background = '';
+    titleEl.style.color   = s.titleColor   || '#ffffff';
+    nameEl.style.color    = s.nameColor    || '#00d4ff';
+    counterEl.style.color = s.counterColor || '#ffd700';
+    gwEl.style.setProperty('--gw-done-color', s.completeColor || '#ffd700');
+  }
+  function getLeague() { return state.league === 'C' ? LIGA_C : LIGA_D; }
+  function buildDots() {
+    var gifts = getLeague();
+    dotsEl.innerHTML = '';
+    gifts.forEach(function(_, i) {
+      var d = document.createElement('div');
+      d.className = 'gw-dot' + (i === currIdx ? ' active' : '');
+      dotsEl.appendChild(d);
+    });
+  }
+  function showGift(idx) {
+    var gifts = getLeague();
+    var gift = gifts[idx];
+    if (!gift) return;
+    var curr = (state.progress[gift.name] || 0);
+    var done = curr >= gift.target;
+    contentEl.classList.add('fading');
+    setTimeout(function() {
+      imgEl.src = gift.image;
+      nameEl.textContent = gift.name;
+      counterEl.textContent = curr + ' / ' + gift.target;
+      contentEl.classList.remove('fading');
+      gwEl.classList.toggle('gw-complete', done);
+      var dots = dotsEl.querySelectorAll('.gw-dot');
+      dots.forEach(function(d, i) { d.classList.toggle('active', i === idx); });
+    }, 350);
+  }
+  function startCycle() {
+    if (timer) clearInterval(timer);
+    buildDots();
+    showGift(currIdx);
+    timer = setInterval(function() {
+      currIdx = (currIdx + 1) % getLeague().length;
+      showGift(currIdx);
+    }, 2800);
+  }
+  function connect() {
+    var es = new EventSource('/sse/${roomId}/galeria');
+    es.onmessage = function(e) {
+      try {
+        var d = JSON.parse(e.data);
+        if (d.type === 'config') {
+          state.league = d.league || 'D'; state.title = d.title || 'Galeria de Presentes';
+          state.progress = d.progress || {}; state.theme = d.theme || 'neon';
+          state.titleColor = d.titleColor || '#ffffff'; state.nameColor = d.nameColor || '#00d4ff';
+          state.counterColor = d.counterColor || '#ffd700'; state.customColor = d.customColor || '';
+          state.completeColor = d.completeColor || '#ffd700';
+          titleEl.textContent = state.title;
+          applyVisual(state);
+          currIdx = 0;
+          startCycle();
+        } else if (d.type === 'progress') {
+          state.progress = d.progress || {};
+          var gifts = getLeague();
+          var cur = gifts[currIdx];
+          if (cur && d.giftName === cur.name) {
+            var v = state.progress[cur.name] || 0;
+            var done = v >= cur.target;
+            counterEl.textContent = v + ' / ' + cur.target;
+            gwEl.classList.toggle('gw-complete', done);
+            counterEl.classList.remove('bump'); void counterEl.offsetWidth; counterEl.classList.add('bump');
+            counterEl.addEventListener('animationend', function() { counterEl.classList.remove('bump'); }, { once:true });
+          }
+        }
+      } catch(err) {}
+    };
+    es.onerror = function() { es.close(); setTimeout(connect, 3000); };
+  }
+  connect();
 </script>
 </body>
 </html>`;
