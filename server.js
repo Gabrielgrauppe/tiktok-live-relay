@@ -5,7 +5,6 @@ const { WebSocketServer } = require('ws');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const nodemailer = require('nodemailer');
 
 const app = express();
 const server = http.createServer(app);
