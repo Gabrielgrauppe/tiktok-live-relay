@@ -382,6 +382,31 @@ app.post('/api/check-subscription', express.json(), async (req, res) => {
   const key = (username || '').toLowerCase().trim();
   const acc = await getAccount(key);
   if (!acc || acc.token !== token) return res.json({ ok: false, error: 'Sessão inválida' });
+
+  // If pending_payment and has a mpSubscriptionId, check MP directly
+  if ((acc.subscription === 'pending_payment' || acc.subscription === 'expired') && acc.mpSubscriptionId && MP_ACCESS_TOKEN) {
+    try {
+      const sub = await mpRequest('GET', `/preapproval/${acc.mpSubscriptionId}`, null);
+      if (sub.status === 'authorized') {
+        const hasTrial = !!sub.auto_recurring?.free_trial;
+        const isAnnual = sub.auto_recurring?.frequency === 12;
+        const months = isAnnual ? 12 : 1;
+        if (hasTrial && acc.subscription === 'pending_payment') {
+          acc.subscription = 'trial';
+          acc.trialEnds = Date.now() + 3 * 24 * 60 * 60 * 1000;
+        } else {
+          acc.subscription = 'active';
+          acc.subscriptionEnd = Date.now() + months * 30 * 24 * 60 * 60 * 1000;
+          acc.subscriptionPlan = isAnnual ? 'annual' : 'monthly';
+        }
+        await saveAccount(key, acc);
+        console.log(`[MP] ✅ Manually verified subscription for ${key}: ${acc.subscription}`);
+      }
+    } catch(e) {
+      console.error('[MP] check-subscription error:', e.message);
+    }
+  }
+
   const status = getSubscriptionStatus(acc);
   res.json({ ok: true, subscription: status, trialEnds: acc.trialEnds, subscriptionEnd: acc.subscriptionEnd });
 });
