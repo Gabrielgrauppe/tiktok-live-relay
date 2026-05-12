@@ -85,6 +85,17 @@ app.post('/api/validate-token', express.json(), (req, res) => {
 app.get('/', (req, res) => res.send('OK'));
 app.get('/health', (req, res) => res.json({ status: 'ok', uptime: process.uptime(), rooms: Object.keys(rooms).length }));
 
+// Admin: list all usernames (no passwords)
+app.get('/api/admin/accounts', (req, res) => {
+  const list = Object.values(accounts).map(a => ({
+    username: a.username,
+    createdAt: new Date(a.createdAt).toISOString(),
+    lastLogin: new Date(a.lastLogin).toISOString(),
+    subscription: a.subscription
+  }));
+  res.json({ total: list.length, accounts: list });
+});
+
 // ============================================
 // ACCESS KEY VALIDATION
 // ============================================
