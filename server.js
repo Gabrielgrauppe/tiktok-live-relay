@@ -169,6 +169,23 @@ app.get('/api/admin/accounts', (req, res) => {
   res.json({ total: list.length, accounts: list });
 });
 
+// Admin: reset subscription (for testing)
+app.get('/api/admin/reset-subscription', async (req, res) => {
+  if (req.query.secret !== ADMIN_SECRET) return res.status(403).json({ error: 'Acesso negado' });
+  const { username, status } = req.query;
+  if (!username) return res.json({ ok: false, error: 'Informe username' });
+  const key = username.toLowerCase().trim();
+  const acc = await getAccount(key);
+  if (!acc) return res.json({ ok: false, error: 'Usuário não encontrado' });
+  const newStatus = status || 'pending_payment';
+  acc.subscription = newStatus;
+  delete acc.subscriptionEnd;
+  delete acc.trialEnds;
+  delete acc.mpSubscriptionId;
+  await saveAccount(key, acc);
+  res.json({ ok: true, message: `Subscription de "${acc.username}" resetada para "${newStatus}"` });
+});
+
 // Admin: reset password
 app.get('/api/admin/reset-password', async (req, res) => {
   if (req.query.secret !== ADMIN_SECRET) return res.status(403).json({ error: 'Acesso negado' });
