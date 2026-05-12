@@ -166,25 +166,26 @@ app.get('/api/admin/reset-password', async (req, res) => {
 });
 
 // ============================================
-// EMAIL - Forgot Password (via Resend HTTP API)
+// EMAIL - Forgot Password (via Brevo HTTP API)
 // ============================================
-const RESEND_API_KEY = process.env.RESEND_API_KEY;
-if (RESEND_API_KEY) console.log('[Email] Resend API key loaded ✅');
-else console.log('[Email] No RESEND_API_KEY — forgot password disabled');
+const BREVO_API_KEY = process.env.BREVO_API_KEY;
+const BREVO_SENDER  = process.env.BREVO_SENDER_EMAIL || 'livestreaminsofc@gmail.com';
+if (BREVO_API_KEY) console.log('[Email] Brevo API key loaded ✅');
+else console.log('[Email] No BREVO_API_KEY — forgot password disabled');
 
 async function sendEmail(to, subject, html) {
-  if (!RESEND_API_KEY) throw new Error('RESEND_API_KEY not set');
+  if (!BREVO_API_KEY) throw new Error('BREVO_API_KEY not set');
   const body = JSON.stringify({
-    from: 'Live Stream INS <onboarding@resend.dev>',
-    to: [to],
+    sender: { name: 'Live Stream INS', email: BREVO_SENDER },
+    to: [{ email: to }],
     subject,
-    html
+    htmlContent: html
   });
   return new Promise((resolve, reject) => {
     const req = https.request({
-      hostname: 'api.resend.com', port: 443, path: '/emails', method: 'POST',
+      hostname: 'api.brevo.com', port: 443, path: '/v3/smtp/email', method: 'POST',
       headers: {
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
+        'api-key': BREVO_API_KEY,
         'Content-Type': 'application/json',
         'Content-Length': Buffer.byteLength(body)
       }
@@ -194,7 +195,7 @@ async function sendEmail(to, subject, html) {
       res.on('end', () => {
         const parsed = (() => { try { return JSON.parse(raw); } catch(e) { return {}; } })();
         if (res.statusCode >= 200 && res.statusCode < 300) resolve(parsed);
-        else reject(new Error(parsed.message || parsed.name || `HTTP ${res.statusCode}`));
+        else reject(new Error(parsed.message || `HTTP ${res.statusCode}: ${raw}`));
       });
     });
     req.on('error', reject);
@@ -208,7 +209,7 @@ const resetCodes = new Map(); // email -> { code, username, expires }
 app.post('/api/forgot-password', express.json(), async (req, res) => {
   const { email } = req.body || {};
   if (!email) return res.json({ ok: false, error: 'Informe o email' });
-  if (!RESEND_API_KEY) return res.json({ ok: false, error: 'Serviço de email não configurado' });
+  if (!BREVO_API_KEY) return res.json({ ok: false, error: 'Serviço de email não configurado' });
   const emailLow = email.toLowerCase().trim();
   const acc = Object.values(accounts).find(a => a.email && a.email.toLowerCase() === emailLow);
   if (!acc) return res.json({ ok: false, error: 'Nenhuma conta encontrada com esse email' });
@@ -234,7 +235,7 @@ app.post('/api/forgot-password', express.json(), async (req, res) => {
 // Admin: test email
 app.get('/api/admin/test-email', async (req, res) => {
   if (req.query.secret !== ADMIN_SECRET) return res.status(403).json({ error: 'Acesso negado' });
-  if (!RESEND_API_KEY) return res.json({ ok: false, error: 'RESEND_API_KEY não configurado' });
+  if (!BREVO_API_KEY) return res.json({ ok: false, error: 'BREVO_API_KEY não configurado' });
   const target = req.query.to || 'livestreaminsofc@gmail.com';
   try {
     await sendEmail(target, '✅ Teste de email - Live Stream INS', '<p>Se você recebeu isso, o email está funcionando! ✅</p>');
