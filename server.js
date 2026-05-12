@@ -19,14 +19,51 @@ app.get('/jar-new.jpg', (req, res) => res.sendFile(__dirname + '/jar-new.jpg'));
 app.get('/jar-glass.png', (req, res) => res.sendFile(__dirname + '/jar-glass.png'));
 
 // ============================================
-// ACCOUNTS SYSTEM
+// ACCOUNTS SYSTEM (MongoDB + file fallback)
 // ============================================
 const ACCOUNTS_FILE = path.join(__dirname, 'accounts.json');
-let accounts = {};
+let accounts = {};           // in-memory cache
+let accountsCol = null;      // MongoDB collection (null = use file)
+
+// Load from file as initial cache / fallback
 try { accounts = JSON.parse(fs.readFileSync(ACCOUNTS_FILE, 'utf-8')); } catch(e) { accounts = {}; }
 
 function saveAccountsFile() {
   try { fs.writeFileSync(ACCOUNTS_FILE, JSON.stringify(accounts, null, 2)); } catch(e) {}
+}
+
+// MongoDB setup (only if MONGO_URI env var is set)
+async function connectMongo() {
+  const uri = process.env.MONGO_URI;
+  if (!uri) { console.log('[DB] No MONGO_URI — using file storage (not persistent on Render)'); return; }
+  try {
+    const { MongoClient } = require('mongodb');
+    const client = new MongoClient(uri, { serverSelectionTimeoutMS: 8000 });
+    await client.connect();
+    const db = client.db('livestream');
+    accountsCol = db.collection('accounts');
+    // Load all accounts into memory cache
+    const docs = await accountsCol.find({}).toArray();
+    docs.forEach(doc => { accounts[doc._id] = doc; });
+    console.log(`[DB] MongoDB connected — ${docs.length} account(s) loaded`);
+  } catch(e) {
+    console.error('[DB] MongoDB connection failed, using file fallback:', e.message);
+    accountsCol = null;
+  }
+}
+
+async function saveAccount(key, data) {
+  accounts[key] = data;
+  if (accountsCol) {
+    try { await accountsCol.replaceOne({ _id: key }, { _id: key, ...data }, { upsert: true }); }
+    catch(e) { console.error('[DB] saveAccount error:', e.message); saveAccountsFile(); }
+  } else {
+    saveAccountsFile();
+  }
+}
+
+async function getAccount(key) {
+  return accounts[key] || null;
 }
 
 function hashPass(password, salt) {
@@ -38,45 +75,39 @@ function makeToken() {
 }
 
 // Register
-app.post('/api/register', express.json(), (req, res) => {
+app.post('/api/register', express.json(), async (req, res) => {
   const { username, password } = req.body || {};
   if (!username || !password) return res.json({ ok: false, error: 'Preencha todos os campos' });
   if (username.trim().length < 3) return res.json({ ok: false, error: 'Nome de usuário deve ter pelo menos 3 caracteres' });
   if (password.length < 6) return res.json({ ok: false, error: 'Senha deve ter pelo menos 6 caracteres' });
   const key = username.toLowerCase().trim();
-  if (accounts[key]) return res.json({ ok: false, error: 'Nome de usuário já está em uso' });
+  if (await getAccount(key)) return res.json({ ok: false, error: 'Nome de usuário já está em uso' });
   const salt = crypto.randomBytes(16).toString('hex');
   const hash = hashPass(password, salt);
   const token = makeToken();
-  accounts[key] = {
-    username: username.trim(),
-    hash, salt, token,
-    createdAt: Date.now(),
-    lastLogin: Date.now(),
-    subscription: 'active'
-  };
-  saveAccountsFile();
+  const data = { username: username.trim(), hash, salt, token, createdAt: Date.now(), lastLogin: Date.now(), subscription: 'active' };
+  await saveAccount(key, data);
   res.json({ ok: true, token, username: username.trim(), subscription: 'active' });
 });
 
 // Login
-app.post('/api/login', express.json(), (req, res) => {
+app.post('/api/login', express.json(), async (req, res) => {
   const { username, password } = req.body || {};
   const key = (username || '').toLowerCase().trim();
-  const acc = accounts[key];
+  const acc = await getAccount(key);
   if (!acc) return res.json({ ok: false, error: 'Usuário não encontrado' });
   if (hashPass(password, acc.salt) !== acc.hash) return res.json({ ok: false, error: 'Senha incorreta' });
   acc.token = makeToken();
   acc.lastLogin = Date.now();
-  saveAccountsFile();
+  await saveAccount(key, acc);
   res.json({ ok: true, token: acc.token, username: acc.username, subscription: acc.subscription || 'active' });
 });
 
 // Validate token (auto-login)
-app.post('/api/validate-token', express.json(), (req, res) => {
+app.post('/api/validate-token', express.json(), async (req, res) => {
   const { username, token } = req.body || {};
   const key = (username || '').toLowerCase().trim();
-  const acc = accounts[key];
+  const acc = await getAccount(key);
   if (!acc || acc.token !== token) return res.json({ ok: false, error: 'Sessão expirada' });
   res.json({ ok: true, username: acc.username, subscription: acc.subscription || 'active' });
 });
@@ -5589,6 +5620,8 @@ function getGaleriaOverlayHTML(roomId) {
 
 // START SERVER
 // ============================================
-server.listen(PORT, () => {
-  console.log(`TikTok Live Relay running on port ${PORT}`);
+connectMongo().then(() => {
+  server.listen(PORT, () => {
+    console.log(`TikTok Live Relay running on port ${PORT}`);
+  });
 });
