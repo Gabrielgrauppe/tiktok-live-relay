@@ -514,7 +514,7 @@ function getRoom(roomId) {
       topScore: { title: 'TOP', desc: '', subtitle: 'PONTUAÇÃO', name: '', avatar: '', valor: 0, theme: 'dourado', customColor: '#c9a44a' },
       alertTheme: 'roxo',
       desejo: { name: 'Desejo do Streamer', giftName: '', giftImage: '', target: 1, current: 0, theme: 'neon', customColor: '', nameColor: '#ffffff', countColor: '#ffd700' },
-      galeria: { league: 'D', title: 'Galeria de Presentes', progress: {}, theme: 'neon', titleColor: '#ffffff', nameColor: '#00d4ff', counterColor: '#ffd700', customColor: '', completeColor: '#ffd700' },
+      galeria: { league: 'D', style: 'padrao', title: 'Galeria de Presentes', progress: {}, theme: 'neon', titleColor: '#ffffff', nameColor: '#00d4ff', counterColor: '#ffd700', customColor: '', completeColor: '#ffd700' },
       topGift: null,
       topCombo: null,
       topGiftConfig: { label: 'Maior Presente', labelColor: '#ffffff', nameColor: '#FFD700', valueColor: '#ffffff' },
