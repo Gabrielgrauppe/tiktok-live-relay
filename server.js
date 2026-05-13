@@ -1276,14 +1276,15 @@ wss.on('connection', (ws) => {
 
       // Galeria config
       if (msg.type === 'galeria-config') {
-        room.galeria.league       = msg.league       || 'D';
-        room.galeria.title        = msg.title        || 'Galeria de Presentes';
-        room.galeria.progress     = msg.progress     || {};
-        room.galeria.theme        = msg.theme        || 'neon';
-        room.galeria.titleColor   = msg.titleColor   || '#ffffff';
-        room.galeria.nameColor    = msg.nameColor    || '#00d4ff';
-        room.galeria.counterColor = msg.counterColor || '#ffd700';
-        room.galeria.customColor  = msg.customColor  || '';
+        room.galeria.league        = msg.league        || 'D';
+        room.galeria.style         = msg.style         || 'padrao';
+        room.galeria.title         = msg.title         || 'Galeria de Presentes';
+        room.galeria.progress      = msg.progress      || {};
+        room.galeria.theme         = msg.theme         || 'neon';
+        room.galeria.titleColor    = msg.titleColor    || '#ffffff';
+        room.galeria.nameColor     = msg.nameColor     || '#00d4ff';
+        room.galeria.counterColor  = msg.counterColor  || '#ffd700';
+        room.galeria.customColor   = msg.customColor   || '';
         room.galeria.completeColor = msg.completeColor || '#ffd700';
         const ev = JSON.stringify({ type: 'config', ...room.galeria });
         room.sseClients.galeria.forEach(c => { try { c.write(`data: ${ev}\n\n`); } catch(e){} });
@@ -5808,9 +5809,47 @@ function getGaleriaOverlayHTML(roomId) {
   .t-clean #gw-title { font-family:'Segoe UI',sans-serif; text-shadow:0 2px 8px rgba(0,0,0,0.95); } .t-clean #gw-gift-name { font-family:'Segoe UI',sans-serif; text-shadow:0 2px 8px rgba(0,0,0,0.95); } .t-clean #gw-counter { font-family:'Segoe UI',sans-serif; text-shadow:0 2px 10px rgba(0,0,0,0.95); } .t-clean #gw-img { filter: drop-shadow(0 4px 12px rgba(0,0,0,0.8)); } .t-clean .gw-dot.active { background:rgba(255,255,255,0.8); }
   .t-custom { border:2px solid rgba(255,255,255,0.3); }
   .t-custom #gw-title { font-family:'Segoe UI',sans-serif; } .t-custom #gw-gift-name { font-family:'Segoe UI',sans-serif; } .t-custom #gw-counter { font-family:'Segoe UI',sans-serif; } .t-custom .gw-dot.active { background:rgba(255,255,255,0.8); }
+
+  /* ── PREMIUM CAROUSEL ── */
+  @keyframes gwScroll { 0% { transform:translateX(0); } 100% { transform:translateX(-50%); } }
+  .gw-card {
+    flex-shrink:0; display:flex; flex-direction:column; align-items:center; gap:5px;
+    padding:12px 14px; border-radius:16px; min-width:100px; max-width:110px;
+    border:2px solid rgba(255,255,255,0.15);
+    background:rgba(0,0,0,0.45); backdrop-filter:blur(6px);
+    transition: border-color 0.4s, box-shadow 0.4s;
+  }
+  .gw-card.card-done {
+    border-color: gold !important;
+    box-shadow: 0 0 18px rgba(255,215,0,0.55);
+  }
+  .gw-card img { width:62px; height:62px; object-fit:contain; animation: galeriaFloat 3s ease-in-out infinite; }
+  .gw-card .card-name { font-size:10px; font-weight:700; color:#e0e0e0; text-align:center; line-height:1.2; word-break:break-word; }
+  .gw-card .card-counter { font-size:15px; font-weight:900; color:#ffd700; letter-spacing:1px; }
+  .gw-card.card-done .card-counter { color: gold; }
+  .gw-card .card-done-badge { font-size:9px; font-weight:800; letter-spacing:1.5px; color:gold; text-transform:uppercase; display:none; }
+  .gw-card.card-done .card-done-badge { display:block; }
+
+  /* Aplica tema no container premium */
+  #gw-premium.t-neon { background:linear-gradient(160deg,rgba(0,10,35,0.92),rgba(0,28,60,0.92)); }
+  #gw-premium.t-neon .gw-card { border-color:rgba(0,212,255,0.3); }
+  #gw-premium.t-neon .card-name { color:#a0e8ff; }
+  #gw-premium.t-roxo { background:linear-gradient(160deg,rgba(15,10,35,0.92),rgba(35,10,65,0.92)); }
+  #gw-premium.t-roxo .gw-card { border-color:rgba(190,100,255,0.3); }
+  #gw-premium.t-medieval { background:linear-gradient(160deg,rgba(20,14,4,0.96),rgba(45,32,8,0.96)); }
+  #gw-premium.t-medieval .gw-card { border-color:rgba(139,115,85,0.5); }
+  #gw-premium.t-retro { background:#0a0a0a; }
+  #gw-premium.t-retro .gw-card { border-color:rgba(0,255,65,0.4); }
+  #gw-premium.t-fire { background:linear-gradient(160deg,rgba(50,12,0,0.95),rgba(85,28,0,0.95)); }
+  #gw-premium.t-fire .gw-card { border-color:rgba(255,102,0,0.4); }
+  #gw-premium.t-ice { background:linear-gradient(160deg,rgba(5,18,38,0.93),rgba(10,38,78,0.93)); }
+  #gw-premium.t-ice .gw-card { border-color:rgba(150,220,255,0.35); }
+  #gw-premium.t-clean { background:transparent; }
+  #gw-premium.t-custom { background:transparent; }
 </style>
 </head>
 <body>
+<!-- PADRÃO: um presente por vez -->
 <div id="gw" class="t-neon">
   <div id="gw-title">Galeria de Presentes</div>
   <div id="gw-content">
@@ -5824,6 +5863,15 @@ function getGaleriaOverlayHTML(roomId) {
   </div>
   <div id="gw-dots"></div>
   <div id="gw-badge">⭐ META BATIDA! ⭐</div>
+</div>
+
+<!-- PREMIUM: carrossel direita → esquerda -->
+<div id="gw-premium" style="display:none; width:100vw; overflow:hidden; padding:10px 0; flex-direction:column; align-items:center; gap:8px;">
+  <div id="gw-prem-title" style="font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#fff;margin-bottom:4px;"></div>
+  <div style="width:100%;overflow:hidden;position:relative;">
+    <div id="gw-carousel-track" style="display:flex;gap:14px;width:max-content;animation:gwScroll 30s linear infinite;">
+    </div>
+  </div>
 </div>
 <script>
   var LIGA_D = [
@@ -5899,16 +5947,32 @@ function getGaleriaOverlayHTML(roomId) {
     { name:'TikTok Universe', target:1, image:'https://p16-webcast.tiktokcdn.com/img/maliva/webcast-va/8f471afbcebfda3841a6cc515e381f58~tplv-obj.webp' }
   ];
   var THEMES = ['neon','roxo','medieval','retro','fire','ice','clean','custom'];
-  var state = { league:'D', title:'Galeria de Presentes', progress:{}, theme:'neon', titleColor:'#ffffff', nameColor:'#00d4ff', counterColor:'#ffd700', customColor:'' };
+  var state = { league:'D', style:'padrao', title:'Galeria de Presentes', progress:{}, theme:'neon', titleColor:'#ffffff', nameColor:'#00d4ff', counterColor:'#ffd700', customColor:'', completeColor:'#ffd700' };
   var currIdx = 0;
   var timer = null;
-  var gwEl = document.getElementById('gw');
-  var titleEl = document.getElementById('gw-title');
+
+  // Padrão elements
+  var gwEl      = document.getElementById('gw');
+  var titleEl   = document.getElementById('gw-title');
   var contentEl = document.getElementById('gw-content');
-  var imgEl = document.getElementById('gw-img');
-  var nameEl = document.getElementById('gw-gift-name');
+  var imgEl     = document.getElementById('gw-img');
+  var nameEl    = document.getElementById('gw-gift-name');
   var counterEl = document.getElementById('gw-counter');
-  var dotsEl = document.getElementById('gw-dots');
+  var dotsEl    = document.getElementById('gw-dots');
+
+  // Premium elements
+  var premEl      = document.getElementById('gw-premium');
+  var premTitleEl = document.getElementById('gw-prem-title');
+  var trackEl     = document.getElementById('gw-carousel-track');
+
+  function getLeague() {
+    if (state.league === 'A') return LIGA_A;
+    if (state.league === 'B') return LIGA_B;
+    if (state.league === 'C') return LIGA_C;
+    return LIGA_D;
+  }
+
+  // ── PADRÃO ──
   function applyVisual(s) {
     THEMES.forEach(function(t){ gwEl.classList.remove('t-'+t); });
     gwEl.classList.add('t-' + (s.theme || 'neon'));
@@ -5918,12 +5982,6 @@ function getGaleriaOverlayHTML(roomId) {
     nameEl.style.color    = s.nameColor    || '#00d4ff';
     counterEl.style.color = s.counterColor || '#ffd700';
     gwEl.style.setProperty('--gw-done-color', s.completeColor || '#ffd700');
-  }
-  function getLeague() {
-    if (state.league === 'A') return LIGA_A;
-    if (state.league === 'B') return LIGA_B;
-    if (state.league === 'C') return LIGA_C;
-    return LIGA_D;
   }
   function buildDots() {
     var gifts = getLeague();
@@ -5960,32 +6018,99 @@ function getGaleriaOverlayHTML(roomId) {
       showGift(currIdx);
     }, 2800);
   }
+
+  // ── PREMIUM (carrossel) ──
+  function buildCarousel() {
+    var gifts = getLeague();
+    trackEl.innerHTML = '';
+    // Duplica os cards para loop contínuo perfeito
+    [gifts, gifts].forEach(function(list) {
+      list.forEach(function(g) {
+        var curr = state.progress[g.name] || 0;
+        var done = curr >= g.target;
+        var card = document.createElement('div');
+        card.className = 'gw-card' + (done ? ' card-done' : '');
+        card.dataset.gift = g.name;
+        card.innerHTML =
+          '<img src="' + g.image + '" alt="">' +
+          '<div class="card-name">' + g.name + '</div>' +
+          '<div class="card-counter">' + curr + ' / ' + g.target + '</div>' +
+          '<div class="card-done-badge">✅ META!</div>';
+        trackEl.appendChild(card);
+      });
+    });
+    // Velocidade dinâmica: mais presentes = mais lento para dar tempo de ler
+    var speed = Math.max(18, gifts.length * 2.2);
+    trackEl.style.animationDuration = speed + 's';
+  }
+  function updateCarouselCard(giftName) {
+    var gifts = getLeague();
+    var g = gifts.find(function(x){ return x.name === giftName; });
+    if (!g) return;
+    var curr = state.progress[g.name] || 0;
+    var done = curr >= g.target;
+    trackEl.querySelectorAll('.gw-card[data-gift="' + giftName + '"]').forEach(function(card) {
+      card.querySelector('.card-counter').textContent = curr + ' / ' + g.target;
+      card.classList.toggle('card-done', done);
+    });
+  }
+  function applyPremiumVisual(s) {
+    THEMES.forEach(function(t){ premEl.classList.remove('t-'+t); });
+    premEl.classList.add('t-' + (s.theme || 'neon'));
+    if (s.theme === 'custom' && s.customColor) premEl.style.background = s.customColor;
+    else premEl.style.background = '';
+    premTitleEl.style.color = s.titleColor || '#ffffff';
+    premTitleEl.textContent = s.title || 'Galeria de Presentes';
+  }
+
+  // ── SWITCH DE ESTILO ──
+  function applyStyle(s) {
+    if (s.style === 'premium') {
+      gwEl.style.display = 'none';
+      premEl.style.display = 'flex';
+      applyPremiumVisual(s);
+      buildCarousel();
+    } else {
+      gwEl.style.display = '';
+      premEl.style.display = 'none';
+      applyVisual(s);
+      currIdx = 0;
+      startCycle();
+    }
+  }
+
   function connect() {
     var es = new EventSource('/sse/${roomId}/galeria');
     es.onmessage = function(e) {
       try {
         var d = JSON.parse(e.data);
         if (d.type === 'config') {
-          state.league = d.league || 'D'; state.title = d.title || 'Galeria de Presentes';
-          state.progress = d.progress || {}; state.theme = d.theme || 'neon';
-          state.titleColor = d.titleColor || '#ffffff'; state.nameColor = d.nameColor || '#00d4ff';
-          state.counterColor = d.counterColor || '#ffd700'; state.customColor = d.customColor || '';
+          state.league        = d.league        || 'D';
+          state.style         = d.style         || 'padrao';
+          state.title         = d.title         || 'Galeria de Presentes';
+          state.progress      = d.progress      || {};
+          state.theme         = d.theme         || 'neon';
+          state.titleColor    = d.titleColor    || '#ffffff';
+          state.nameColor     = d.nameColor     || '#00d4ff';
+          state.counterColor  = d.counterColor  || '#ffd700';
+          state.customColor   = d.customColor   || '';
           state.completeColor = d.completeColor || '#ffd700';
-          titleEl.textContent = state.title;
-          applyVisual(state);
-          currIdx = 0;
-          startCycle();
+          applyStyle(state);
         } else if (d.type === 'progress') {
           state.progress = d.progress || {};
-          var gifts = getLeague();
-          var cur = gifts[currIdx];
-          if (cur && d.giftName === cur.name) {
-            var v = state.progress[cur.name] || 0;
-            var done = v >= cur.target;
-            counterEl.textContent = v + ' / ' + cur.target;
-            gwEl.classList.toggle('gw-complete', done);
-            counterEl.classList.remove('bump'); void counterEl.offsetWidth; counterEl.classList.add('bump');
-            counterEl.addEventListener('animationend', function() { counterEl.classList.remove('bump'); }, { once:true });
+          if (state.style === 'premium') {
+            updateCarouselCard(d.giftName);
+          } else {
+            var gifts = getLeague();
+            var cur = gifts[currIdx];
+            if (cur && d.giftName === cur.name) {
+              var v = state.progress[cur.name] || 0;
+              var done = v >= cur.target;
+              counterEl.textContent = v + ' / ' + cur.target;
+              gwEl.classList.toggle('gw-complete', done);
+              counterEl.classList.remove('bump'); void counterEl.offsetWidth; counterEl.classList.add('bump');
+              counterEl.addEventListener('animationend', function() { counterEl.classList.remove('bump'); }, { once:true });
+            }
           }
         }
       } catch(err) {}
