@@ -5759,109 +5759,93 @@ function getDesejoOverlayHTML(roomId) {
 }
 
 function getGaleriaOverlayHTML(roomId) {
-  return `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Cinzel:wght@700;900&family=Press+Start+2P&family=Russo+One&family=Rajdhani:wght@700&family=Poppins:wght@700;900&display=swap" rel="stylesheet">
 <style>
-  * { margin:0; padding:0; box-sizing:border-box; }
-  body { background:transparent; overflow:hidden; width:100vw; height:100vh; display:flex; align-items:center; justify-content:center; }
-  #gw { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:22px 30px; gap:8px; border-radius:20px; min-width:210px; }
-  #gw-title { font-size:12px; font-weight:700; text-align:center; letter-spacing:1.5px; color:#fff; text-transform:uppercase; }
-  #gw-content { display:flex; flex-direction:column; align-items:center; gap:6px; transition: opacity 0.35s ease-in-out; }
-  #gw-content.fading { opacity:0; }
-  #gw-img-wrap { position:relative; width:110px; height:110px; display:flex; align-items:center; justify-content:center; }
-  #gw-img { width:88px; height:88px; object-fit:contain; animation: galeriaFloat 3s ease-in-out infinite; }
-  @keyframes galeriaFloat { 0%,100% { transform: translateY(0px) rotate(-3deg); } 50% { transform: translateY(-10px) rotate(3deg); } }
-  .gw-sparkle { position:absolute; font-size:13px; pointer-events:none; animation: gSparkle 2.2s ease-in-out infinite; }
-  .gw-sp1 { top:4px; left:4px; animation-delay:0s; } .gw-sp2 { top:4px; right:4px; animation-delay:0.75s; }
-  .gw-sp3 { bottom:4px; left:8px; animation-delay:1.5s; } .gw-sp4 { bottom:4px; right:8px; animation-delay:0.4s; }
-  @keyframes gSparkle { 0% { opacity:0; transform:scale(0) rotate(0deg); } 50% { opacity:1; transform:scale(1.2) rotate(180deg); } 100% { opacity:0; transform:scale(0) rotate(360deg); } }
-  #gw-gift-name { font-size:13px; font-weight:700; color:#00d4ff; text-align:center; letter-spacing:0.5px; }
-  #gw-counter { font-size:32px; font-weight:900; color:#ffd700; letter-spacing:2px; text-align:center; }
-  #gw-counter.bump { animation: gBump 0.5s ease-out; }
-  @keyframes gBump { 0% { transform:scale(1); } 30% { transform:scale(1.35); } 60% { transform:scale(0.95); } 100% { transform:scale(1); } }
-  #gw-dots { display:flex; gap:5px; margin-top:4px; }
-  .gw-dot { width:7px; height:7px; border-radius:50%; background:rgba(255,255,255,0.2); transition: background 0.3s; }
-  #gw { --gw-done-color: #ffd700; }
-  #gw.gw-complete { border-color: var(--gw-done-color) !important; animation: gwDonePulse 1.8s ease-in-out infinite !important; }
-  @keyframes gwDonePulse {
-    0%,100% { box-shadow: 0 0 30px color-mix(in srgb, var(--gw-done-color) 50%, transparent), inset 0 0 16px color-mix(in srgb, var(--gw-done-color) 12%, transparent); }
-    50%      { box-shadow: 0 0 65px color-mix(in srgb, var(--gw-done-color) 85%, transparent), 0 0 110px color-mix(in srgb, var(--gw-done-color) 30%, transparent), inset 0 0 30px color-mix(in srgb, var(--gw-done-color) 22%, transparent); border-color: var(--gw-done-color); }
-  }
-  #gw-badge { font-size:11px; font-weight:800; letter-spacing:2.5px; text-transform:uppercase; color: var(--gw-done-color); height:16px; opacity:0; transition:opacity 0.4s; }
-  #gw.gw-complete #gw-badge { opacity:1; animation: gwBadgePulse 1.4s ease-in-out infinite; }
-  @keyframes gwBadgePulse { 0%,100% { opacity:0.75; transform:scale(1); } 50% { opacity:1; transform:scale(1.07); } }
-  .t-neon { background:linear-gradient(160deg,rgba(0,10,35,0.93),rgba(0,28,60,0.93)); border:2px solid #00d4ff; box-shadow:0 0 32px rgba(0,212,255,0.45),inset 0 0 20px rgba(0,212,255,0.08); }
-  .t-neon #gw-title { font-family:'Orbitron',sans-serif; } .t-neon #gw-gift-name { font-family:'Orbitron',sans-serif; font-size:11px; } .t-neon #gw-counter { font-family:'Orbitron',sans-serif; } .t-neon #gw-img { filter: drop-shadow(0 0 12px rgba(0,212,255,0.55)); } .t-neon .gw-dot.active { background:#00d4ff; box-shadow:0 0 6px rgba(0,212,255,0.8); }
-  .t-roxo { background:linear-gradient(160deg,rgba(15,10,35,0.93),rgba(35,10,65,0.93)); border:2px solid rgba(190,100,255,0.65); box-shadow:0 0 30px rgba(160,60,255,0.4),inset 0 0 20px rgba(160,60,255,0.08); }
-  .t-roxo #gw-title { font-family:'Segoe UI',sans-serif; } .t-roxo #gw-gift-name { font-family:'Segoe UI',sans-serif; } .t-roxo #gw-counter { font-family:'Segoe UI',sans-serif; } .t-roxo #gw-img { filter: drop-shadow(0 0 10px rgba(180,80,255,0.5)); } .t-roxo .gw-dot.active { background:#d8b4ff; box-shadow:0 0 6px rgba(180,80,255,0.8); }
-  .t-medieval { background:linear-gradient(160deg,rgba(20,14,4,0.96),rgba(45,32,8,0.96)); border:3px solid #8b7355; box-shadow:0 4px 22px rgba(0,0,0,0.65),inset 0 1px 0 rgba(255,215,0,0.15); border-radius:12px; }
-  .t-medieval #gw-title { font-family:'Cinzel',serif; } .t-medieval #gw-gift-name { font-family:'Cinzel',serif; } .t-medieval #gw-counter { font-family:'Cinzel',serif; } .t-medieval #gw-img { filter: drop-shadow(0 0 8px rgba(255,200,0,0.4)); } .t-medieval .gw-dot.active { background:#ffd700; box-shadow:0 0 6px rgba(255,215,0,0.8); }
-  .t-retro { background:#0a0a0a; border:3px solid #00ff41; box-shadow:0 0 12px rgba(0,255,65,0.5),inset 0 0 14px rgba(0,255,65,0.05); border-radius:4px; }
-  .t-retro #gw-title { font-family:'Press Start 2P',monospace; font-size:7px; } .t-retro #gw-gift-name { font-family:'Press Start 2P',monospace; font-size:8px; } .t-retro #gw-counter { font-family:'Press Start 2P',monospace; font-size:22px; } .t-retro #gw-img { image-rendering:pixelated; filter: drop-shadow(0 0 6px rgba(0,255,65,0.4)); } .t-retro .gw-dot.active { background:#00ff41; box-shadow:0 0 6px rgba(0,255,65,0.8); }
-  .t-fire { background:linear-gradient(160deg,rgba(50,12,0,0.95),rgba(85,28,0,0.95)); border:2px solid #ff6600; box-shadow:0 0 32px rgba(255,100,0,0.45),inset 0 -8px 28px rgba(255,50,0,0.15); }
-  .t-fire #gw-title { font-family:'Russo One',sans-serif; } .t-fire #gw-gift-name { font-family:'Russo One',sans-serif; } .t-fire #gw-counter { font-family:'Russo One',sans-serif; } .t-fire #gw-img { filter: drop-shadow(0 0 12px rgba(255,120,0,0.6)); } .t-fire .gw-dot.active { background:#ff6600; box-shadow:0 0 6px rgba(255,100,0,0.8); }
-  .t-ice { background:linear-gradient(160deg,rgba(5,18,38,0.93),rgba(10,38,78,0.93)); border:2px solid rgba(150,220,255,0.65); box-shadow:0 0 26px rgba(100,200,255,0.35),inset 0 0 20px rgba(200,240,255,0.06); }
-  .t-ice #gw-title { font-family:'Rajdhani',sans-serif; font-size:16px; } .t-ice #gw-gift-name { font-family:'Rajdhani',sans-serif; font-size:16px; } .t-ice #gw-counter { font-family:'Rajdhani',sans-serif; font-size:40px; } .t-ice #gw-img { filter: drop-shadow(0 0 10px rgba(150,220,255,0.5)); } .t-ice .gw-dot.active { background:#b0e0ff; box-shadow:0 0 6px rgba(150,220,255,0.8); }
-  .t-clean { background:transparent; border:none; box-shadow:none; }
-  .t-clean #gw-title { font-family:'Segoe UI',sans-serif; text-shadow:0 2px 8px rgba(0,0,0,0.95); } .t-clean #gw-gift-name { font-family:'Segoe UI',sans-serif; text-shadow:0 2px 8px rgba(0,0,0,0.95); } .t-clean #gw-counter { font-family:'Segoe UI',sans-serif; text-shadow:0 2px 10px rgba(0,0,0,0.95); } .t-clean #gw-img { filter: drop-shadow(0 4px 12px rgba(0,0,0,0.8)); } .t-clean .gw-dot.active { background:rgba(255,255,255,0.8); }
-  .t-custom { border:2px solid rgba(255,255,255,0.3); }
-  .t-custom #gw-title { font-family:'Segoe UI',sans-serif; } .t-custom #gw-gift-name { font-family:'Segoe UI',sans-serif; } .t-custom #gw-counter { font-family:'Segoe UI',sans-serif; } .t-custom .gw-dot.active { background:rgba(255,255,255,0.8); }
-
-  /* ── PREMIUM CAROUSEL ── */
-  #gw-premium {
-    position:fixed; left:0; top:0; width:100vw; height:100vh;
-    display:none; flex-direction:column; align-items:center; justify-content:center;
-    padding:10px 0;
-  }
-  #gw-prem-title {
-    font-size:13px; font-weight:700; letter-spacing:2px; text-transform:uppercase;
-    color:#fff; margin-bottom:10px; text-shadow:0 2px 8px rgba(0,0,0,0.8);
-  }
-  #gw-stage {
-    width:100vw; overflow:hidden; position:relative; height:140px;
-  }
-  .gw-card {
-    position:absolute; top:4px;
-    display:flex; flex-direction:column; align-items:center; gap:5px;
-    padding:10px 12px; border-radius:16px; width:110px;
-    border:2px solid rgba(255,255,255,0.2);
-    background:rgba(0,0,0,0.5); backdrop-filter:blur(6px);
-    transition: border-color 0.4s, box-shadow 0.4s;
-    will-change: transform;
-  }
-  .gw-card.card-done { border-color:gold !important; box-shadow:0 0 18px rgba(255,215,0,0.6); }
-  .gw-card img { width:60px; height:60px; object-fit:contain; animation:galeriaFloat 3s ease-in-out infinite; }
-  .gw-card .card-name { font-size:10px; font-weight:700; color:#e0e0e0; text-align:center; line-height:1.2; }
-  .gw-card .card-counter { font-size:14px; font-weight:900; color:#ffd700; }
-  .gw-card.card-done .card-counter { color:gold; }
-  .gw-card .card-done-badge { font-size:8px; font-weight:800; color:gold; text-transform:uppercase; display:none; }
-  .gw-card.card-done .card-done-badge { display:block; }
-</style>
-</head>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:transparent; overflow:hidden; width:100vw; height:100vh; }
+/* ─── PADRÃO ─── */
+#gw-padrao-wrap { width:100%; height:100%; display:flex; align-items:center; justify-content:center; }
+#gw { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:22px 30px; gap:8px; border-radius:20px; min-width:210px; }
+#gw-title { font-size:12px; font-weight:700; text-align:center; letter-spacing:1.5px; color:#fff; text-transform:uppercase; }
+#gw-content { display:flex; flex-direction:column; align-items:center; gap:6px; transition:opacity 0.35s ease-in-out; }
+#gw-content.fading { opacity:0; }
+#gw-img-wrap { position:relative; width:110px; height:110px; display:flex; align-items:center; justify-content:center; }
+#gw-img { width:88px; height:88px; object-fit:contain; animation:galeriaFloat 3s ease-in-out infinite; }
+@keyframes galeriaFloat { 0%,100%{transform:translateY(0) rotate(-3deg);} 50%{transform:translateY(-10px) rotate(3deg);} }
+.gw-sparkle { position:absolute; font-size:13px; pointer-events:none; animation:gSparkle 2.2s ease-in-out infinite; }
+.gw-sp1{top:4px;left:4px;animation-delay:0s;} .gw-sp2{top:4px;right:4px;animation-delay:0.75s;}
+.gw-sp3{bottom:4px;left:8px;animation-delay:1.5s;} .gw-sp4{bottom:4px;right:8px;animation-delay:0.4s;}
+@keyframes gSparkle { 0%{opacity:0;transform:scale(0) rotate(0);} 50%{opacity:1;transform:scale(1.2) rotate(180deg);} 100%{opacity:0;transform:scale(0) rotate(360deg);} }
+#gw-gift-name { font-size:13px; font-weight:700; color:#00d4ff; text-align:center; letter-spacing:0.5px; }
+#gw-counter { font-size:32px; font-weight:900; color:#ffd700; letter-spacing:2px; text-align:center; }
+#gw-counter.bump { animation:gBump 0.5s ease-out; }
+@keyframes gBump { 0%{transform:scale(1);} 30%{transform:scale(1.35);} 60%{transform:scale(0.95);} 100%{transform:scale(1);} }
+#gw-dots { display:flex; gap:5px; margin-top:4px; }
+.gw-dot { width:7px; height:7px; border-radius:50%; background:rgba(255,255,255,0.2); transition:background 0.3s; }
+#gw { --gw-done-color:#ffd700; }
+#gw.gw-complete { border-color:var(--gw-done-color)!important; animation:gwDonePulse 1.8s ease-in-out infinite!important; }
+@keyframes gwDonePulse {
+  0%,100%{box-shadow:0 0 30px color-mix(in srgb,var(--gw-done-color) 50%,transparent),inset 0 0 16px color-mix(in srgb,var(--gw-done-color) 12%,transparent);}
+  50%{box-shadow:0 0 65px color-mix(in srgb,var(--gw-done-color) 85%,transparent),0 0 110px color-mix(in srgb,var(--gw-done-color) 30%,transparent),inset 0 0 30px color-mix(in srgb,var(--gw-done-color) 22%,transparent);border-color:var(--gw-done-color);}
+}
+#gw-badge { font-size:11px; font-weight:800; letter-spacing:2.5px; text-transform:uppercase; color:var(--gw-done-color); height:16px; opacity:0; transition:opacity 0.4s; }
+#gw.gw-complete #gw-badge { opacity:1; animation:gwBadgePulse 1.4s ease-in-out infinite; }
+@keyframes gwBadgePulse { 0%,100%{opacity:0.75;transform:scale(1);} 50%{opacity:1;transform:scale(1.07);} }
+.t-neon { background:linear-gradient(160deg,rgba(0,10,35,0.93),rgba(0,28,60,0.93)); border:2px solid #00d4ff; box-shadow:0 0 32px rgba(0,212,255,0.45),inset 0 0 20px rgba(0,212,255,0.08); }
+.t-neon #gw-title,.t-neon #gw-gift-name,.t-neon #gw-counter{font-family:'Orbitron',sans-serif;} .t-neon #gw-gift-name{font-size:11px;} .t-neon #gw-img{filter:drop-shadow(0 0 12px rgba(0,212,255,0.55));} .t-neon .gw-dot.active{background:#00d4ff;box-shadow:0 0 6px rgba(0,212,255,0.8);}
+.t-roxo { background:linear-gradient(160deg,rgba(15,10,35,0.93),rgba(35,10,65,0.93)); border:2px solid rgba(190,100,255,0.65); box-shadow:0 0 30px rgba(160,60,255,0.4),inset 0 0 20px rgba(160,60,255,0.08); }
+.t-roxo #gw-title,.t-roxo #gw-gift-name,.t-roxo #gw-counter{font-family:'Segoe UI',sans-serif;} .t-roxo #gw-img{filter:drop-shadow(0 0 10px rgba(180,80,255,0.5));} .t-roxo .gw-dot.active{background:#d8b4ff;box-shadow:0 0 6px rgba(180,80,255,0.8);}
+.t-medieval { background:linear-gradient(160deg,rgba(20,14,4,0.96),rgba(45,32,8,0.96)); border:3px solid #8b7355; box-shadow:0 4px 22px rgba(0,0,0,0.65),inset 0 1px 0 rgba(255,215,0,0.15); border-radius:12px; }
+.t-medieval #gw-title,.t-medieval #gw-gift-name,.t-medieval #gw-counter{font-family:'Cinzel',serif;} .t-medieval #gw-img{filter:drop-shadow(0 0 8px rgba(255,200,0,0.4));} .t-medieval .gw-dot.active{background:#ffd700;box-shadow:0 0 6px rgba(255,215,0,0.8);}
+.t-retro { background:#0a0a0a; border:3px solid #00ff41; box-shadow:0 0 12px rgba(0,255,65,0.5),inset 0 0 14px rgba(0,255,65,0.05); border-radius:4px; }
+.t-retro #gw-title{font-family:'Press Start 2P',monospace;font-size:7px;} .t-retro #gw-gift-name{font-family:'Press Start 2P',monospace;font-size:8px;} .t-retro #gw-counter{font-family:'Press Start 2P',monospace;font-size:22px;} .t-retro #gw-img{image-rendering:pixelated;filter:drop-shadow(0 0 6px rgba(0,255,65,0.4));} .t-retro .gw-dot.active{background:#00ff41;}
+.t-fire { background:linear-gradient(160deg,rgba(50,12,0,0.95),rgba(85,28,0,0.95)); border:2px solid #ff6600; box-shadow:0 0 32px rgba(255,100,0,0.45),inset 0 -8px 28px rgba(255,50,0,0.15); }
+.t-fire #gw-title,.t-fire #gw-gift-name,.t-fire #gw-counter{font-family:'Russo One',sans-serif;} .t-fire #gw-img{filter:drop-shadow(0 0 12px rgba(255,120,0,0.6));} .t-fire .gw-dot.active{background:#ff6600;}
+.t-ice { background:linear-gradient(160deg,rgba(5,18,38,0.93),rgba(10,38,78,0.93)); border:2px solid rgba(150,220,255,0.65); box-shadow:0 0 26px rgba(100,200,255,0.35),inset 0 0 20px rgba(200,240,255,0.06); }
+.t-ice #gw-title,.t-ice #gw-gift-name{font-family:'Rajdhani',sans-serif;font-size:16px;} .t-ice #gw-counter{font-family:'Rajdhani',sans-serif;font-size:40px;} .t-ice #gw-img{filter:drop-shadow(0 0 10px rgba(150,220,255,0.5));} .t-ice .gw-dot.active{background:#b0e0ff;}
+.t-clean { background:transparent; border:none; box-shadow:none; }
+.t-clean #gw-title,.t-clean #gw-gift-name,.t-clean #gw-counter{font-family:'Segoe UI',sans-serif;text-shadow:0 2px 8px rgba(0,0,0,0.95);} .t-clean #gw-img{filter:drop-shadow(0 4px 12px rgba(0,0,0,0.8));} .t-clean .gw-dot.active{background:rgba(255,255,255,0.8);}
+.t-custom { border:2px solid rgba(255,255,255,0.3); }
+.t-custom #gw-title,.t-custom #gw-gift-name,.t-custom #gw-counter{font-family:'Segoe UI',sans-serif;} .t-custom .gw-dot.active{background:rgba(255,255,255,0.8);}
+/* ─── PREMIUM ─── */
+#gw-premium-wrap { display:none; width:100vw; height:100vh; flex-direction:column; align-items:center; justify-content:center; }
+#gw-prem-title { font-size:13px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:#fff; margin-bottom:10px; text-shadow:0 2px 8px rgba(0,0,0,0.9); }
+#gw-prem-stage { width:100vw; overflow:hidden; height:140px; position:relative; }
+#gw-prem-track { display:flex; gap:0px; position:absolute; top:0; left:0; height:140px; }
+.gw-pcard { flex-shrink:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px; padding:10px 8px; border-radius:16px; width:116px; margin-right:12px;
+  border:2px solid rgba(255,255,255,0.2); background:rgba(0,0,0,0.5);
+  transition:border-color 0.4s,box-shadow 0.4s; }
+.gw-pcard.done { border-color:gold!important; box-shadow:0 0 18px rgba(255,215,0,0.6); }
+.gw-pcard img { width:58px; height:58px; object-fit:contain; animation:galeriaFloat 3s ease-in-out infinite; }
+.gw-pcard .pcard-name { font-size:10px; font-weight:700; color:#e0e0e0; text-align:center; line-height:1.2; max-width:100px; }
+.gw-pcard .pcard-counter { font-size:15px; font-weight:900; color:#ffd700; }
+.gw-pcard.done .pcard-counter { color:gold; }
+.gw-pcard .pcard-badge { font-size:8px; font-weight:800; color:gold; text-transform:uppercase; display:none; }
+.gw-pcard.done .pcard-badge { display:block; }
+</style></head>
 <body>
-<!-- PADRÃO: um presente por vez -->
-<div id="gw" class="t-neon">
-  <div id="gw-title">Galeria de Presentes</div>
-  <div id="gw-content">
-    <div id="gw-img-wrap">
-      <img id="gw-img" src="" alt="">
-      <span class="gw-sparkle gw-sp1">✨</span><span class="gw-sparkle gw-sp2">⭐</span>
-      <span class="gw-sparkle gw-sp3">✨</span><span class="gw-sparkle gw-sp4">⭐</span>
+<div id="gw-padrao-wrap">
+  <div id="gw" class="t-neon">
+    <div id="gw-title">Galeria de Presentes</div>
+    <div id="gw-content">
+      <div id="gw-img-wrap">
+        <img id="gw-img" src="" alt="">
+        <span class="gw-sparkle gw-sp1">✨</span><span class="gw-sparkle gw-sp2">⭐</span>
+        <span class="gw-sparkle gw-sp3">✨</span><span class="gw-sparkle gw-sp4">⭐</span>
+      </div>
+      <div id="gw-gift-name"></div>
+      <div id="gw-counter">0 / 10</div>
     </div>
-    <div id="gw-gift-name"></div>
-    <div id="gw-counter">0 / 10</div>
+    <div id="gw-dots"></div>
+    <div id="gw-badge">⭐ META BATIDA! ⭐</div>
   </div>
-  <div id="gw-dots"></div>
-  <div id="gw-badge">⭐ META BATIDA! ⭐</div>
 </div>
-
-<!-- PREMIUM: carrossel direita → esquerda -->
-<div id="gw-premium">
-  <div id="gw-prem-title"></div>
-  <div id="gw-stage"></div>
+<div id="gw-premium-wrap">
+  <div id="gw-prem-title">Galeria de Presentes</div>
+  <div id="gw-prem-stage">
+    <div id="gw-prem-track"></div>
+  </div>
 </div>
 <script>
   var LIGA_D = [
@@ -5951,9 +5935,11 @@ function getGaleriaOverlayHTML(roomId) {
   var dotsEl    = document.getElementById('gw-dots');
 
   // Premium elements
-  var premEl      = document.getElementById('gw-premium');
+  var padWrapEl   = document.getElementById('gw-padrao-wrap');
+  var premWrapEl  = document.getElementById('gw-premium-wrap');
   var premTitleEl = document.getElementById('gw-prem-title');
-  var stageEl     = document.getElementById('gw-stage');
+  var stageEl     = document.getElementById('gw-prem-stage');
+  var trackEl     = document.getElementById('gw-prem-track');
 
   function getLeague() {
     if (state.league === 'A') return LIGA_A;
@@ -6009,60 +5995,39 @@ function getGaleriaOverlayHTML(roomId) {
     }, 2800);
   }
 
-  // ── PREMIUM (carrossel JS — igual Membros) ──
-  var premCards  = [];   // [{el, x, giftName}]
-  var premAnimId = null;
-  var premLastTs = null;
-  var CARD_W = 110;
-  var CARD_GAP = 16;
-  var CARD_STEP = CARD_W + CARD_GAP;
-  var PREM_SPEED = 75; // px/s
+  // ── PREMIUM (carrossel — track flex + setInterval) ──
+  var premTimer  = null;
+  var premOffset = 0;
+  var singleWidth = 0;
+  var CARD_STEP = 128; // 116px width + 12px margin-right
 
   function buildCarousel() {
-    if (premAnimId) { cancelAnimationFrame(premAnimId); premAnimId = null; }
-    stageEl.innerHTML = '';
-    premCards = [];
-    premLastTs = null;
+    if (premTimer) { clearInterval(premTimer); premTimer = null; }
+    premOffset = 0;
+    trackEl.style.transform = 'translateX(0px)';
     var gifts = getLeague();
-    var vw = stageEl.offsetWidth || window.innerWidth || 900;
-    var x = vw; // começa fora da tela à direita
-    gifts.forEach(function(g) {
-      var curr = state.progress[g.name] || 0;
-      var done = curr >= g.target;
-      var el = document.createElement('div');
-      el.className = 'gw-card' + (done ? ' card-done' : '');
-      el.dataset.gift = g.name;
-      el.innerHTML =
-        '<img src="' + g.image + '" alt="">' +
-        '<div class="card-name">' + g.name + '</div>' +
-        '<div class="card-counter">' + curr + ' / ' + g.target + '</div>' +
-        '<div class="card-done-badge">✅ META!</div>';
-      el.style.transform = 'translateX(' + x + 'px)';
-      stageEl.appendChild(el);
-      premCards.push({ el: el, x: x, giftName: g.name });
-      x += CARD_STEP;
+    // Duplica a lista para loop contínuo sem salto
+    var html = '';
+    [gifts, gifts].forEach(function(list) {
+      list.forEach(function(g) {
+        var curr = state.progress[g.name] || 0;
+        var done = curr >= g.target;
+        html += '<div class="gw-pcard' + (done ? ' done' : '') + '" data-gift="' + g.name + '">' +
+          '<img src="' + g.image + '" alt="">' +
+          '<div class="pcard-name">' + g.name + '</div>' +
+          '<div class="pcard-counter">' + curr + ' / ' + g.target + '</div>' +
+          '<div class="pcard-badge">✅ META!</div>' +
+          '</div>';
+      });
     });
-    premAnimId = requestAnimationFrame(premAnimate);
-  }
-
-  function premAnimate(ts) {
-    if (!premLastTs) premLastTs = ts;
-    var dt = (ts - premLastTs) / 1000;
-    premLastTs = ts;
-    var vw = stageEl.offsetWidth || window.innerWidth || 900;
-    // encontra o X máximo atual para reposicionar cards que saíram pela esquerda
-    var maxX = -Infinity;
-    premCards.forEach(function(c) { if (c.x > maxX) maxX = c.x; });
-    premCards.forEach(function(c) {
-      c.x -= PREM_SPEED * dt;
-      if (c.x + CARD_W < 0) {
-        // saiu pela esquerda — reposiciona após o último card à direita
-        c.x = maxX + CARD_STEP;
-        maxX = c.x;
-      }
-      c.el.style.transform = 'translateX(' + c.x + 'px)';
-    });
-    premAnimId = requestAnimationFrame(premAnimate);
+    trackEl.innerHTML = html;
+    singleWidth = gifts.length * CARD_STEP;
+    // setInterval é mais estável que rAF no OBS Browser Source
+    premTimer = setInterval(function() {
+      premOffset++;
+      if (premOffset >= singleWidth) premOffset = 0;
+      trackEl.style.transform = 'translateX(-' + premOffset + 'px)';
+    }, 16);
   }
 
   function updateCarouselCard(giftName) {
@@ -6071,10 +6036,9 @@ function getGaleriaOverlayHTML(roomId) {
     if (!g) return;
     var curr = state.progress[g.name] || 0;
     var done = curr >= g.target;
-    premCards.forEach(function(c) {
-      if (c.giftName !== giftName) return;
-      c.el.querySelector('.card-counter').textContent = curr + ' / ' + g.target;
-      c.el.classList.toggle('card-done', done);
+    trackEl.querySelectorAll('[data-gift="' + giftName + '"]').forEach(function(el) {
+      el.querySelector('.pcard-counter').textContent = curr + ' / ' + g.target;
+      el.classList.toggle('done', done);
     });
   }
 
@@ -6086,15 +6050,15 @@ function getGaleriaOverlayHTML(roomId) {
   // ── SWITCH DE ESTILO ──
   function applyStyle(s) {
     if (s.style === 'premium') {
-      gwEl.style.display = 'none';
-      premEl.style.display = 'flex';
+      padWrapEl.style.display = 'none';
+      premWrapEl.style.display = 'flex';
       if (timer) { clearInterval(timer); timer = null; }
       applyPremiumVisual(s);
-      setTimeout(buildCarousel, 50); // aguarda o DOM renderizar para pegar offsetWidth
+      buildCarousel();
     } else {
-      if (premAnimId) { cancelAnimationFrame(premAnimId); premAnimId = null; }
-      gwEl.style.display = '';
-      premEl.style.display = 'none';
+      if (premTimer) { clearInterval(premTimer); premTimer = null; }
+      padWrapEl.style.display = '';
+      premWrapEl.style.display = 'none';
       applyVisual(s);
       currIdx = 0;
       startCycle();
