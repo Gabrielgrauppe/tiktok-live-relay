@@ -5811,41 +5811,34 @@ function getGaleriaOverlayHTML(roomId) {
   .t-custom #gw-title { font-family:'Segoe UI',sans-serif; } .t-custom #gw-gift-name { font-family:'Segoe UI',sans-serif; } .t-custom #gw-counter { font-family:'Segoe UI',sans-serif; } .t-custom .gw-dot.active { background:rgba(255,255,255,0.8); }
 
   /* ── PREMIUM CAROUSEL ── */
-  @keyframes gwScroll { 0% { transform:translateX(0); } 100% { transform:translateX(-50%); } }
+  #gw-premium {
+    position:fixed; left:0; top:0; width:100vw; height:100vh;
+    display:none; flex-direction:column; align-items:center; justify-content:center;
+    padding:10px 0;
+  }
+  #gw-prem-title {
+    font-size:13px; font-weight:700; letter-spacing:2px; text-transform:uppercase;
+    color:#fff; margin-bottom:10px; text-shadow:0 2px 8px rgba(0,0,0,0.8);
+  }
+  #gw-stage {
+    width:100vw; overflow:hidden; position:relative; height:140px;
+  }
   .gw-card {
-    flex-shrink:0; display:flex; flex-direction:column; align-items:center; gap:5px;
-    padding:12px 14px; border-radius:16px; min-width:100px; max-width:110px;
-    border:2px solid rgba(255,255,255,0.15);
-    background:rgba(0,0,0,0.45); backdrop-filter:blur(6px);
+    position:absolute; top:4px;
+    display:flex; flex-direction:column; align-items:center; gap:5px;
+    padding:10px 12px; border-radius:16px; width:110px;
+    border:2px solid rgba(255,255,255,0.2);
+    background:rgba(0,0,0,0.5); backdrop-filter:blur(6px);
     transition: border-color 0.4s, box-shadow 0.4s;
+    will-change: transform;
   }
-  .gw-card.card-done {
-    border-color: gold !important;
-    box-shadow: 0 0 18px rgba(255,215,0,0.55);
-  }
-  .gw-card img { width:62px; height:62px; object-fit:contain; animation: galeriaFloat 3s ease-in-out infinite; }
-  .gw-card .card-name { font-size:10px; font-weight:700; color:#e0e0e0; text-align:center; line-height:1.2; word-break:break-word; }
-  .gw-card .card-counter { font-size:15px; font-weight:900; color:#ffd700; letter-spacing:1px; }
-  .gw-card.card-done .card-counter { color: gold; }
-  .gw-card .card-done-badge { font-size:9px; font-weight:800; letter-spacing:1.5px; color:gold; text-transform:uppercase; display:none; }
+  .gw-card.card-done { border-color:gold !important; box-shadow:0 0 18px rgba(255,215,0,0.6); }
+  .gw-card img { width:60px; height:60px; object-fit:contain; animation:galeriaFloat 3s ease-in-out infinite; }
+  .gw-card .card-name { font-size:10px; font-weight:700; color:#e0e0e0; text-align:center; line-height:1.2; }
+  .gw-card .card-counter { font-size:14px; font-weight:900; color:#ffd700; }
+  .gw-card.card-done .card-counter { color:gold; }
+  .gw-card .card-done-badge { font-size:8px; font-weight:800; color:gold; text-transform:uppercase; display:none; }
   .gw-card.card-done .card-done-badge { display:block; }
-
-  /* Aplica tema no container premium */
-  #gw-premium.t-neon { background:linear-gradient(160deg,rgba(0,10,35,0.92),rgba(0,28,60,0.92)); }
-  #gw-premium.t-neon .gw-card { border-color:rgba(0,212,255,0.3); }
-  #gw-premium.t-neon .card-name { color:#a0e8ff; }
-  #gw-premium.t-roxo { background:linear-gradient(160deg,rgba(15,10,35,0.92),rgba(35,10,65,0.92)); }
-  #gw-premium.t-roxo .gw-card { border-color:rgba(190,100,255,0.3); }
-  #gw-premium.t-medieval { background:linear-gradient(160deg,rgba(20,14,4,0.96),rgba(45,32,8,0.96)); }
-  #gw-premium.t-medieval .gw-card { border-color:rgba(139,115,85,0.5); }
-  #gw-premium.t-retro { background:#0a0a0a; }
-  #gw-premium.t-retro .gw-card { border-color:rgba(0,255,65,0.4); }
-  #gw-premium.t-fire { background:linear-gradient(160deg,rgba(50,12,0,0.95),rgba(85,28,0,0.95)); }
-  #gw-premium.t-fire .gw-card { border-color:rgba(255,102,0,0.4); }
-  #gw-premium.t-ice { background:linear-gradient(160deg,rgba(5,18,38,0.93),rgba(10,38,78,0.93)); }
-  #gw-premium.t-ice .gw-card { border-color:rgba(150,220,255,0.35); }
-  #gw-premium.t-clean { background:transparent; }
-  #gw-premium.t-custom { background:transparent; }
 </style>
 </head>
 <body>
@@ -5866,12 +5859,9 @@ function getGaleriaOverlayHTML(roomId) {
 </div>
 
 <!-- PREMIUM: carrossel direita → esquerda -->
-<div id="gw-premium" style="display:none; width:100vw; overflow:hidden; padding:10px 0; flex-direction:column; align-items:center; gap:8px;">
-  <div id="gw-prem-title" style="font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#fff;margin-bottom:4px;"></div>
-  <div style="width:100%;overflow:hidden;position:relative;">
-    <div id="gw-carousel-track" style="display:flex;gap:14px;width:max-content;animation:gwScroll 30s linear infinite;">
-    </div>
-  </div>
+<div id="gw-premium">
+  <div id="gw-prem-title"></div>
+  <div id="gw-stage"></div>
 </div>
 <script>
   var LIGA_D = [
@@ -5963,7 +5953,7 @@ function getGaleriaOverlayHTML(roomId) {
   // Premium elements
   var premEl      = document.getElementById('gw-premium');
   var premTitleEl = document.getElementById('gw-prem-title');
-  var trackEl     = document.getElementById('gw-carousel-track');
+  var stageEl     = document.getElementById('gw-stage');
 
   function getLeague() {
     if (state.league === 'A') return LIGA_A;
@@ -6019,46 +6009,76 @@ function getGaleriaOverlayHTML(roomId) {
     }, 2800);
   }
 
-  // ── PREMIUM (carrossel) ──
+  // ── PREMIUM (carrossel JS — igual Membros) ──
+  var premCards  = [];   // [{el, x, giftName}]
+  var premAnimId = null;
+  var premLastTs = null;
+  var CARD_W = 110;
+  var CARD_GAP = 16;
+  var CARD_STEP = CARD_W + CARD_GAP;
+  var PREM_SPEED = 75; // px/s
+
   function buildCarousel() {
+    if (premAnimId) { cancelAnimationFrame(premAnimId); premAnimId = null; }
+    stageEl.innerHTML = '';
+    premCards = [];
+    premLastTs = null;
     var gifts = getLeague();
-    trackEl.innerHTML = '';
-    // Duplica os cards para loop contínuo perfeito
-    [gifts, gifts].forEach(function(list) {
-      list.forEach(function(g) {
-        var curr = state.progress[g.name] || 0;
-        var done = curr >= g.target;
-        var card = document.createElement('div');
-        card.className = 'gw-card' + (done ? ' card-done' : '');
-        card.dataset.gift = g.name;
-        card.innerHTML =
-          '<img src="' + g.image + '" alt="">' +
-          '<div class="card-name">' + g.name + '</div>' +
-          '<div class="card-counter">' + curr + ' / ' + g.target + '</div>' +
-          '<div class="card-done-badge">✅ META!</div>';
-        trackEl.appendChild(card);
-      });
+    var vw = stageEl.offsetWidth || window.innerWidth || 900;
+    var x = vw; // começa fora da tela à direita
+    gifts.forEach(function(g) {
+      var curr = state.progress[g.name] || 0;
+      var done = curr >= g.target;
+      var el = document.createElement('div');
+      el.className = 'gw-card' + (done ? ' card-done' : '');
+      el.dataset.gift = g.name;
+      el.innerHTML =
+        '<img src="' + g.image + '" alt="">' +
+        '<div class="card-name">' + g.name + '</div>' +
+        '<div class="card-counter">' + curr + ' / ' + g.target + '</div>' +
+        '<div class="card-done-badge">✅ META!</div>';
+      el.style.transform = 'translateX(' + x + 'px)';
+      stageEl.appendChild(el);
+      premCards.push({ el: el, x: x, giftName: g.name });
+      x += CARD_STEP;
     });
-    // Velocidade dinâmica: mais presentes = mais lento para dar tempo de ler
-    var speed = Math.max(18, gifts.length * 2.2);
-    trackEl.style.animationDuration = speed + 's';
+    premAnimId = requestAnimationFrame(premAnimate);
   }
+
+  function premAnimate(ts) {
+    if (!premLastTs) premLastTs = ts;
+    var dt = (ts - premLastTs) / 1000;
+    premLastTs = ts;
+    var vw = stageEl.offsetWidth || window.innerWidth || 900;
+    // encontra o X máximo atual para reposicionar cards que saíram pela esquerda
+    var maxX = -Infinity;
+    premCards.forEach(function(c) { if (c.x > maxX) maxX = c.x; });
+    premCards.forEach(function(c) {
+      c.x -= PREM_SPEED * dt;
+      if (c.x + CARD_W < 0) {
+        // saiu pela esquerda — reposiciona após o último card à direita
+        c.x = maxX + CARD_STEP;
+        maxX = c.x;
+      }
+      c.el.style.transform = 'translateX(' + c.x + 'px)';
+    });
+    premAnimId = requestAnimationFrame(premAnimate);
+  }
+
   function updateCarouselCard(giftName) {
     var gifts = getLeague();
     var g = gifts.find(function(x){ return x.name === giftName; });
     if (!g) return;
     var curr = state.progress[g.name] || 0;
     var done = curr >= g.target;
-    trackEl.querySelectorAll('.gw-card[data-gift="' + giftName + '"]').forEach(function(card) {
-      card.querySelector('.card-counter').textContent = curr + ' / ' + g.target;
-      card.classList.toggle('card-done', done);
+    premCards.forEach(function(c) {
+      if (c.giftName !== giftName) return;
+      c.el.querySelector('.card-counter').textContent = curr + ' / ' + g.target;
+      c.el.classList.toggle('card-done', done);
     });
   }
+
   function applyPremiumVisual(s) {
-    THEMES.forEach(function(t){ premEl.classList.remove('t-'+t); });
-    premEl.classList.add('t-' + (s.theme || 'neon'));
-    if (s.theme === 'custom' && s.customColor) premEl.style.background = s.customColor;
-    else premEl.style.background = '';
     premTitleEl.style.color = s.titleColor || '#ffffff';
     premTitleEl.textContent = s.title || 'Galeria de Presentes';
   }
@@ -6068,9 +6088,11 @@ function getGaleriaOverlayHTML(roomId) {
     if (s.style === 'premium') {
       gwEl.style.display = 'none';
       premEl.style.display = 'flex';
+      if (timer) { clearInterval(timer); timer = null; }
       applyPremiumVisual(s);
-      buildCarousel();
+      setTimeout(buildCarousel, 50); // aguarda o DOM renderizar para pegar offsetWidth
     } else {
+      if (premAnimId) { cancelAnimationFrame(premAnimId); premAnimId = null; }
       gwEl.style.display = '';
       premEl.style.display = 'none';
       applyVisual(s);
