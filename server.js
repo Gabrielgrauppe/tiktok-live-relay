@@ -5810,7 +5810,8 @@ body { background:transparent; overflow:hidden; width:100vw; height:100vh; }
 .t-custom #gw-title,.t-custom #gw-gift-name,.t-custom #gw-counter{font-family:'Segoe UI',sans-serif;} .t-custom .gw-dot.active{background:rgba(255,255,255,0.8);}
 /* ─── PREMIUM ─── */
 #gw-premium-wrap { display:none; width:100vw; height:100vh; flex-direction:column; align-items:center; justify-content:center;
-  --pcard-name-color:#e0e0e0; --pcard-counter-color:#ffd700; --pcard-done-color:#ffd700; --pcard-custom-bg:rgba(0,0,0,0.5); }
+  --pcard-name-color:#e0e0e0; --pcard-counter-color:#ffd700; --pcard-done-color:#ffd700; --pcard-custom-bg:rgba(0,0,0,0.5);
+  background:transparent!important; border:none!important; box-shadow:none!important; }
 #gw-prem-title { font-size:13px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:#fff; margin-bottom:10px; text-shadow:0 2px 8px rgba(0,0,0,0.9); }
 #gw-prem-stage { width:100vw; overflow:hidden; height:140px; position:relative; }
 #gw-prem-track { display:flex; gap:0px; position:absolute; top:0; left:0; height:140px; }
