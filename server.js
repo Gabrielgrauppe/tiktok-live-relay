@@ -5809,20 +5809,44 @@ body { background:transparent; overflow:hidden; width:100vw; height:100vh; }
 .t-custom { border:2px solid rgba(255,255,255,0.3); }
 .t-custom #gw-title,.t-custom #gw-gift-name,.t-custom #gw-counter{font-family:'Segoe UI',sans-serif;} .t-custom .gw-dot.active{background:rgba(255,255,255,0.8);}
 /* ─── PREMIUM ─── */
-#gw-premium-wrap { display:none; width:100vw; height:100vh; flex-direction:column; align-items:center; justify-content:center; }
+#gw-premium-wrap { display:none; width:100vw; height:100vh; flex-direction:column; align-items:center; justify-content:center;
+  --pcard-name-color:#e0e0e0; --pcard-counter-color:#ffd700; --pcard-done-color:#ffd700; --pcard-custom-bg:rgba(0,0,0,0.5); }
 #gw-prem-title { font-size:13px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:#fff; margin-bottom:10px; text-shadow:0 2px 8px rgba(0,0,0,0.9); }
 #gw-prem-stage { width:100vw; overflow:hidden; height:140px; position:relative; }
 #gw-prem-track { display:flex; gap:0px; position:absolute; top:0; left:0; height:140px; }
 .gw-pcard { flex-shrink:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px; padding:10px 8px; border-radius:16px; width:116px; margin-right:12px;
   border:2px solid rgba(255,255,255,0.2); background:rgba(0,0,0,0.5);
   transition:border-color 0.4s,box-shadow 0.4s; }
-.gw-pcard.done { border-color:gold!important; box-shadow:0 0 18px rgba(255,215,0,0.6); }
+.gw-pcard.done { border-color:var(--pcard-done-color)!important; box-shadow:0 0 18px rgba(255,215,0,0.5); }
 .gw-pcard img { width:58px; height:58px; object-fit:contain; animation:galeriaFloat 3s ease-in-out infinite; }
-.gw-pcard .pcard-name { font-size:10px; font-weight:700; color:#e0e0e0; text-align:center; line-height:1.2; max-width:100px; }
-.gw-pcard .pcard-counter { font-size:15px; font-weight:900; color:#ffd700; }
-.gw-pcard.done .pcard-counter { color:gold; }
-.gw-pcard .pcard-badge { font-size:8px; font-weight:800; color:gold; text-transform:uppercase; display:none; }
+.gw-pcard .pcard-name { font-size:10px; font-weight:700; color:var(--pcard-name-color); text-align:center; line-height:1.2; max-width:100px; }
+.gw-pcard .pcard-counter { font-size:15px; font-weight:900; color:var(--pcard-counter-color); }
+.gw-pcard.done .pcard-counter { color:var(--pcard-done-color); }
+.gw-pcard .pcard-badge { font-size:8px; font-weight:800; color:var(--pcard-done-color); text-transform:uppercase; display:none; }
 .gw-pcard.done .pcard-badge { display:block; }
+/* ── Premium: temas ── */
+#gw-premium-wrap.t-neon .gw-pcard { background:rgba(0,10,35,0.93); border-color:#00d4ff; box-shadow:0 0 12px rgba(0,212,255,0.3),inset 0 0 8px rgba(0,212,255,0.05); }
+#gw-premium-wrap.t-neon .pcard-name,#gw-premium-wrap.t-neon .pcard-counter,#gw-premium-wrap.t-neon #gw-prem-title { font-family:'Orbitron',sans-serif; }
+#gw-premium-wrap.t-neon .pcard-name { font-size:9px; }
+#gw-premium-wrap.t-neon .gw-pcard img { filter:drop-shadow(0 0 8px rgba(0,212,255,0.5)); }
+#gw-premium-wrap.t-roxo .gw-pcard { background:rgba(15,10,35,0.93); border-color:rgba(190,100,255,0.65); box-shadow:0 0 12px rgba(160,60,255,0.3); }
+#gw-premium-wrap.t-roxo .gw-pcard img { filter:drop-shadow(0 0 8px rgba(180,80,255,0.5)); }
+#gw-premium-wrap.t-medieval .gw-pcard { background:rgba(20,14,4,0.96); border-color:#8b7355; border-width:3px; border-radius:8px; }
+#gw-premium-wrap.t-medieval .pcard-name,#gw-premium-wrap.t-medieval .pcard-counter,#gw-premium-wrap.t-medieval #gw-prem-title { font-family:'Cinzel',serif; }
+#gw-premium-wrap.t-medieval .gw-pcard img { filter:drop-shadow(0 0 6px rgba(255,200,0,0.4)); }
+#gw-premium-wrap.t-retro .gw-pcard { background:#0a0a0a; border-color:#00ff41; box-shadow:0 0 10px rgba(0,255,65,0.5); border-radius:4px; }
+#gw-premium-wrap.t-retro .pcard-name { font-family:'Press Start 2P',monospace; font-size:7px; }
+#gw-premium-wrap.t-retro .pcard-counter { font-family:'Press Start 2P',monospace; font-size:11px; }
+#gw-premium-wrap.t-retro #gw-prem-title { font-family:'Press Start 2P',monospace; font-size:9px; }
+#gw-premium-wrap.t-retro .gw-pcard img { image-rendering:pixelated; filter:drop-shadow(0 0 5px rgba(0,255,65,0.4)); }
+#gw-premium-wrap.t-fire .gw-pcard { background:rgba(50,12,0,0.95); border-color:#ff6600; box-shadow:0 0 12px rgba(255,100,0,0.4); }
+#gw-premium-wrap.t-fire .pcard-name,#gw-premium-wrap.t-fire .pcard-counter,#gw-premium-wrap.t-fire #gw-prem-title { font-family:'Russo One',sans-serif; }
+#gw-premium-wrap.t-fire .gw-pcard img { filter:drop-shadow(0 0 8px rgba(255,120,0,0.6)); }
+#gw-premium-wrap.t-ice .gw-pcard { background:rgba(5,18,38,0.93); border-color:rgba(150,220,255,0.65); box-shadow:0 0 10px rgba(100,200,255,0.25); }
+#gw-premium-wrap.t-ice .pcard-name,#gw-premium-wrap.t-ice .pcard-counter,#gw-premium-wrap.t-ice #gw-prem-title { font-family:'Rajdhani',sans-serif; font-size:14px; }
+#gw-premium-wrap.t-ice .gw-pcard img { filter:drop-shadow(0 0 8px rgba(150,220,255,0.5)); }
+#gw-premium-wrap.t-clean .gw-pcard { background:rgba(0,0,0,0.35); border-color:rgba(255,255,255,0.12); box-shadow:none; }
+#gw-premium-wrap.t-custom .gw-pcard { background:var(--pcard-custom-bg); border-color:rgba(255,255,255,0.3); }
 </style></head>
 <body>
 <div id="gw-padrao-wrap">
@@ -6043,6 +6067,18 @@ body { background:transparent; overflow:hidden; width:100vw; height:100vh; }
   }
 
   function applyPremiumVisual(s) {
+    // Tema
+    THEMES.forEach(function(t){ premWrapEl.classList.remove('t-'+t); });
+    premWrapEl.classList.add('t-' + (s.theme || 'neon'));
+    // Cor customizada (fundo dos cards)
+    if (s.theme === 'custom' && s.customColor) {
+      premWrapEl.style.setProperty('--pcard-custom-bg', s.customColor);
+    }
+    // Cores dinâmicas via CSS vars (valem para todos os cards, inclusive os criados depois)
+    premWrapEl.style.setProperty('--pcard-name-color',     s.nameColor     || '#e0e0e0');
+    premWrapEl.style.setProperty('--pcard-counter-color',  s.counterColor  || '#ffd700');
+    premWrapEl.style.setProperty('--pcard-done-color',     s.completeColor || '#ffd700');
+    // Título
     premTitleEl.style.color = s.titleColor || '#ffffff';
     premTitleEl.textContent = s.title || 'Galeria de Presentes';
   }
