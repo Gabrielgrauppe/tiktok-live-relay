@@ -6421,16 +6421,34 @@ body.t-retro .cc-count { font-size:11px; }
       track.innerHTML = '<div style="color:rgba(255,255,255,0.3);font-family:Poppins,sans-serif;font-size:13px;padding:20px;">Aguardando combos...</div>';
       singleW = 0; return;
     }
+
+    // Com só 1 item: mostrar centralizado, sem animação
+    if (list.length === 1) {
+      track.innerHTML = card(list[0]);
+      track.style.cssText = 'display:flex;align-items:center;justify-content:center;position:absolute;top:0;left:0;right:0;height:80px;';
+      singleW = 0; return;
+    }
+
+    // 2+ itens: renderizar cópias suficientes para preencher viewport e fazer loop seamless
+    var vw = window.innerWidth || 1920;
+    // Renderizar 2 cópias para medir largura de uma cópia
     var html = '';
     list.concat(list).forEach(function(it) { html += card(it); });
+    track.style.cssText = 'display:flex;position:absolute;top:0;left:0;height:80px;will-change:transform;';
     track.innerHTML = html;
     buildPending = setTimeout(function() {
       buildPending = null;
-      var cards = track.querySelectorAll('.cc-card');
-      var half = list.length;
+      var allCards = track.querySelectorAll('.cc-card');
       singleW = 0;
-      for (var i = 0; i < half; i++) singleW += cards[i].offsetWidth + 14;
+      for (var i = 0; i < list.length; i++) singleW += allCards[i].offsetWidth + 14;
       if (!singleW) return;
+      // Adicionar cópias extras se o conteúdo não preencher a tela (evita ver dois ciclos ao mesmo tempo)
+      if (singleW < vw + 100) {
+        var copies = Math.ceil((vw * 2) / singleW) + 1;
+        var bigHtml = '';
+        for (var c = 0; c < copies; c++) list.forEach(function(it) { bigHtml += card(it); });
+        track.innerHTML = bigHtml;
+      }
       timer = setInterval(function() {
         offset++;
         if (offset >= singleW) offset = 0;
