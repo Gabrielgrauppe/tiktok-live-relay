@@ -6372,7 +6372,9 @@ body.t-retro .cc-count { font-size:11px; }
   var offset = 0, singleW = 0, timer = null, buildPending = null;
 
   function proxyImg(url) {
-    return url ? '/img-proxy?url=' + encodeURIComponent(url) : '';
+    if (!url) return '';
+    if (url.startsWith('data:')) return url; // base64 — usar direto, sem proxy
+    return '/img-proxy?url=' + encodeURIComponent(url);
   }
 
   function applyTheme(cfg) {
@@ -6397,9 +6399,10 @@ body.t-retro .cc-count { font-size:11px; }
     var nick, av, cnt;
     if (it.mode === 'predefined') { nick = it.predefined.nickname; av = it.predefined.avatar || ''; cnt = it.predefined.count; }
     else { nick = it.holder.nickname; av = it.holder.avatar || ''; cnt = it.holder.count; }
-    var proxied = proxyImg(av);
-    var avHTML = proxied
-      ? '<img class="cc-avatar" src="' + proxied + '" onerror="this.onerror=null;var p=document.createElement(\'div\');p.className=\'cc-avatar-ph\';p.textContent=\'🎁\';this.parentNode.replaceChild(p,this);">'
+    var src = proxyImg(av);
+    // Dois elementos sobrepostos: img + placeholder. O onerror apenas esconde o img e mostra o ph.
+    var avHTML = src
+      ? '<img class="cc-avatar" src="' + src + '" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'"><div class="cc-avatar-ph" style="display:none">🎁</div>'
       : '<div class="cc-avatar-ph">🎁</div>';
     return '<div class="cc-card">' + avHTML +
       '<div class="cc-info">' +
