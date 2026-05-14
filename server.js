@@ -6267,7 +6267,10 @@ body { background:transparent; overflow:hidden; width:100vw; height:100vh; displ
     if (timer) { clearInterval(timer); timer = null; }
     offset = 0; track.style.transform = 'translateX(0px)';
     var list = active();
-    if (!list.length) { track.innerHTML = ''; singleW = 0; return; }
+    if (!list.length) {
+      track.innerHTML = '<div style="color:rgba(255,255,255,0.3);font-family:Poppins,sans-serif;font-size:13px;padding:20px;">Aguardando combos...</div>';
+      singleW = 0; return;
+    }
     var html = '';
     list.concat(list).forEach(function(it) { html += card(it); });
     track.innerHTML = html;
