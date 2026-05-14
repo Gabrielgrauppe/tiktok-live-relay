@@ -494,7 +494,8 @@ function getRoom(roomId) {
         alert: [],
         alertScene1: [], alertScene2: [], alertScene3: [],
         desejo: [],
-        galeria: []
+        galeria: [],
+        comboCarousel: []
       },
       coinsRanking: {},
       likesRanking: {},
@@ -515,6 +516,7 @@ function getRoom(roomId) {
       alertTheme: 'roxo',
       desejo: { name: 'Desejo do Streamer', giftName: '', giftImage: '', target: 1, current: 0, theme: 'neon', customColor: '', nameColor: '#ffffff', countColor: '#ffd700' },
       galeria: { league: 'D', style: 'padrao', title: 'Galeria de Presentes', progress: {}, theme: 'neon', titleColor: '#ffffff', nameColor: '#00d4ff', counterColor: '#ffd700', customColor: '', completeColor: '#ffd700' },
+      comboCarousel: { items: [] },
       topGift: null,
       topCombo: null,
       topGiftConfig: { label: 'Maior Presente', labelColor: '#ffffff', nameColor: '#FFD700', valueColor: '#ffffff' },
@@ -697,6 +699,11 @@ app.get('/overlay/:roomId/desejo', (req, res) => {
 app.get('/overlay/:roomId/galeria', (req, res) => {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.send(getGaleriaOverlayHTML(req.params.roomId));
+});
+
+app.get('/overlay/:roomId/combo-carousel', (req, res) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(getComboCarouselOverlayHTML(req.params.roomId));
 });
 
 // ============================================
@@ -937,6 +944,16 @@ app.get('/sse/:roomId/desejo', (req, res) => {
   res.write(`data: ${JSON.stringify({ type: 'config', state: room.desejo })}\n\n`);
   room.sseClients.desejo.push(res);
   req.on('close', () => { room.sseClients.desejo = room.sseClients.desejo.filter(c => c !== res); });
+});
+
+// Carrossel de Combo SSE
+app.get('/sse/:roomId/combo-carousel', (req, res) => {
+  const room = getRoom(req.params.roomId);
+  res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
+  res.write('data: {"type":"connected"}\n\n');
+  res.write(`data: ${JSON.stringify({ type: 'config', items: room.comboCarousel.items })}\n\n`);
+  room.sseClients.comboCarousel.push(res);
+  req.on('close', () => { room.sseClients.comboCarousel = room.sseClients.comboCarousel.filter(c => c !== res); });
 });
 
 // Galeria de Presentes SSE
@@ -1302,6 +1319,39 @@ wss.on('connection', (ws) => {
         room.galeria.progress = {};
         const ev = JSON.stringify({ type: 'config', ...room.galeria });
         room.sseClients.galeria.forEach(c => { try { c.write(`data: ${ev}\n\n`); } catch(e){} });
+      }
+
+      // Carrossel de Combo — config
+      if (msg.type === 'combo-carousel-config') {
+        room.comboCarousel.items = msg.items || [];
+        const ev = JSON.stringify({ type: 'config', items: room.comboCarousel.items });
+        room.sseClients.comboCarousel.forEach(c => { try { c.write(`data: ${ev}\n\n`); } catch(e){} });
+      }
+
+      // Carrossel de Combo — gift event (atualiza holder automático)
+      if (msg.type === 'combo-carousel-gift') {
+        let changed = false;
+        room.comboCarousel.items.forEach(item => {
+          if (item.mode !== 'auto') return;
+          if ((item.giftName || '').toLowerCase() !== (msg.giftName || '').toLowerCase()) return;
+          const count = msg.count || 0;
+          if (count < (item.minValue || 1)) return;
+          if (!item.holder || count > item.holder.count) {
+            item.holder = { nickname: msg.nickname, avatar: msg.avatar || '', count };
+            changed = true;
+          }
+        });
+        if (changed) {
+          const ev = JSON.stringify({ type: 'config', items: room.comboCarousel.items });
+          room.sseClients.comboCarousel.forEach(c => { try { c.write(`data: ${ev}\n\n`); } catch(e){} });
+        }
+      }
+
+      // Carrossel de Combo — reset holders automáticos
+      if (msg.type === 'combo-carousel-reset') {
+        room.comboCarousel.items.forEach(item => { if (item.mode === 'auto') item.holder = null; });
+        const ev = JSON.stringify({ type: 'config', items: room.comboCarousel.items });
+        room.sseClients.comboCarousel.forEach(c => { try { c.write(`data: ${ev}\n\n`); } catch(e){} });
       }
 
     } catch (e) {}
@@ -6144,6 +6194,107 @@ body { background:transparent; overflow:hidden; width:100vw; height:100vh; }
 </script>
 </body>
 </html>`;
+}
+
+function getComboCarouselOverlayHTML(roomId) {
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;900&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:transparent; overflow:hidden; width:100vw; height:100vh; display:flex; align-items:center; justify-content:center; }
+#cc-stage { width:100vw; overflow:hidden; height:80px; position:relative; }
+#cc-track { display:flex; position:absolute; top:0; left:0; height:80px; will-change:transform; }
+.cc-card {
+  flex-shrink:0; display:flex; align-items:center; gap:10px;
+  padding:8px 18px 8px 10px; margin-right:14px;
+  border-radius:40px; height:66px;
+  background:rgba(18,6,46,0.88);
+  border:1.5px solid rgba(140,80,255,0.4);
+  box-shadow:0 4px 24px rgba(0,0,0,0.45),inset 0 0 12px rgba(120,60,255,0.05);
+  white-space:nowrap;
+}
+.cc-avatar {
+  width:46px; height:46px; border-radius:50%;
+  object-fit:cover; border:2px solid rgba(160,100,255,0.6); flex-shrink:0;
+}
+.cc-avatar-ph {
+  width:46px; height:46px; border-radius:50%;
+  background:linear-gradient(135deg,#6b21a8,#3730a3);
+  border:2px solid rgba(160,100,255,0.6);
+  display:flex; align-items:center; justify-content:center;
+  font-size:20px; flex-shrink:0;
+}
+.cc-info { display:flex; align-items:center; gap:6px; }
+.cc-name { font-family:'Poppins',sans-serif; font-size:13px; font-weight:700; color:#e2d9ff; }
+.cc-verb { font-family:'Poppins',sans-serif; font-size:12px; color:rgba(255,255,255,0.45); }
+.cc-gift-name { font-family:'Poppins',sans-serif; font-size:13px; font-weight:700; color:#fff; }
+.cc-gift-img { width:42px; height:42px; object-fit:contain; flex-shrink:0; filter:drop-shadow(0 0 6px rgba(200,150,255,0.4)); }
+.cc-count { font-family:'Poppins',sans-serif; font-size:16px; font-weight:900; color:#ffd700; margin-left:2px; text-shadow:0 0 8px rgba(255,215,0,0.5); }
+</style></head>
+<body>
+<div id="cc-stage"><div id="cc-track"></div></div>
+<script>
+  var items = [];
+  var track = document.getElementById('cc-track');
+  var offset = 0, singleW = 0, timer = null;
+
+  function active() {
+    return items.filter(function(it) {
+      return it.mode === 'predefined'
+        ? (it.predefined && it.predefined.nickname)
+        : (it.holder && it.holder.nickname);
+    });
+  }
+
+  function card(it) {
+    var nick, av, cnt;
+    if (it.mode === 'predefined') { nick = it.predefined.nickname; av = ''; cnt = it.predefined.count; }
+    else { nick = it.holder.nickname; av = it.holder.avatar; cnt = it.holder.count; }
+    var avHTML = av
+      ? '<img class="cc-avatar" src="' + av + '" onerror="this.style.display=\'none\'">'
+      : '<div class="cc-avatar-ph">🎁</div>';
+    return '<div class="cc-card">' + avHTML +
+      '<div class="cc-info">' +
+        '<span class="cc-name">' + nick + '</span>' +
+        '<span class="cc-verb">enviou</span>' +
+        '<span class="cc-gift-name">' + it.giftName + '</span>' +
+        '<img class="cc-gift-img" src="' + it.giftImage + '" alt="">' +
+        '<span class="cc-count">x' + cnt + '</span>' +
+      '</div></div>';
+  }
+
+  function build() {
+    if (timer) { clearInterval(timer); timer = null; }
+    offset = 0; track.style.transform = 'translateX(0px)';
+    var list = active();
+    if (!list.length) { track.innerHTML = ''; singleW = 0; return; }
+    var html = '';
+    list.concat(list).forEach(function(it) { html += card(it); });
+    track.innerHTML = html;
+    setTimeout(function() {
+      var cards = track.querySelectorAll('.cc-card');
+      var half = list.length;
+      singleW = 0;
+      for (var i = 0; i < half; i++) singleW += cards[i].offsetWidth + 14;
+      if (!singleW) return;
+      timer = setInterval(function() {
+        offset++;
+        if (offset >= singleW) offset = 0;
+        track.style.transform = 'translateX(-' + offset + 'px)';
+      }, 16);
+    }, 80);
+  }
+
+  function connect() {
+    var es = new EventSource('/sse/${roomId}/combo-carousel');
+    es.onmessage = function(e) {
+      try { var d = JSON.parse(e.data); if (d.type === 'config') { items = d.items || []; build(); } } catch(err) {}
+    };
+    es.onerror = function() { es.close(); setTimeout(connect, 3000); };
+  }
+  connect();
+</script>
+</body></html>`;
 }
 
 // START SERVER
