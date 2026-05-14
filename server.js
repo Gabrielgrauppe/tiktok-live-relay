@@ -516,7 +516,7 @@ function getRoom(roomId) {
       alertTheme: 'roxo',
       desejo: { name: 'Desejo do Streamer', giftName: '', giftImage: '', target: 1, current: 0, theme: 'neon', customColor: '', nameColor: '#ffffff', countColor: '#ffd700' },
       galeria: { league: 'D', style: 'padrao', title: 'Galeria de Presentes', progress: {}, theme: 'neon', titleColor: '#ffffff', nameColor: '#00d4ff', counterColor: '#ffd700', customColor: '', completeColor: '#ffd700' },
-      comboCarousel: { items: [] },
+      comboCarousel: { items: [], theme: 'roxo', verbColor: '', countColor: '' },
       topGift: null,
       topCombo: null,
       topGiftConfig: { label: 'Maior Presente', labelColor: '#ffffff', nameColor: '#FFD700', valueColor: '#ffffff' },
@@ -951,7 +951,7 @@ app.get('/sse/:roomId/combo-carousel', (req, res) => {
   const room = getRoom(req.params.roomId);
   res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
   res.write('data: {"type":"connected"}\n\n');
-  res.write(`data: ${JSON.stringify({ type: 'config', items: room.comboCarousel.items })}\n\n`);
+  res.write(`data: ${JSON.stringify({ type: 'config', items: room.comboCarousel.items, theme: room.comboCarousel.theme || 'roxo', verbColor: room.comboCarousel.verbColor || '', countColor: room.comboCarousel.countColor || '' })}\n\n`);
   room.sseClients.comboCarousel.push(res);
   req.on('close', () => { room.sseClients.comboCarousel = room.sseClients.comboCarousel.filter(c => c !== res); });
 });
@@ -1324,7 +1324,10 @@ wss.on('connection', (ws) => {
       // Carrossel de Combo — config
       if (msg.type === 'combo-carousel-config') {
         room.comboCarousel.items = msg.items || [];
-        const ev = JSON.stringify({ type: 'config', items: room.comboCarousel.items });
+        room.comboCarousel.theme = msg.theme || 'roxo';
+        room.comboCarousel.verbColor = msg.verbColor || '';
+        room.comboCarousel.countColor = msg.countColor || '';
+        const ev = JSON.stringify({ type: 'config', items: room.comboCarousel.items, theme: room.comboCarousel.theme, verbColor: room.comboCarousel.verbColor, countColor: room.comboCarousel.countColor });
         room.sseClients.comboCarousel.forEach(c => { try { c.write(`data: ${ev}\n\n`); } catch(e){} });
       }
 
@@ -1342,7 +1345,7 @@ wss.on('connection', (ws) => {
           }
         });
         if (changed) {
-          const ev = JSON.stringify({ type: 'config', items: room.comboCarousel.items });
+          const ev = JSON.stringify({ type: 'config', items: room.comboCarousel.items, theme: room.comboCarousel.theme || 'roxo', verbColor: room.comboCarousel.verbColor || '', countColor: room.comboCarousel.countColor || '' });
           room.sseClients.comboCarousel.forEach(c => { try { c.write(`data: ${ev}\n\n`); } catch(e){} });
         }
       }
@@ -1350,7 +1353,7 @@ wss.on('connection', (ws) => {
       // Carrossel de Combo — reset holders automáticos
       if (msg.type === 'combo-carousel-reset') {
         room.comboCarousel.items.forEach(item => { if (item.mode === 'auto') item.holder = null; });
-        const ev = JSON.stringify({ type: 'config', items: room.comboCarousel.items });
+        const ev = JSON.stringify({ type: 'config', items: room.comboCarousel.items, theme: room.comboCarousel.theme || 'roxo', verbColor: room.comboCarousel.verbColor || '', countColor: room.comboCarousel.countColor || '' });
         room.sseClients.comboCarousel.forEach(c => { try { c.write(`data: ${ev}\n\n`); } catch(e){} });
       }
 
@@ -6198,38 +6201,147 @@ body { background:transparent; overflow:hidden; width:100vw; height:100vh; }
 
 function getComboCarouselOverlayHTML(roomId) {
   return `<!DOCTYPE html><html><head><meta charset="UTF-8">
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;900&family=Orbitron:wght@700;900&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
-body { background:transparent; overflow:hidden; width:100vw; height:100vh; display:flex; align-items:center; justify-content:center; }
+body {
+  background:transparent; overflow:hidden; width:100vw; height:100vh;
+  display:flex; align-items:center; justify-content:center;
+  /* === TEMA PADRÃO: ROXO === */
+  --cc-card-bg: rgba(18,6,46,0.88);
+  --cc-card-border: rgba(140,80,255,0.4);
+  --cc-card-shadow: rgba(120,60,255,0.12);
+  --cc-avatar-border: rgba(160,100,255,0.6);
+  --cc-avatar-ph: linear-gradient(135deg,#6b21a8,#3730a3);
+  --cc-name-color: #e2d9ff;
+  --cc-verb-color: rgba(255,255,255,0.45);
+  --cc-gift-color: #fff;
+  --cc-count-color: #ffd700;
+  --cc-count-shadow: rgba(255,215,0,0.5);
+  --cc-gift-glow: rgba(200,150,255,0.4);
+  --cc-font: 'Poppins',sans-serif;
+}
+/* === TEMA NEON === */
+body.t-neon {
+  --cc-card-bg: rgba(0,10,30,0.90);
+  --cc-card-border: rgba(0,212,255,0.45);
+  --cc-card-shadow: rgba(0,212,255,0.12);
+  --cc-avatar-border: #00d4ff;
+  --cc-avatar-ph: linear-gradient(135deg,#003366,#001122);
+  --cc-name-color: #00d4ff;
+  --cc-verb-color: rgba(255,255,255,0.5);
+  --cc-gift-color: #fff;
+  --cc-count-color: #ff3366;
+  --cc-count-shadow: rgba(255,51,102,0.65);
+  --cc-gift-glow: rgba(0,212,255,0.4);
+  --cc-font: 'Orbitron','Poppins',sans-serif;
+}
+/* === TEMA DOURADO === */
+body.t-dourado {
+  --cc-card-bg: rgba(20,14,0,0.92);
+  --cc-card-border: rgba(255,215,0,0.45);
+  --cc-card-shadow: rgba(255,215,0,0.1);
+  --cc-avatar-border: #ffd700;
+  --cc-avatar-ph: linear-gradient(135deg,#7a5a00,#4a3500);
+  --cc-name-color: #ffd700;
+  --cc-verb-color: rgba(255,230,150,0.65);
+  --cc-gift-color: #fff5cc;
+  --cc-count-color: #ffaa00;
+  --cc-count-shadow: rgba(255,170,0,0.65);
+  --cc-gift-glow: rgba(255,215,0,0.45);
+  --cc-font: 'Poppins',sans-serif;
+}
+/* === TEMA FOGO === */
+body.t-fire {
+  --cc-card-bg: rgba(30,6,0,0.93);
+  --cc-card-border: rgba(255,69,0,0.55);
+  --cc-card-shadow: rgba(255,69,0,0.15);
+  --cc-avatar-border: #ff4500;
+  --cc-avatar-ph: linear-gradient(135deg,#7a1500,#3a0800);
+  --cc-name-color: #fff44f;
+  --cc-verb-color: rgba(255,200,100,0.7);
+  --cc-gift-color: #fff;
+  --cc-count-color: #ff6b35;
+  --cc-count-shadow: rgba(255,107,53,0.75);
+  --cc-gift-glow: rgba(255,100,0,0.5);
+  --cc-font: 'Poppins',sans-serif;
+}
+/* === TEMA MEDIEVAL === */
+body.t-medieval {
+  --cc-card-bg: rgba(25,14,4,0.93);
+  --cc-card-border: rgba(201,164,74,0.5);
+  --cc-card-shadow: rgba(201,164,74,0.12);
+  --cc-avatar-border: #c9a44a;
+  --cc-avatar-ph: linear-gradient(135deg,#6b4c00,#3a2900);
+  --cc-name-color: #ffd700;
+  --cc-verb-color: rgba(220,190,120,0.65);
+  --cc-gift-color: #fff;
+  --cc-count-color: #c9a44a;
+  --cc-count-shadow: rgba(201,164,74,0.65);
+  --cc-gift-glow: rgba(201,164,74,0.45);
+  --cc-font: 'Poppins',sans-serif;
+}
+/* === TEMA RETRO === */
+body.t-retro {
+  --cc-card-bg: rgba(0,8,0,0.93);
+  --cc-card-border: rgba(57,255,20,0.45);
+  --cc-card-shadow: rgba(57,255,20,0.12);
+  --cc-avatar-border: #39ff14;
+  --cc-avatar-ph: linear-gradient(135deg,#003300,#001a00);
+  --cc-name-color: #39ff14;
+  --cc-verb-color: rgba(57,255,20,0.6);
+  --cc-gift-color: #00ffff;
+  --cc-count-color: #ff00ff;
+  --cc-count-shadow: rgba(255,0,255,0.7);
+  --cc-gift-glow: rgba(0,255,255,0.45);
+  --cc-font: 'Press Start 2P',monospace;
+}
+/* === TEMA LIMPO === */
+body.t-clean {
+  --cc-card-bg: rgba(0,0,0,0.52);
+  --cc-card-border: rgba(255,255,255,0.18);
+  --cc-card-shadow: rgba(255,255,255,0.05);
+  --cc-avatar-border: rgba(255,255,255,0.45);
+  --cc-avatar-ph: linear-gradient(135deg,#555,#222);
+  --cc-name-color: #fff;
+  --cc-verb-color: rgba(255,255,255,0.55);
+  --cc-gift-color: #fff;
+  --cc-count-color: #ffd700;
+  --cc-count-shadow: rgba(255,215,0,0.4);
+  --cc-gift-glow: rgba(255,255,255,0.2);
+  --cc-font: 'Poppins',sans-serif;
+}
 #cc-stage { width:100vw; overflow:hidden; height:80px; position:relative; }
 #cc-track { display:flex; position:absolute; top:0; left:0; height:80px; will-change:transform; }
 .cc-card {
   flex-shrink:0; display:flex; align-items:center; gap:10px;
   padding:8px 18px 8px 10px; margin-right:14px;
   border-radius:40px; height:66px;
-  background:rgba(18,6,46,0.88);
-  border:1.5px solid rgba(140,80,255,0.4);
-  box-shadow:0 4px 24px rgba(0,0,0,0.45),inset 0 0 12px rgba(120,60,255,0.05);
+  background:var(--cc-card-bg);
+  border:1.5px solid var(--cc-card-border);
+  box-shadow:0 4px 24px rgba(0,0,0,0.45),inset 0 0 14px var(--cc-card-shadow);
   white-space:nowrap;
 }
 .cc-avatar {
   width:46px; height:46px; border-radius:50%;
-  object-fit:cover; border:2px solid rgba(160,100,255,0.6); flex-shrink:0;
+  object-fit:cover; border:2px solid var(--cc-avatar-border); flex-shrink:0;
 }
 .cc-avatar-ph {
   width:46px; height:46px; border-radius:50%;
-  background:linear-gradient(135deg,#6b21a8,#3730a3);
-  border:2px solid rgba(160,100,255,0.6);
+  background:var(--cc-avatar-ph);
+  border:2px solid var(--cc-avatar-border);
   display:flex; align-items:center; justify-content:center;
   font-size:20px; flex-shrink:0;
 }
 .cc-info { display:flex; align-items:center; gap:6px; }
-.cc-name { font-family:'Poppins',sans-serif; font-size:13px; font-weight:700; color:#e2d9ff; }
-.cc-verb { font-family:'Poppins',sans-serif; font-size:12px; color:rgba(255,255,255,0.45); }
-.cc-gift-name { font-family:'Poppins',sans-serif; font-size:13px; font-weight:700; color:#fff; }
-.cc-gift-img { width:42px; height:42px; object-fit:contain; flex-shrink:0; filter:drop-shadow(0 0 6px rgba(200,150,255,0.4)); }
-.cc-count { font-family:'Poppins',sans-serif; font-size:16px; font-weight:900; color:#ffd700; margin-left:2px; text-shadow:0 0 8px rgba(255,215,0,0.5); }
+.cc-name { font-family:var(--cc-font); font-size:13px; font-weight:700; color:var(--cc-name-color); }
+.cc-verb { font-family:'Poppins',sans-serif; font-size:12px; color:var(--cc-verb-color); }
+.cc-gift-name { font-family:var(--cc-font); font-size:13px; font-weight:700; color:var(--cc-gift-color); }
+.cc-gift-img { width:42px; height:42px; object-fit:contain; flex-shrink:0; filter:drop-shadow(0 0 6px var(--cc-gift-glow)); }
+.cc-count { font-family:var(--cc-font); font-size:16px; font-weight:900; color:var(--cc-count-color); margin-left:2px; text-shadow:0 0 8px var(--cc-count-shadow); }
+body.t-retro .cc-name { font-size:9px; }
+body.t-retro .cc-gift-name { font-size:9px; }
+body.t-retro .cc-count { font-size:11px; }
 </style></head>
 <body>
 <div id="cc-stage"><div id="cc-track"></div></div>
@@ -6237,6 +6349,16 @@ body { background:transparent; overflow:hidden; width:100vw; height:100vh; displ
   var items = [];
   var track = document.getElementById('cc-track');
   var offset = 0, singleW = 0, timer = null;
+
+  function applyTheme(cfg) {
+    var b = document.body;
+    b.className = b.className.replace(/\\bt-\\S+/g, '').trim();
+    if (cfg.theme && cfg.theme !== 'roxo') b.classList.add('t-' + cfg.theme);
+    if (cfg.verbColor) b.style.setProperty('--cc-verb-color', cfg.verbColor);
+    else b.style.removeProperty('--cc-verb-color');
+    if (cfg.countColor) b.style.setProperty('--cc-count-color', cfg.countColor);
+    else b.style.removeProperty('--cc-count-color');
+  }
 
   function active() {
     return items.filter(function(it) {
@@ -6291,7 +6413,10 @@ body { background:transparent; overflow:hidden; width:100vw; height:100vh; displ
   function connect() {
     var es = new EventSource('/sse/${roomId}/combo-carousel');
     es.onmessage = function(e) {
-      try { var d = JSON.parse(e.data); if (d.type === 'config') { items = d.items || []; build(); } } catch(err) {}
+      try {
+        var d = JSON.parse(e.data);
+        if (d.type === 'config') { applyTheme(d); items = d.items || []; build(); }
+      } catch(err) {}
     };
     es.onerror = function() { es.close(); setTimeout(connect, 3000); };
   }
