@@ -6357,7 +6357,7 @@ body.t-clean {
 .cc-info { display:flex; align-items:center; gap:6px; }
 .cc-name { font-family:var(--cc-font); font-size:13px; font-weight:700; color:var(--cc-name-color); }
 .cc-verb { font-family:'Poppins',sans-serif; font-size:12px; color:var(--cc-verb-color); }
-.cc-gift-name { font-family:var(--cc-font); font-size:13px; font-weight:700; color:var(--cc-gift-color); }
+.cc-gift-name { font-family:var(--cc-font); font-size:13px; font-weight:700; color:var(--cc-verb-color); }
 .cc-gift-img { width:42px; height:42px; object-fit:contain; flex-shrink:0; filter:drop-shadow(0 0 6px var(--cc-gift-glow)); }
 .cc-count { font-family:var(--cc-font); font-size:16px; font-weight:900; color:var(--cc-count-color); margin-left:2px; text-shadow:0 0 8px var(--cc-count-shadow); }
 body.t-retro .cc-name { font-size:9px; }
