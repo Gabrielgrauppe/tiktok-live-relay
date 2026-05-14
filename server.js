@@ -18,6 +18,27 @@ app.get('/velho-oeste.png', (req, res) => res.sendFile(__dirname + '/velho-oeste
 app.get('/crown.svg', (req, res) => res.sendFile(__dirname + '/crown.svg'));
 app.get('/jar.png', (req, res) => res.sendFile(__dirname + '/jar.png'));
 app.get('/jar-new.jpg', (req, res) => res.sendFile(__dirname + '/jar-new.jpg'));
+
+// ── Image proxy (para avatares TikTok no OBS) ──
+app.get('/img-proxy', (req, res) => {
+  const url = decodeURIComponent(req.query.url || '');
+  if (!url || (!url.startsWith('http://') && !url.startsWith('https://'))) { res.status(400).end(); return; }
+  const mod = url.startsWith('https://') ? https : http;
+  const proxyReq = mod.get(url, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Referer': 'https://www.tiktok.com/',
+      'Origin': 'https://www.tiktok.com'
+    }
+  }, (response) => {
+    res.setHeader('Content-Type', response.headers['content-type'] || 'image/jpeg');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    response.pipe(res);
+  });
+  proxyReq.on('error', () => { if (!res.headersSent) res.status(502).end(); });
+  proxyReq.setTimeout(6000, () => { proxyReq.destroy(); if (!res.headersSent) res.status(504).end(); });
+});
 app.get('/jar-glass.png', (req, res) => res.sendFile(__dirname + '/jar-glass.png'));
 
 // ============================================
@@ -6348,7 +6369,11 @@ body.t-retro .cc-count { font-size:11px; }
 <script>
   var items = [];
   var track = document.getElementById('cc-track');
-  var offset = 0, singleW = 0, timer = null;
+  var offset = 0, singleW = 0, timer = null, buildPending = null;
+
+  function proxyImg(url) {
+    return url ? '/img-proxy?url=' + encodeURIComponent(url) : '';
+  }
 
   function applyTheme(cfg) {
     var b = document.body;
@@ -6371,9 +6396,10 @@ body.t-retro .cc-count { font-size:11px; }
   function card(it) {
     var nick, av, cnt;
     if (it.mode === 'predefined') { nick = it.predefined.nickname; av = it.predefined.avatar || ''; cnt = it.predefined.count; }
-    else { nick = it.holder.nickname; av = it.holder.avatar; cnt = it.holder.count; }
-    var avHTML = av
-      ? '<img class="cc-avatar" src="' + av + '" onerror="this.style.display=\\'none\\'">'
+    else { nick = it.holder.nickname; av = it.holder.avatar || ''; cnt = it.holder.count; }
+    var proxied = proxyImg(av);
+    var avHTML = proxied
+      ? '<img class="cc-avatar" src="' + proxied + '" onerror="this.parentNode.innerHTML=\\'<div class=cc-avatar-ph>🎁</div>\\'">'
       : '<div class="cc-avatar-ph">🎁</div>';
     return '<div class="cc-card">' + avHTML +
       '<div class="cc-info">' +
@@ -6386,7 +6412,9 @@ body.t-retro .cc-count { font-size:11px; }
   }
 
   function build() {
+    // Cancelar timers anteriores para não acumular setInterval
     if (timer) { clearInterval(timer); timer = null; }
+    if (buildPending) { clearTimeout(buildPending); buildPending = null; }
     offset = 0; track.style.transform = 'translateX(0px)';
     var list = active();
     if (!list.length) {
@@ -6396,7 +6424,8 @@ body.t-retro .cc-count { font-size:11px; }
     var html = '';
     list.concat(list).forEach(function(it) { html += card(it); });
     track.innerHTML = html;
-    setTimeout(function() {
+    buildPending = setTimeout(function() {
+      buildPending = null;
       var cards = track.querySelectorAll('.cc-card');
       var half = list.length;
       singleW = 0;
