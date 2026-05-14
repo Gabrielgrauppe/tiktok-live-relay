@@ -6343,16 +6343,20 @@ body.t-clean {
   box-shadow:0 4px 24px rgba(0,0,0,0.45),inset 0 0 14px var(--cc-card-shadow);
   white-space:nowrap;
 }
-.cc-avatar {
-  width:46px; height:46px; border-radius:50%;
-  object-fit:cover; border:2px solid var(--cc-avatar-border); flex-shrink:0;
+.cc-av-wrap {
+  position:relative; width:46px; height:46px; flex-shrink:0;
 }
 .cc-avatar-ph {
-  width:46px; height:46px; border-radius:50%;
+  position:absolute; inset:0; border-radius:50%;
   background:var(--cc-avatar-ph);
   border:2px solid var(--cc-avatar-border);
   display:flex; align-items:center; justify-content:center;
-  font-size:20px; flex-shrink:0;
+  font-size:20px;
+}
+.cc-avatar {
+  position:absolute; inset:0; width:100%; height:100%;
+  border-radius:50%; object-fit:cover;
+  border:2px solid var(--cc-avatar-border);
 }
 .cc-info { display:flex; align-items:center; gap:6px; }
 .cc-name { font-family:var(--cc-font); font-size:13px; font-weight:700; color:var(--cc-name-color); }
@@ -6400,10 +6404,11 @@ body.t-retro .cc-count { font-size:11px; }
     if (it.mode === 'predefined') { nick = it.predefined.nickname; av = it.predefined.avatar || ''; cnt = it.predefined.count; }
     else { nick = it.holder.nickname; av = it.holder.avatar || ''; cnt = it.holder.count; }
     var src = proxyImg(av);
-    // Dois elementos sobrepostos: img + placeholder. O onerror apenas esconde o img e mostra o ph.
-    var avHTML = src
-      ? '<img class="cc-avatar" src="' + src + '" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'"><div class="cc-avatar-ph" style="display:none">🎁</div>'
-      : '<div class="cc-avatar-ph">🎁</div>';
+    // Placeholder sempre visível atrás (CSS position:absolute).
+    // Se a foto carregar, fica na frente e cobre o placeholder. Sem onerror.
+    var avHTML = '<div class="cc-av-wrap"><div class="cc-avatar-ph">&#x1F381;</div>' +
+      (src ? '<img class="cc-avatar" src="' + src + '">' : '') +
+      '</div>';
     return '<div class="cc-card">' + avHTML +
       '<div class="cc-info">' +
         '<span class="cc-name">' + nick + '</span>' +
