@@ -6362,7 +6362,13 @@ body.t-clean {
 .cc-name { font-family:var(--cc-font); font-size:13px; font-weight:700; color:var(--cc-name-color); }
 .cc-verb { font-family:'Poppins',sans-serif; font-size:12px; color:var(--cc-verb-color); }
 .cc-gift-name { font-family:var(--cc-font); font-size:13px; font-weight:700; color:var(--cc-verb-color); }
-.cc-gift-img { width:42px; height:42px; object-fit:contain; flex-shrink:0; filter:drop-shadow(0 0 6px var(--cc-gift-glow)); }
+.cc-gift-img { width:42px; height:42px; object-fit:contain; flex-shrink:0; filter:drop-shadow(0 0 6px var(--cc-gift-glow)); animation:cc-gift-float 2s ease-in-out infinite; }
+@keyframes cc-gift-float {
+  0%,100% { transform: translateY(0px) rotate(-6deg) scale(1); }
+  25%      { transform: translateY(-5px) rotate(0deg) scale(1.08); }
+  50%      { transform: translateY(-8px) rotate(6deg) scale(1.05); }
+  75%      { transform: translateY(-3px) rotate(0deg) scale(1.02); }
+}
 .cc-count { font-family:var(--cc-font); font-size:16px; font-weight:900; color:var(--cc-count-color); margin-left:2px; text-shadow:0 0 8px var(--cc-count-shadow); }
 body.t-retro .cc-name { font-size:9px; }
 body.t-retro .cc-gift-name { font-size:9px; }
