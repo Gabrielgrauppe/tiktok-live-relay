@@ -6248,7 +6248,7 @@ body { background:transparent; overflow:hidden; width:100vw; height:100vh; displ
 
   function card(it) {
     var nick, av, cnt;
-    if (it.mode === 'predefined') { nick = it.predefined.nickname; av = ''; cnt = it.predefined.count; }
+    if (it.mode === 'predefined') { nick = it.predefined.nickname; av = it.predefined.avatar || ''; cnt = it.predefined.count; }
     else { nick = it.holder.nickname; av = it.holder.avatar; cnt = it.holder.count; }
     var avHTML = av
       ? '<img class="cc-avatar" src="' + av + '" onerror="this.style.display=\\'none\\'">'
