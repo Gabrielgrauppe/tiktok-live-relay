@@ -6399,7 +6399,7 @@ body.t-retro .cc-count { font-size:11px; }
     else { nick = it.holder.nickname; av = it.holder.avatar || ''; cnt = it.holder.count; }
     var proxied = proxyImg(av);
     var avHTML = proxied
-      ? '<img class="cc-avatar" src="' + proxied + '" onerror="this.parentNode.innerHTML=\\'<div class=cc-avatar-ph>🎁</div>\\'">'
+      ? '<img class="cc-avatar" src="' + proxied + '" onerror="this.onerror=null;var p=document.createElement(\'div\');p.className=\'cc-avatar-ph\';p.textContent=\'🎁\';this.parentNode.replaceChild(p,this);">'
       : '<div class="cc-avatar-ph">🎁</div>';
     return '<div class="cc-card">' + avHTML +
       '<div class="cc-info">' +
