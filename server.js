@@ -5883,9 +5883,9 @@ body { background:transparent; overflow:hidden; width:100vw; height:100vh; }
 .t-clean #gw-title,.t-clean #gw-gift-name,.t-clean #gw-counter{font-family:'Segoe UI',sans-serif;text-shadow:0 2px 8px rgba(0,0,0,0.95);} .t-clean #gw-img{filter:drop-shadow(0 4px 12px rgba(0,0,0,0.8));} .t-clean .gw-dot.active{background:rgba(255,255,255,0.8);}
 .t-custom { border:2px solid rgba(255,255,255,0.3); }
 .t-custom #gw-title,.t-custom #gw-gift-name,.t-custom #gw-counter{font-family:'Segoe UI',sans-serif;} .t-custom .gw-dot.active{background:rgba(255,255,255,0.8);}
-#gw-topname { font-size:11px; font-weight:700; letter-spacing:0.4px; text-align:center; max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:rgba(255,255,255,0.65); margin-top:2px; display:none; }
+#gw-topname { font-size:11px; font-weight:700; letter-spacing:0.4px; text-align:center; max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:rgba(255,255,255,0.65); margin-top:2px; }
 #gw.gw-complete #gw-topname { color:var(--gw-done-color); }
-.pcard-topname { font-size:9px; font-weight:700; color:rgba(255,255,255,0.6); text-align:center; max-width:100px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:none; }
+.pcard-topname { font-size:9px; font-weight:700; color:rgba(255,255,255,0.6); text-align:center; max-width:100px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .gw-pcard.done .pcard-topname { color:var(--pcard-done-color); }
 /* ─── PREMIUM ─── */
 #gw-premium-wrap { display:none; width:100vw; height:100vh; flex-direction:column; align-items:center; justify-content:center;
@@ -6103,12 +6103,7 @@ body { background:transparent; overflow:hidden; width:100vw; height:100vh; }
       imgEl.src = gift.image;
       nameEl.textContent = gift.name;
       counterEl.textContent = topCount + ' / ' + gift.target;
-      if (state.showTopName) {
-        topNameEl.style.display = '';
-        topNameEl.textContent = (done && topSender) ? topSender.nickname : 'aguardando...';
-      } else {
-        topNameEl.style.display = 'none';
-      }
+      topNameEl.textContent = (done && topSender) ? topSender.nickname : 'aguardando...';
       contentEl.classList.remove('fading');
       gwEl.classList.toggle('gw-complete', done);
       var dots = dotsEl.querySelectorAll('.gw-dot');
@@ -6143,13 +6138,12 @@ body { background:transparent; overflow:hidden; width:100vw; height:100vh; }
         var topCount = galeriaTopCount(g.name);
         var done = topCount >= g.target;
         var topSender = galeriaTopSender(g.name);
-        var topNameTxt = state.showTopName ? ((done && topSender) ? topSender.nickname : 'aguardando...') : '';
-        var topNameStyle = state.showTopName ? '' : 'display:none;';
+        var topNameTxt = (done && topSender) ? topSender.nickname : 'aguardando...';
         html += '<div class="gw-pcard' + (done ? ' done' : '') + '" data-gift="' + g.name + '">' +
           '<img src="' + g.image + '" alt="">' +
           '<div class="pcard-name">' + g.name + '</div>' +
           '<div class="pcard-counter">' + topCount + ' / ' + g.target + '</div>' +
-          '<div class="pcard-topname" style="' + topNameStyle + '">' + topNameTxt + '</div>' +
+          '<div class="pcard-topname">' + topNameTxt + '</div>' +
           '<div class="pcard-badge">✅ META!</div>' +
           '</div>';
       });
@@ -6175,14 +6169,7 @@ body { background:transparent; overflow:hidden; width:100vw; height:100vh; }
       el.querySelector('.pcard-counter').textContent = topCount + ' / ' + g.target;
       el.classList.toggle('done', done);
       var tnEl = el.querySelector('.pcard-topname');
-      if (tnEl) {
-        if (state.showTopName) {
-          tnEl.style.display = '';
-          tnEl.textContent = (done && topSender) ? topSender.nickname : 'aguardando...';
-        } else {
-          tnEl.style.display = 'none';
-        }
-      }
+      if (tnEl) tnEl.textContent = (done && topSender) ? topSender.nickname : 'aguardando...';
     });
   }
 
@@ -6254,12 +6241,7 @@ body { background:transparent; overflow:hidden; width:100vw; height:100vh; }
               gwEl.classList.toggle('gw-complete', done);
               counterEl.classList.remove('bump'); void counterEl.offsetWidth; counterEl.classList.add('bump');
               counterEl.addEventListener('animationend', function() { counterEl.classList.remove('bump'); }, { once:true });
-              if (state.showTopName) {
-                topNameEl.style.display = '';
-                topNameEl.textContent = (done && topSndr) ? topSndr.nickname : 'aguardando...';
-              } else {
-                topNameEl.style.display = 'none';
-              }
+              topNameEl.textContent = (done && topSndr) ? topSndr.nickname : 'aguardando...';
             }
           }
         }
