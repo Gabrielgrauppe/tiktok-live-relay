@@ -517,7 +517,8 @@ function getRoom(roomId) {
         alertScene1: [], alertScene2: [], alertScene3: [],
         desejo: [],
         galeria: [],
-        comboCarousel: []
+        comboCarousel: [],
+        translator: []
       },
       coinsRanking: {},
       likesRanking: {},
@@ -539,6 +540,7 @@ function getRoom(roomId) {
       desejo: { name: 'Desejo do Streamer', giftName: '', giftImage: '', target: 1, current: 0, theme: 'neon', customColor: '', nameColor: '#ffffff', countColor: '#ffd700' },
       galeria: { league: 'D', style: 'padrao', title: 'Galeria de Presentes', progress: {}, theme: 'neon', titleColor: '#ffffff', nameColor: '#00d4ff', counterColor: '#ffd700', customColor: '', completeColor: '#ffd700', showTopName: false },
       comboCarousel: { items: [], theme: 'roxo', verbColor: '', countColor: '' },
+      translator: { text: '', color: '#ffffff', bg: 'transparent', size: 36 },
       topGift: null,
       topCombo: null,
       topGiftConfig: { label: 'Maior Presente', labelColor: '#ffffff', nameColor: '#FFD700', valueColor: '#ffffff' },
@@ -726,6 +728,11 @@ app.get('/overlay/:roomId/galeria', (req, res) => {
 app.get('/overlay/:roomId/combo-carousel', (req, res) => {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.send(getComboCarouselOverlayHTML(req.params.roomId));
+});
+
+app.get('/overlay/:roomId/translator', (req, res) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(getTranslatorOverlayHTML(req.params.roomId));
 });
 
 // ============================================
@@ -976,6 +983,16 @@ app.get('/sse/:roomId/combo-carousel', (req, res) => {
   res.write(`data: ${JSON.stringify({ type: 'config', items: room.comboCarousel.items, theme: room.comboCarousel.theme || 'roxo', verbColor: room.comboCarousel.verbColor || '', countColor: room.comboCarousel.countColor || '' })}\n\n`);
   room.sseClients.comboCarousel.push(res);
   req.on('close', () => { room.sseClients.comboCarousel = room.sseClients.comboCarousel.filter(c => c !== res); });
+});
+
+// Tradutor SSE
+app.get('/sse/:roomId/translator', (req, res) => {
+  const room = getRoom(req.params.roomId);
+  res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
+  res.write('data: {"type":"connected"}\n\n');
+  res.write(`data: ${JSON.stringify({ type: 'state', ...room.translator })}\n\n`);
+  room.sseClients.translator.push(res);
+  req.on('close', () => { room.sseClients.translator = room.sseClients.translator.filter(c => c !== res); });
 });
 
 // Galeria de Presentes SSE
@@ -1384,6 +1401,24 @@ wss.on('connection', (ws) => {
           const ev = JSON.stringify({ type: 'config', items: room.comboCarousel.items, theme: room.comboCarousel.theme || 'roxo', verbColor: room.comboCarousel.verbColor || '', countColor: room.comboCarousel.countColor || '' });
           room.sseClients.comboCarousel.forEach(c => { try { c.write(`data: ${ev}\n\n`); } catch(e){} });
         }
+      }
+
+      // Tradutor de voz — atualização de texto
+      if (msg.type === 'translator-update') {
+        room.translator.text = msg.text || '';
+        room.translator.color = msg.color || room.translator.color || '#ffffff';
+        room.translator.bg = msg.bg || room.translator.bg || 'transparent';
+        room.translator.size = msg.size || room.translator.size || 36;
+        const ev = JSON.stringify({ type: 'state', ...room.translator });
+        room.sseClients.translator.forEach(c => { try { c.write(`data: ${ev}\n\n`); } catch(e){} });
+      }
+      // Tradutor de voz — configuração de estilo
+      if (msg.type === 'translator-config') {
+        if (msg.color != null) room.translator.color = msg.color;
+        if (msg.bg != null) room.translator.bg = msg.bg;
+        if (msg.size != null) room.translator.size = msg.size;
+        const ev = JSON.stringify({ type: 'state', ...room.translator });
+        room.sseClients.translator.forEach(c => { try { c.write(`data: ${ev}\n\n`); } catch(e){} });
       }
 
       // Carrossel de Combo — reset holders automáticos
@@ -6557,6 +6592,64 @@ body.t-retro .cc-count { font-size:11px; }
       try {
         var d = JSON.parse(e.data);
         if (d.type === 'config') { applyTheme(d); items = d.items || []; build(); }
+      } catch(err) {}
+    };
+    es.onerror = function() { es.close(); setTimeout(connect, 3000); };
+  }
+  connect();
+</script>
+</body></html>`;
+}
+
+function getTranslatorOverlayHTML(roomId) {
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;900&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background:transparent; overflow:hidden; width:100vw; height:100vh;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Poppins',sans-serif;
+}
+#tr-box {
+  max-width:90vw;
+  padding:18px 28px;
+  border-radius:18px;
+  font-size:36px;
+  font-weight:700;
+  color:#ffffff;
+  text-align:center;
+  line-height:1.3;
+  text-shadow:0 2px 12px rgba(0,0,0,0.75), 0 0 3px rgba(0,0,0,0.9);
+  opacity:0;
+  transition:opacity 0.35s ease;
+  word-wrap:break-word;
+}
+#tr-box.visible { opacity:1; }
+</style></head>
+<body>
+<div id="tr-box"></div>
+<script>
+  var box = document.getElementById('tr-box');
+  function applyStyle(s) {
+    if (s.color != null) box.style.color = s.color;
+    if (s.bg != null) box.style.background = s.bg;
+    if (s.size != null) box.style.fontSize = s.size + 'px';
+  }
+  function setText(t) {
+    if (!t) { box.classList.remove('visible'); box.textContent = ''; return; }
+    box.textContent = t;
+    box.classList.add('visible');
+  }
+  function connect() {
+    var es = new EventSource('/sse/${roomId}/translator');
+    es.onmessage = function(e) {
+      try {
+        var d = JSON.parse(e.data);
+        if (d.type === 'state') {
+          applyStyle(d);
+          setText(d.text || '');
+        }
       } catch(err) {}
     };
     es.onerror = function() { es.close(); setTimeout(connect, 3000); };
