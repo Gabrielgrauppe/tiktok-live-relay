@@ -540,7 +540,7 @@ function getRoom(roomId) {
       desejo: { name: 'Desejo do Streamer', giftName: '', giftImage: '', target: 1, current: 0, theme: 'neon', customColor: '', nameColor: '#ffffff', countColor: '#ffd700' },
       galeria: { league: 'D', style: 'padrao', title: 'Galeria de Presentes', progress: {}, theme: 'neon', titleColor: '#ffffff', nameColor: '#00d4ff', counterColor: '#ffd700', customColor: '', completeColor: '#ffd700', showTopName: false },
       comboCarousel: { items: [], theme: 'roxo', verbColor: '', countColor: '' },
-      translator: { text: '', color: '#ffffff', bg: 'transparent', size: 36 },
+      translator: { text: '', color: '#ffffff', bg: 'transparent', size: 36, duration: 5 },
       topGift: null,
       topCombo: null,
       topGiftConfig: { label: 'Maior Presente', labelColor: '#ffffff', nameColor: '#FFD700', valueColor: '#ffffff' },
@@ -1428,6 +1428,7 @@ wss.on('connection', (ws) => {
         room.translator.color = msg.color || room.translator.color || '#ffffff';
         room.translator.bg = msg.bg || room.translator.bg || 'transparent';
         room.translator.size = msg.size || room.translator.size || 36;
+        if (msg.duration != null) room.translator.duration = msg.duration;
         const ev = JSON.stringify({ type: 'state', ...room.translator });
         room.sseClients.translator.forEach(c => { try { c.write(`data: ${ev}\n\n`); } catch(e){} });
       }
@@ -1436,6 +1437,7 @@ wss.on('connection', (ws) => {
         if (msg.color != null) room.translator.color = msg.color;
         if (msg.bg != null) room.translator.bg = msg.bg;
         if (msg.size != null) room.translator.size = msg.size;
+        if (msg.duration != null) room.translator.duration = msg.duration;
         const ev = JSON.stringify({ type: 'state', ...room.translator });
         room.sseClients.translator.forEach(c => { try { c.write(`data: ${ev}\n\n`); } catch(e){} });
       }
@@ -6650,15 +6652,34 @@ body {
 <div id="tr-box"></div>
 <script>
   var box = document.getElementById('tr-box');
+  var currentDuration = 5;
+  var hideTimer = null;
+  var lastText = '';
   function applyStyle(s) {
     if (s.color != null) box.style.color = s.color;
     if (s.bg != null) box.style.background = s.bg;
     if (s.size != null) box.style.fontSize = s.size + 'px';
+    if (s.duration != null) currentDuration = parseFloat(s.duration) || 5;
   }
   function setText(t) {
-    if (!t) { box.classList.remove('visible'); box.textContent = ''; return; }
+    if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
+    if (!t) {
+      box.classList.remove('visible');
+      // limpar texto depois do fade out terminar
+      setTimeout(function(){ if (!box.classList.contains('visible')) box.textContent = ''; }, 400);
+      return;
+    }
+    // Se o texto mudou ou está reaparecendo, mostrar
     box.textContent = t;
     box.classList.add('visible');
+    lastText = t;
+    // Programar o fade out após X segundos
+    if (currentDuration > 0) {
+      hideTimer = setTimeout(function() {
+        box.classList.remove('visible');
+        setTimeout(function(){ if (!box.classList.contains('visible')) box.textContent = ''; }, 400);
+      }, currentDuration * 1000);
+    }
   }
   function connect() {
     var es = new EventSource('/sse/${roomId}/translator');
@@ -6667,7 +6688,10 @@ body {
         var d = JSON.parse(e.data);
         if (d.type === 'state') {
           applyStyle(d);
-          setText(d.text || '');
+          // Só renovar timer se o texto realmente mudou (evita re-disparar com config-only)
+          if ((d.text || '') !== lastText || d.text === '') {
+            setText(d.text || '');
+          }
         }
       } catch(err) {}
     };
