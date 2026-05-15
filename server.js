@@ -735,6 +735,25 @@ app.get('/overlay/:roomId/translator', (req, res) => {
   res.send(getTranslatorOverlayHTML(req.params.roomId));
 });
 
+// Página do microfone (Chrome) — para Web Speech API que não funciona no Electron
+app.get('/translator-mic/:roomId', (req, res) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(getTranslatorMicHTML(req.params.roomId));
+});
+
+// Endpoint POST que recebe texto traduzido da página do microfone e broadcasts pro overlay
+app.post('/api/translator-push/:roomId', express.json(), (req, res) => {
+  const room = getRoom(req.params.roomId);
+  const { text, color, bg, size } = req.body || {};
+  if (text != null) room.translator.text = text;
+  if (color) room.translator.color = color;
+  if (bg) room.translator.bg = bg;
+  if (size) room.translator.size = size;
+  const ev = JSON.stringify({ type: 'state', ...room.translator });
+  room.sseClients.translator.forEach(c => { try { c.write(`data: ${ev}\n\n`); } catch(e){} });
+  res.json({ ok: true });
+});
+
 // ============================================
 // SSE ENDPOINTS
 // ============================================
@@ -6655,6 +6674,294 @@ body {
     es.onerror = function() { es.close(); setTimeout(connect, 3000); };
   }
   connect();
+</script>
+</body></html>`;
+}
+
+function getTranslatorMicHTML(roomId) {
+  return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+<title>🎙️ Microfone do Tradutor — Live Stream INS</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: 'Poppins', sans-serif;
+  background: linear-gradient(135deg, #0f0a23, #1a0f3a);
+  color: #fff;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.container {
+  width: 100%;
+  max-width: 560px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(167,139,250,0.25);
+  border-radius: 20px;
+  padding: 28px 26px;
+  box-shadow: 0 0 60px rgba(139,92,246,0.2);
+}
+h1 { font-size: 22px; margin-bottom: 6px; }
+.subtitle { color: rgba(255,255,255,0.55); font-size: 13px; margin-bottom: 22px; }
+.status {
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(0,0,0,0.3);
+  padding: 14px 16px; border-radius: 12px;
+  margin-bottom: 18px;
+}
+.status-dot {
+  width: 12px; height: 12px; border-radius: 50%;
+  background: #666; transition: background 0.3s, box-shadow 0.3s;
+}
+.status-dot.active { background: #10b981; box-shadow: 0 0 12px rgba(16,185,129,0.6); animation: pulse 1.5s ease-in-out infinite; }
+.status-dot.error { background: #ef4444; }
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
+.status-text { font-size: 14px; font-weight: 600; }
+
+.lang-row {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 16px;
+}
+.lang-row label { font-size: 13px; color: rgba(255,255,255,0.75); }
+select {
+  flex: 1; padding: 10px 12px; border-radius: 10px;
+  background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1);
+  color: #fff; font-size: 14px; font-family: inherit;
+  cursor: pointer;
+}
+select:focus { outline: 1px solid #a78bfa; }
+
+.box {
+  margin-bottom: 12px;
+}
+.box-label {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.7px;
+  margin-bottom: 5px; color: rgba(255,255,255,0.55);
+}
+.box-text {
+  background: rgba(0,0,0,0.25); border-radius: 10px;
+  padding: 10px 12px; min-height: 42px; font-size: 14px;
+  line-height: 1.4; word-wrap: break-word;
+}
+.box-text.spoken { color: #fff; }
+.box-text.translated { color: #e9d5ff; border: 1px solid rgba(167,139,250,0.2); }
+
+.btn {
+  width: 100%; padding: 14px; border-radius: 12px;
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+  color: #fff; border: none; font-size: 14px; font-weight: 700;
+  cursor: pointer; font-family: inherit;
+  transition: opacity 0.2s, transform 0.1s;
+  margin-top: 8px;
+}
+.btn:hover { opacity: 0.9; }
+.btn:active { transform: scale(0.98); }
+.btn.stop { background: linear-gradient(135deg, #ef4444, #dc2626); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.note {
+  font-size: 11px; color: rgba(255,255,255,0.5);
+  margin-top: 16px; line-height: 1.5; text-align: center;
+}
+.warn {
+  background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3);
+  border-radius: 10px; padding: 10px 12px; font-size: 12px;
+  color: #fbbf24; margin-bottom: 14px; line-height: 1.5;
+}
+</style></head>
+<body>
+<div class="container">
+  <h1>🎙️ Tradutor de Voz</h1>
+  <p class="subtitle">Esta página captura sua voz e envia traduzida para o overlay do OBS.</p>
+
+  <div class="warn">
+    💡 <strong>Mantenha esta aba aberta</strong> enquanto estiver fazendo a live. Pode minimizar.
+  </div>
+
+  <div class="status">
+    <div id="status-dot" class="status-dot"></div>
+    <div id="status-text" class="status-text">Aguardando início...</div>
+  </div>
+
+  <div class="lang-row">
+    <label>Traduzir para:</label>
+    <select id="target-lang">
+      <option value="it">🇮🇹 Italiano</option>
+      <option value="en">🇺🇸 Inglês</option>
+      <option value="es">🇪🇸 Espanhol</option>
+      <option value="fr">🇫🇷 Francês</option>
+      <option value="de">🇩🇪 Alemão</option>
+      <option value="ja">🇯🇵 Japonês</option>
+      <option value="zh">🇨🇳 Chinês</option>
+      <option value="ko">🇰🇷 Coreano</option>
+      <option value="ru">🇷🇺 Russo</option>
+      <option value="ar">🇸🇦 Árabe</option>
+      <option value="nl">🇳🇱 Holandês</option>
+      <option value="pl">🇵🇱 Polonês</option>
+      <option value="tr">🇹🇷 Turco</option>
+    </select>
+  </div>
+
+  <div class="box">
+    <div class="box-label">🎤 VOCÊ DISSE</div>
+    <div id="spoken" class="box-text spoken">—</div>
+  </div>
+
+  <div class="box">
+    <div class="box-label">🌐 TRADUÇÃO ENVIADA AO OVERLAY</div>
+    <div id="translated" class="box-text translated">—</div>
+  </div>
+
+  <button id="btn-toggle" class="btn">🎙️ Iniciar</button>
+
+  <div class="note">Você fala em <strong>português</strong>, o overlay mostra no idioma escolhido.<br>Permite o microfone quando o navegador pedir.</div>
+</div>
+
+<script>
+  const ROOM_ID = '${roomId}';
+  const PUSH_URL = '/api/translator-push/' + ROOM_ID;
+
+  // Aplicar idioma da URL se foi passado
+  const params = new URLSearchParams(window.location.search);
+  const urlLang = params.get('lang');
+  if (urlLang) {
+    const opt = document.querySelector('#target-lang option[value="' + urlLang + '"]');
+    if (opt) document.getElementById('target-lang').value = urlLang;
+  }
+
+  const statusDot = document.getElementById('status-dot');
+  const statusText = document.getElementById('status-text');
+  const spokenEl = document.getElementById('spoken');
+  const translatedEl = document.getElementById('translated');
+  const langSelect = document.getElementById('target-lang');
+  const btnToggle = document.getElementById('btn-toggle');
+
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    statusDot.classList.add('error');
+    statusText.textContent = 'Navegador sem suporte — use Chrome/Edge';
+    btnToggle.disabled = true;
+  }
+
+  let recognition = null;
+  let active = false;
+  let inFlight = 0;
+
+  async function translate(text, target) {
+    try {
+      const target2 = (target || 'it').split('-')[0];
+      const url = 'https://api.mymemory.translated.net/get?q=' + encodeURIComponent(text) + '&langpair=pt-BR|' + target2;
+      const r = await fetch(url);
+      const d = await r.json();
+      return (d && d.responseData && d.responseData.translatedText) || '';
+    } catch(e) { console.error('translate err:', e); return ''; }
+  }
+
+  async function pushToOverlay(text) {
+    try {
+      await fetch(PUSH_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text })
+      });
+    } catch(e) { console.error('push err:', e); }
+  }
+
+  function startRecognition() {
+    recognition = new SR();
+    recognition.lang = 'pt-BR';
+    recognition.continuous = true;
+    recognition.interimResults = true;
+
+    recognition.onstart = () => {
+      active = true;
+      statusDot.classList.add('active');
+      statusDot.classList.remove('error');
+      statusText.textContent = 'Ouvindo... fale em português';
+      btnToggle.textContent = '⏹️ Parar';
+      btnToggle.classList.add('stop');
+    };
+
+    recognition.onresult = async (event) => {
+      let interim = '';
+      let final = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const t = event.results[i][0].transcript;
+        if (event.results[i].isFinal) final += t;
+        else interim += t;
+      }
+      spokenEl.textContent = (final + ' ' + interim).trim() || '—';
+
+      const finalTrim = final.trim();
+      if (finalTrim) {
+        const myId = ++inFlight;
+        const translated = await translate(finalTrim, langSelect.value);
+        if (myId !== inFlight) return;
+        if (translated) {
+          translatedEl.textContent = translated;
+          pushToOverlay(translated);
+        }
+      }
+    };
+
+    recognition.onerror = (e) => {
+      console.error('SR error:', e.error);
+      if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+        statusDot.classList.add('error');
+        statusText.textContent = 'Permissão de microfone negada';
+        stop();
+      } else if (e.error === 'no-speech') {
+        // silencioso — apenas continua
+      } else if (e.error === 'network') {
+        statusText.textContent = 'Erro de rede — verifique sua conexão';
+      } else {
+        statusText.textContent = 'Erro: ' + e.error;
+      }
+    };
+
+    recognition.onend = () => {
+      if (active) {
+        try { recognition.start(); } catch(e) {
+          setTimeout(() => { if (active) { try { recognition.start(); } catch(_) {} } }, 300);
+        }
+      }
+    };
+
+    try {
+      recognition.start();
+    } catch(e) {
+      statusText.textContent = 'Erro: ' + e.message;
+      statusDot.classList.add('error');
+    }
+  }
+
+  function stop() {
+    active = false;
+    if (recognition) {
+      try { recognition.stop(); } catch(e) {}
+      recognition = null;
+    }
+    statusDot.classList.remove('active');
+    statusText.textContent = 'Parado';
+    btnToggle.textContent = '🎙️ Iniciar';
+    btnToggle.classList.remove('stop');
+    pushToOverlay(''); // limpa o overlay
+  }
+
+  btnToggle.addEventListener('click', () => {
+    if (active) stop();
+    else startRecognition();
+  });
+
+  // Limpar overlay ao fechar a aba
+  window.addEventListener('beforeunload', () => {
+    if (active) {
+      navigator.sendBeacon(PUSH_URL, JSON.stringify({ text: '' }));
+    }
+  });
 </script>
 </body></html>`;
 }
