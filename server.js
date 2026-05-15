@@ -6480,30 +6480,62 @@ body.t-retro .cc-count { font-size:11px; }
 
     // 2+ itens: renderizar cópias suficientes para preencher viewport e fazer loop seamless
     var vw = window.innerWidth || 1920;
-    // Renderizar 2 cópias para medir largura de uma cópia
     var html = '';
     list.concat(list).forEach(function(it) { html += card(it); });
     track.style.cssText = 'display:flex;position:absolute;top:0;left:0;height:80px;will-change:transform;';
     track.innerHTML = html;
-    buildPending = setTimeout(function() {
+
+    var measureAttempts = 0;
+    function measureAndStart() {
       buildPending = null;
       var allCards = track.querySelectorAll('.cc-card');
+      // Se cards ainda não foram renderizados, tentar de novo
+      if (allCards.length < list.length) {
+        if (++measureAttempts < 15) {
+          buildPending = setTimeout(measureAndStart, 100);
+        } else {
+          // Fallback final: usar largura aproximada
+          singleW = list.length * 280;
+          startScroll();
+        }
+        return;
+      }
       singleW = 0;
-      for (var i = 0; i < list.length; i++) singleW += allCards[i].offsetWidth + 14;
-      if (!singleW) return;
-      // Adicionar cópias extras se o conteúdo não preencher a tela (evita ver dois ciclos ao mesmo tempo)
+      var hasZero = false;
+      for (var i = 0; i < list.length; i++) {
+        var w = allCards[i].offsetWidth;
+        if (!w) { hasZero = true; break; }
+        singleW += w + 14;
+      }
+      // Se algum card ainda não tem largura, tentar novamente
+      if (hasZero || !singleW) {
+        if (++measureAttempts < 15) {
+          buildPending = setTimeout(measureAndStart, 100);
+          return;
+        }
+        // Fallback final: largura aproximada (280px por card)
+        singleW = list.length * 280;
+      }
+      startScroll();
+    }
+
+    function startScroll() {
+      // Adicionar cópias extras se o conteúdo não preencher a tela
       if (singleW < vw + 100) {
         var copies = Math.ceil((vw * 2) / singleW) + 1;
         var bigHtml = '';
         for (var c = 0; c < copies; c++) list.forEach(function(it) { bigHtml += card(it); });
         track.innerHTML = bigHtml;
       }
+      if (timer) clearInterval(timer);
       timer = setInterval(function() {
         offset++;
         if (offset >= singleW) offset = 0;
         track.style.transform = 'translateX(-' + offset + 'px)';
       }, 16);
-    }, 80);
+    }
+
+    buildPending = setTimeout(measureAndStart, 60);
   }
 
   function connect() {
