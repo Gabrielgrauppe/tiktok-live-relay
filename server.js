@@ -1346,7 +1346,15 @@ wss.on('connection', (ws) => {
 
       // Carrossel de Combo — config
       if (msg.type === 'combo-carousel-config') {
-        room.comboCarousel.items = msg.items || [];
+        const newItems = msg.items || [];
+        const oldItems = room.comboCarousel.items || [];
+        // Preservar holders existentes nos itens auto que já existiam (relay é a fonte da verdade dos holders)
+        newItems.forEach(newIt => {
+          if (newIt.mode !== 'auto') return;
+          const old = oldItems.find(o => o.id === newIt.id);
+          if (old && old.holder) newIt.holder = old.holder;
+        });
+        room.comboCarousel.items = newItems;
         room.comboCarousel.theme = msg.theme || 'roxo';
         room.comboCarousel.verbColor = msg.verbColor || '';
         room.comboCarousel.countColor = msg.countColor || '';
