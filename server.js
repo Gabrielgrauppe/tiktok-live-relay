@@ -1371,7 +1371,12 @@ wss.on('connection', (ws) => {
           const count = msg.count || 0;
           if (count < (item.minValue || 1)) return;
           if (!item.holder || count > item.holder.count) {
-            item.holder = { nickname: msg.nickname, avatar: msg.avatar || '', count };
+            // Preservar avatar antigo se: mesma pessoa enviou combo maior e o evento atual veio sem avatar
+            let avatar = msg.avatar || '';
+            if (!avatar && item.holder && item.holder.nickname === msg.nickname && item.holder.avatar) {
+              avatar = item.holder.avatar;
+            }
+            item.holder = { nickname: msg.nickname, avatar, count };
             changed = true;
           }
         });
