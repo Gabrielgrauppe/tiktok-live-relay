@@ -183,6 +183,7 @@ app.get('/api/admin/accounts', (req, res) => {
   if (req.query.secret !== ADMIN_SECRET) return res.status(403).json({ error: 'Acesso negado' });
   const list = Object.values(accounts).map(a => ({
     username: a.username,
+    email: a.email || '',
     createdAt: new Date(a.createdAt).toISOString(),
     lastLogin: new Date(a.lastLogin).toISOString(),
     subscription: a.subscription
