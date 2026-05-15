@@ -6873,25 +6873,40 @@ select:focus { outline: 1px solid #a78bfa; }
   let recognition = null;
   let active = false;
   let inFlight = 0;
+  let pendingTimer = null;
+  let lastTranslatedSource = '';
 
   async function translate(text, target) {
     try {
       const target2 = (target || 'it').split('-')[0];
-      const url = 'https://api.mymemory.translated.net/get?q=' + encodeURIComponent(text) + '&langpair=pt-BR|' + target2;
+      // Email param extends free quota de 1000 para 10000 palavras/dia (MyMemory)
+      const url = 'https://api.mymemory.translated.net/get?q=' + encodeURIComponent(text) + '&langpair=pt-BR|' + target2 + '&de=app@livestreamins.com';
       const r = await fetch(url);
       const d = await r.json();
       return (d && d.responseData && d.responseData.translatedText) || '';
     } catch(e) { console.error('translate err:', e); return ''; }
   }
 
-  async function pushToOverlay(text) {
-    try {
-      await fetch(PUSH_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text })
-      });
-    } catch(e) { console.error('push err:', e); }
+  function pushToOverlay(text) {
+    // Não usar await — disparar e seguir (reduz latência)
+    fetch(PUSH_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+      keepalive: true
+    }).catch(e => console.error('push err:', e));
+  }
+
+  async function translateAndPush(text) {
+    if (!text || text === lastTranslatedSource) return;
+    lastTranslatedSource = text;
+    const myId = ++inFlight;
+    const translated = await translate(text, langSelect.value);
+    if (myId !== inFlight) return;
+    if (translated) {
+      translatedEl.textContent = translated;
+      pushToOverlay(translated);
+    }
   }
 
   function startRecognition() {
@@ -6899,6 +6914,7 @@ select:focus { outline: 1px solid #a78bfa; }
     recognition.lang = 'pt-BR';
     recognition.continuous = true;
     recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
 
     recognition.onstart = () => {
       active = true;
@@ -6909,7 +6925,7 @@ select:focus { outline: 1px solid #a78bfa; }
       btnToggle.classList.add('stop');
     };
 
-    recognition.onresult = async (event) => {
+    recognition.onresult = (event) => {
       let interim = '';
       let final = '';
       for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -6917,17 +6933,26 @@ select:focus { outline: 1px solid #a78bfa; }
         if (event.results[i].isFinal) final += t;
         else interim += t;
       }
-      spokenEl.textContent = (final + ' ' + interim).trim() || '—';
+      const displayText = (final + ' ' + interim).trim();
+      spokenEl.textContent = displayText || '—';
 
+      // Cancelar debounce anterior se houver
+      if (pendingTimer) { clearTimeout(pendingTimer); pendingTimer = null; }
+
+      // Final result → tradução IMEDIATA, sem debounce
       const finalTrim = final.trim();
       if (finalTrim) {
-        const myId = ++inFlight;
-        const translated = await translate(finalTrim, langSelect.value);
-        if (myId !== inFlight) return;
-        if (translated) {
-          translatedEl.textContent = translated;
-          pushToOverlay(translated);
-        }
+        translateAndPush(finalTrim);
+        return;
+      }
+
+      // Interim result → tradução em tempo real com debounce curto (300ms)
+      const interimTrim = interim.trim();
+      if (interimTrim && interimTrim.length >= 2) {
+        pendingTimer = setTimeout(() => {
+          pendingTimer = null;
+          translateAndPush(interimTrim);
+        }, 300);
       }
     };
 
@@ -6964,6 +6989,7 @@ select:focus { outline: 1px solid #a78bfa; }
 
   function stop() {
     active = false;
+    if (pendingTimer) { clearTimeout(pendingTimer); pendingTimer = null; }
     if (recognition) {
       try { recognition.stop(); } catch(e) {}
       recognition = null;
@@ -6972,6 +6998,7 @@ select:focus { outline: 1px solid #a78bfa; }
     statusText.textContent = 'Parado';
     btnToggle.textContent = '🎙️ Iniciar';
     btnToggle.classList.remove('stop');
+    lastTranslatedSource = '';
     pushToOverlay(''); // limpa o overlay
   }
 
