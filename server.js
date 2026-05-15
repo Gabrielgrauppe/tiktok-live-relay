@@ -5883,10 +5883,10 @@ body { background:transparent; overflow:hidden; width:100vw; height:100vh; }
 .t-clean #gw-title,.t-clean #gw-gift-name,.t-clean #gw-counter{font-family:'Segoe UI',sans-serif;text-shadow:0 2px 8px rgba(0,0,0,0.95);} .t-clean #gw-img{filter:drop-shadow(0 4px 12px rgba(0,0,0,0.8));} .t-clean .gw-dot.active{background:rgba(255,255,255,0.8);}
 .t-custom { border:2px solid rgba(255,255,255,0.3); }
 .t-custom #gw-title,.t-custom #gw-gift-name,.t-custom #gw-counter{font-family:'Segoe UI',sans-serif;} .t-custom .gw-dot.active{background:rgba(255,255,255,0.8);}
-#gw-topname { font-size:11px; font-weight:700; letter-spacing:0.4px; text-align:center; max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:rgba(255,255,255,0.65); margin-top:2px; }
-#gw.gw-complete #gw-topname { color:var(--gw-done-color); }
-.pcard-topname { font-size:9px; font-weight:700; color:rgba(255,255,255,0.6); text-align:center; max-width:100px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.gw-pcard.done .pcard-topname { color:var(--pcard-done-color); }
+#gw-topname { font-size:14px; font-weight:700; letter-spacing:0.4px; text-align:center; max-width:170px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:rgba(255,255,255,0.7); margin-top:3px; }
+#gw.gw-complete #gw-topname { color:var(--gw-done-color); text-shadow:0 0 8px color-mix(in srgb,var(--gw-done-color) 60%,transparent); }
+.pcard-topname { font-size:11px; font-weight:700; color:rgba(255,255,255,0.55); text-align:center; max-width:100px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.gw-pcard.done .pcard-topname { color:var(--pcard-done-color); text-shadow:0 0 6px color-mix(in srgb,var(--pcard-done-color) 55%,transparent); }
 /* ─── PREMIUM ─── */
 #gw-premium-wrap { display:none; width:100vw; height:100vh; flex-direction:column; align-items:center; justify-content:center;
   --pcard-name-color:#e0e0e0; --pcard-counter-color:#ffd700; --pcard-done-color:#ffd700; --pcard-custom-bg:rgba(0,0,0,0.5);
@@ -6144,7 +6144,6 @@ body { background:transparent; overflow:hidden; width:100vw; height:100vh; }
           '<div class="pcard-name">' + g.name + '</div>' +
           '<div class="pcard-counter">' + topCount + ' / ' + g.target + '</div>' +
           '<div class="pcard-topname">' + topNameTxt + '</div>' +
-          '<div class="pcard-badge">✅ META!</div>' +
           '</div>';
       });
     });
