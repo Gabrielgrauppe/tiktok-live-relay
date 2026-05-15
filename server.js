@@ -518,7 +518,8 @@ function getRoom(roomId) {
         desejo: [],
         galeria: [],
         comboCarousel: [],
-        translator: []
+        translator: [],
+        translatorMicControl: []
       },
       coinsRanking: {},
       likesRanking: {},
@@ -1014,6 +1015,15 @@ app.get('/sse/:roomId/translator', (req, res) => {
   req.on('close', () => { room.sseClients.translator = room.sseClients.translator.filter(c => c !== res); });
 });
 
+// Canal de controle da página do microfone (recebe toggle via tecla de atalho)
+app.get('/sse/:roomId/translator-mic-control', (req, res) => {
+  const room = getRoom(req.params.roomId);
+  res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
+  res.write('data: {"type":"connected"}\n\n');
+  room.sseClients.translatorMicControl.push(res);
+  req.on('close', () => { room.sseClients.translatorMicControl = room.sseClients.translatorMicControl.filter(c => c !== res); });
+});
+
 // Galeria de Presentes SSE
 app.get('/sse/:roomId/galeria', (req, res) => {
   const room = getRoom(req.params.roomId);
@@ -1431,6 +1441,11 @@ wss.on('connection', (ws) => {
         if (msg.duration != null) room.translator.duration = msg.duration;
         const ev = JSON.stringify({ type: 'state', ...room.translator });
         room.sseClients.translator.forEach(c => { try { c.write(`data: ${ev}\n\n`); } catch(e){} });
+      }
+      // Tradutor de voz — comando de toggle da página do microfone (vindo da tecla de atalho)
+      if (msg.type === 'translator-mic-toggle') {
+        const ev = JSON.stringify({ type: 'toggle' });
+        room.sseClients.translatorMicControl.forEach(c => { try { c.write(`data: ${ev}\n\n`); } catch(e){} });
       }
       // Tradutor de voz — configuração de estilo
       if (msg.type === 'translator-config') {
@@ -7006,6 +7021,21 @@ select:focus { outline: 1px solid #a78bfa; }
     if (active) stop();
     else startRecognition();
   });
+
+  // Canal de controle remoto — recebe toggle vindo da tecla de atalho do app
+  function connectControlChannel() {
+    var es = new EventSource('/sse/' + ROOM_ID + '/translator-mic-control');
+    es.onmessage = function(e) {
+      try {
+        var d = JSON.parse(e.data);
+        if (d.type === 'toggle') {
+          if (active) stop(); else startRecognition();
+        }
+      } catch(err) {}
+    };
+    es.onerror = function() { es.close(); setTimeout(connectControlChannel, 3000); };
+  }
+  connectControlChannel();
 
   // Limpar overlay ao fechar a aba
   window.addEventListener('beforeunload', () => {
