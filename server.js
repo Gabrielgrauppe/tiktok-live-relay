@@ -184,9 +184,12 @@ app.get('/api/admin/accounts', (req, res) => {
   const list = Object.values(accounts).map(a => ({
     username: a.username,
     email: a.email || '',
+    registrationIp: a.registrationIp || '',
     createdAt: new Date(a.createdAt).toISOString(),
     lastLogin: new Date(a.lastLogin).toISOString(),
-    subscription: a.subscription
+    subscription: a.subscription,
+    trialEnds: a.trialEnds ? new Date(a.trialEnds).toISOString() : null,
+    subscriptionEnd: a.subscriptionEnd ? new Date(a.subscriptionEnd).toISOString() : null
   }));
   res.json({ total: list.length, accounts: list });
 });
