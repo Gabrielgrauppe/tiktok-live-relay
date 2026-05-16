@@ -116,7 +116,7 @@ function getClientIp(req) {
 
 // Register
 app.post('/api/register', express.json(), async (req, res) => {
-  const { username, password, email } = req.body || {};
+  const { username, password, email, hwid } = req.body || {};
   if (!username || !password || !email) return res.json({ ok: false, error: 'Preencha todos os campos' });
   if (username.trim().length < 3) return res.json({ ok: false, error: 'Nome de usuário deve ter pelo menos 3 caracteres' });
   if (password.length < 6) return res.json({ ok: false, error: 'Senha deve ter pelo menos 6 caracteres' });
@@ -126,37 +126,39 @@ app.post('/api/register', express.json(), async (req, res) => {
   const emailUsed = Object.values(accounts).find(a => a.email && a.email.toLowerCase() === email.toLowerCase().trim());
   if (emailUsed) return res.json({ ok: false, error: 'Email já cadastrado em outra conta' });
 
-  // Option 2: Check if IP already used a trial
+  // ── Triplo bloqueio: HWID > IP > Email ──
   const clientIp = getClientIp(req);
-  const ipUsedTrial = Object.values(accounts).find(a => a.registrationIp === clientIp && (a.trialEnds || a.subscription === 'active'));
-  const skipTrial = !!ipUsedTrial;
+  const hwidUsedTrial = hwid && Object.values(accounts).find(a => a.hwid === hwid && (a.trialEnds || a.subscription === 'active'));
+  const ipUsedTrial = !hwidUsedTrial && Object.values(accounts).find(a => a.registrationIp === clientIp && (a.trialEnds || a.subscription === 'active'));
+  const skipTrial = !!(hwidUsedTrial || ipUsedTrial);
+  const blockReason = hwidUsedTrial ? 'hwid' : (ipUsedTrial ? 'ip' : null);
 
   const salt = crypto.randomBytes(16).toString('hex');
   const hash = hashPass(password, salt);
   const token = makeToken();
 
-  // Option 3: Trial requires card — start as 'pending_payment', MP trial set up after
-  // If IP already used trial → go straight to 'expired' (must subscribe)
+  // Se HWID ou IP já usou trial → conta nasce 'expired', precisa pagar pra usar
   const subscription = skipTrial ? 'expired' : 'pending_payment';
   const data = {
     username: username.trim(), email: email.toLowerCase().trim(),
     hash, salt, token, createdAt: Date.now(), lastLogin: Date.now(),
-    subscription, registrationIp: clientIp
+    subscription, registrationIp: clientIp, hwid: hwid || ''
   };
   await saveAccount(key, data);
-  console.log(`[Register] ${key} | IP: ${clientIp} | skipTrial: ${skipTrial}`);
+  console.log(`[Register] ${key} | IP: ${clientIp} | HWID: ${(hwid || '').substring(0,12)}... | skipTrial: ${skipTrial}${blockReason ? ' (block: ' + blockReason + ')' : ''}`);
   res.json({ ok: true, token, username: username.trim(), subscription, needsPaymentSetup: !skipTrial });
 });
 
 // Login
 app.post('/api/login', express.json(), async (req, res) => {
-  const { username, password } = req.body || {};
+  const { username, password, hwid } = req.body || {};
   const key = (username || '').toLowerCase().trim();
   const acc = await getAccount(key);
   if (!acc) return res.json({ ok: false, error: 'Usuário não encontrado' });
   if (hashPass(password, acc.salt) !== acc.hash) return res.json({ ok: false, error: 'Senha incorreta' });
   acc.token = makeToken();
   acc.lastLogin = Date.now();
+  if (hwid && !acc.hwid) acc.hwid = hwid; // salva HWID na primeira vez que logar com app atualizado
   await saveAccount(key, acc);
   const status = getSubscriptionStatus(acc);
   res.json({ ok: true, token: acc.token, username: acc.username, subscription: status, trialEnds: acc.trialEnds, subscriptionEnd: acc.subscriptionEnd });
@@ -185,6 +187,7 @@ app.get('/api/admin/accounts', (req, res) => {
     username: a.username,
     email: a.email || '',
     registrationIp: a.registrationIp || '',
+    hwid: a.hwid ? (a.hwid.substring(0, 12) + '...') : '',
     createdAt: new Date(a.createdAt).toISOString(),
     lastLogin: new Date(a.lastLogin).toISOString(),
     subscription: a.subscription,
