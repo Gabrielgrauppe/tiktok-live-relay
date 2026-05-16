@@ -436,7 +436,15 @@ app.post('/api/check-subscription', express.json(), async (req, res) => {
   }
 
   const status = getSubscriptionStatus(acc);
-  res.json({ ok: true, subscription: status, trialEnds: acc.trialEnds, subscriptionEnd: acc.subscriptionEnd });
+  res.json({
+    ok: true,
+    subscription: status,
+    trialEnds: acc.trialEnds,
+    subscriptionEnd: acc.subscriptionEnd,
+    createdAt: acc.createdAt,
+    username: acc.username,
+    email: acc.email
+  });
 });
 
 // MercadoPago webhook — called when payment status changes
