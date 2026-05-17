@@ -1966,15 +1966,33 @@ function getRankingHTML(roomId, type) {
 <script>
   const list = document.getElementById('list');
   const wrapper = document.getElementById('theme-wrapper');
-  const evtSource = new EventSource('${sseUrl}');
   let currentSide = 'left';
   let currentTheme = 'clean';
+  let lastData = null;
+  let lastConfig = null;
 
-  evtSource.onmessage = (e) => {
-    const msg = JSON.parse(e.data);
-    if (msg.type === 'full') renderRanking(msg.data);
-    if (msg.type === 'config') applyConfig(msg);
-  };
+  let evtSource = null;
+  function connectSSE() {
+    try {
+      if (evtSource) { try { evtSource.close(); } catch(e){} }
+      evtSource = new EventSource('${sseUrl}');
+      evtSource.onmessage = (e) => {
+        try {
+          const msg = JSON.parse(e.data);
+          if (msg.type === 'full') { lastData = msg.data; renderRanking(msg.data); }
+          if (msg.type === 'config') { lastConfig = msg; applyConfig(msg); }
+        } catch(err) {}
+      };
+      evtSource.onerror = () => {
+        try { evtSource.close(); } catch(e){}
+        // Reconectar em 3 segundos
+        setTimeout(connectSSE, 3000);
+      };
+    } catch(e) {
+      setTimeout(connectSSE, 3000);
+    }
+  }
+  connectSSE();
 
   function applyConfig(cfg) {
     if (cfg.theme !== undefined) {
@@ -2353,15 +2371,30 @@ function getRankingPointsHTML(roomId) {
 <script>
   const list = document.getElementById('list');
   const wrapper = document.getElementById('theme-wrapper');
-  const evtSource = new EventSource('${sseUrl}');
   let currentSide = 'left';
   let cfg = { label:'points', valueColor:'#f1c40f', labelColor:'#aaaaaa', nameColor:'#ffffff' };
 
-  evtSource.onmessage = (e) => {
-    const msg = JSON.parse(e.data);
-    if (msg.type === 'full') renderRanking(msg.data);
-    if (msg.type === 'config') applyConfig(msg);
-  };
+  let evtSource = null;
+  function connectSSE() {
+    try {
+      if (evtSource) { try { evtSource.close(); } catch(e){} }
+      evtSource = new EventSource('${sseUrl}');
+      evtSource.onmessage = (e) => {
+        try {
+          const msg = JSON.parse(e.data);
+          if (msg.type === 'full') renderRanking(msg.data);
+          if (msg.type === 'config') applyConfig(msg);
+        } catch(err) {}
+      };
+      evtSource.onerror = () => {
+        try { evtSource.close(); } catch(e){}
+        setTimeout(connectSSE, 3000);
+      };
+    } catch(e) {
+      setTimeout(connectSSE, 3000);
+    }
+  }
+  connectSSE();
 
   function applyConfig(c) {
     if (c.label !== undefined) cfg.label = c.label;
