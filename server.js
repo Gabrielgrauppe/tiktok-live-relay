@@ -1636,9 +1636,11 @@ function getEditsHTML(roomId, scene) {
   const gif = document.getElementById('gif');
   const toast = document.getElementById('toast');
 
-  // Queue system
+  // Queue system — garante que cada edit toca por completo antes da próxima
   const queue = [];
   let isPlaying = false;
+  let currentTimer = null; // timer da edit que está tocando agora
+  let currentId = 0;       // identifica qual edit está tocando (evita callbacks antigos)
 
   const evtSource = new EventSource('/sse/${roomId}/edits/${scene}');
 
@@ -1650,7 +1652,21 @@ function getEditsHTML(roomId, scene) {
     }
   };
 
-  function playNext() {
+  function stopCurrent() {
+    if (currentTimer) { clearTimeout(currentTimer); currentTimer = null; }
+    video.onended = null;
+    video.pause();
+    video.src = '';
+    video.style.display = 'none';
+    gif.src = '';
+    gif.style.display = 'none';
+  }
+
+  function finishCurrent(myId) {
+    // Só processa se o callback é do current playback (evita callbacks antigos chamarem playNext)
+    if (myId !== currentId) return;
+    if (currentTimer) { clearTimeout(currentTimer); currentTimer = null; }
+    video.onended = null;
     if (queue.length === 0) {
       isPlaying = false;
       container.classList.remove('active');
@@ -1658,16 +1674,24 @@ function getEditsHTML(roomId, scene) {
       video.pause();
       video.src = '';
       gif.src = '';
+    } else {
+      playNext();
+    }
+  }
+
+  function playNext() {
+    if (queue.length === 0) {
+      isPlaying = false;
+      stopCurrent();
+      container.classList.remove('active');
+      toast.classList.remove('active');
       return;
     }
 
     isPlaying = true;
     const data = queue.shift();
-
-    video.style.display = 'none';
-    gif.style.display = 'none';
-    video.pause();
-    video.src = '';
+    stopCurrent(); // garante limpeza do anterior
+    const myId = ++currentId;
 
     // Show sender photo + name + gift
     let toastHTML = '';
@@ -1684,32 +1708,22 @@ function getEditsHTML(roomId, scene) {
     container.classList.add('active');
 
     const src = data.mediaUrl;
-
-    // Apply volume
     const vol = (data.volume !== undefined ? data.volume : 100) / 100;
     video.volume = Math.max(0, Math.min(1, vol));
 
     if (data.isGif) {
       gif.src = src;
       gif.style.display = 'block';
-      setTimeout(() => playNext(), data.duration * 1000);
+      // Duração escolhida pelo usuário (GIF não tem duração natural)
+      currentTimer = setTimeout(() => finishCurrent(myId), data.duration * 1000);
     } else {
       video.src = src;
       video.style.display = 'block';
       video.play().catch(() => {});
-      // When video ends naturally, play next
-      video.onended = () => playNext();
-      // Fallback timeout in case video is shorter or has issues
-      setTimeout(() => {
-        if (isPlaying && queue.length > 0) playNext();
-        else if (isPlaying && queue.length === 0) {
-          isPlaying = false;
-          container.classList.remove('active');
-          toast.classList.remove('active');
-          video.pause();
-          video.src = '';
-        }
-      }, data.duration * 1000);
+      // Termina quando o vídeo acaba naturalmente
+      video.onended = () => finishCurrent(myId);
+      // Fallback: se vídeo travar, força fim após data.duration segundos
+      currentTimer = setTimeout(() => finishCurrent(myId), data.duration * 1000);
     }
   }
 </script>
