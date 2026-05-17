@@ -1782,7 +1782,12 @@ function getRankingHTML(roomId, type) {
     font-size: 13px; font-weight: 800;
     text-shadow: 0 1px 4px rgba(0,0,0,0.8);
   }
-  .empty { text-align: center; color: rgba(255,255,255,0.3); padding: 40px; font-size: 14px; }
+  .empty { text-align: center; color: rgba(255,255,255,0.55); padding: 40px; font-size: 16px; font-weight: 600; text-shadow: 0 1px 4px rgba(0,0,0,0.8); }
+  .status-bar { position: fixed; top: 6px; left: 6px; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; z-index: 9999; opacity: 0.85; }
+  .status-bar.ok { background: rgba(16,185,129,0.85); color: #fff; }
+  .status-bar.connecting { background: rgba(245,158,11,0.85); color: #fff; }
+  .status-bar.error { background: rgba(239,68,68,0.85); color: #fff; }
+  .status-bar.hidden { display: none; }
 
   /* THEME: CLEAN */
   .theme-clean .ranking-item { background: transparent; }
@@ -1960,22 +1965,35 @@ function getRankingHTML(roomId, type) {
 </style>
 </head>
 <body>
+<div id="status-bar" class="status-bar connecting">⏳ Conectando ao servidor...</div>
 <div id="theme-wrapper" class="theme-clean">
-<div class="ranking-list" id="list"></div>
+<div class="ranking-list" id="list"><div class="empty">⏳ Aguardando dados da live...</div></div>
 </div>
 <script>
   const list = document.getElementById('list');
   const wrapper = document.getElementById('theme-wrapper');
+  const statusBar = document.getElementById('status-bar');
   let currentSide = 'left';
   let currentTheme = 'clean';
   let lastData = null;
   let lastConfig = null;
 
+  function setStatus(state, msg) {
+    statusBar.className = 'status-bar ' + state;
+    statusBar.textContent = msg;
+    if (state === 'ok') {
+      // Esconde após 3s quando conectado
+      setTimeout(() => { if (statusBar.className.indexOf('ok') >= 0) statusBar.classList.add('hidden'); }, 3000);
+    }
+  }
+
   let evtSource = null;
   function connectSSE() {
     try {
       if (evtSource) { try { evtSource.close(); } catch(e){} }
+      setStatus('connecting', '⏳ Conectando...');
       evtSource = new EventSource('${sseUrl}');
+      evtSource.onopen = () => { setStatus('ok', '✅ Conectado'); };
       evtSource.onmessage = (e) => {
         try {
           const msg = JSON.parse(e.data);
@@ -1984,11 +2002,12 @@ function getRankingHTML(roomId, type) {
         } catch(err) {}
       };
       evtSource.onerror = () => {
+        setStatus('error', '⚠️ Sem conexão — tentando reconectar...');
         try { evtSource.close(); } catch(e){}
-        // Reconectar em 3 segundos
         setTimeout(connectSSE, 3000);
       };
     } catch(e) {
+      setStatus('error', '⚠️ Erro: ' + e.message);
       setTimeout(connectSSE, 3000);
     }
   }
