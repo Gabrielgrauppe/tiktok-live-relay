@@ -1465,22 +1465,37 @@ wss.on('connection', (ws) => {
         room.sseClients.comboCarousel.forEach(c => { try { c.write(`data: ${ev}\n\n`); } catch(e){} });
       }
 
-      // Carrossel de Combo — gift event (atualiza holder automático)
+      // Carrossel de Combo — gift event (atualiza holder automático OU rouba predefinido se superado)
       if (msg.type === 'combo-carousel-gift') {
         let changed = false;
         room.comboCarousel.items.forEach(item => {
-          if (item.mode !== 'auto') return;
-          if ((item.giftName || '').toLowerCase() !== (msg.giftName || '').toLowerCase()) return;
+          const itemGift = (item.giftName || '').toLowerCase();
+          if (itemGift !== (msg.giftName || '').toLowerCase()) return;
           const count = msg.count || 0;
-          if (count < (item.minValue || 1)) return;
-          if (!item.holder || count > item.holder.count) {
-            // Preservar avatar antigo se: mesma pessoa enviou combo maior e o evento atual veio sem avatar
-            let avatar = msg.avatar || '';
-            if (!avatar && item.holder && item.holder.nickname === msg.nickname && item.holder.avatar) {
-              avatar = item.holder.avatar;
+
+          if (item.mode === 'auto') {
+            if (count < (item.minValue || 1)) return;
+            if (!item.holder || count > item.holder.count) {
+              let avatar = msg.avatar || '';
+              if (!avatar && item.holder && item.holder.nickname === msg.nickname && item.holder.avatar) {
+                avatar = item.holder.avatar;
+              }
+              item.holder = { nickname: msg.nickname, avatar, count };
+              changed = true;
             }
-            item.holder = { nickname: msg.nickname, avatar, count };
-            changed = true;
+          } else if (item.mode === 'predefined' && item.predefined) {
+            // ROUBO de predefinido: se alguém enviar combo MAIOR que o predefinido, vira holder
+            const predefCount = item.predefined.count || 0;
+            const currentHolderCount = item.holder ? item.holder.count : 0;
+            const winningCount = Math.max(predefCount, currentHolderCount);
+            if (count > winningCount) {
+              let avatar = msg.avatar || '';
+              if (!avatar && item.holder && item.holder.nickname === msg.nickname && item.holder.avatar) {
+                avatar = item.holder.avatar;
+              }
+              item.holder = { nickname: msg.nickname, avatar, count };
+              changed = true;
+            }
           }
         });
         if (changed) {
@@ -1517,7 +1532,8 @@ wss.on('connection', (ws) => {
 
       // Carrossel de Combo — reset holders automáticos
       if (msg.type === 'combo-carousel-reset') {
-        room.comboCarousel.items.forEach(item => { if (item.mode === 'auto') item.holder = null; });
+        // Limpa holders de auto E de predefinidos roubados (volta ao valor original predefinido)
+        room.comboCarousel.items.forEach(item => { item.holder = null; });
         persistRoomState(roomId, 'comboCarousel', room.comboCarousel);
         const ev = JSON.stringify({ type: 'config', items: room.comboCarousel.items, theme: room.comboCarousel.theme || 'roxo', verbColor: room.comboCarousel.verbColor || '', countColor: room.comboCarousel.countColor || '' });
         room.sseClients.comboCarousel.forEach(c => { try { c.write(`data: ${ev}\n\n`); } catch(e){} });
@@ -6577,16 +6593,27 @@ body.t-retro .cc-count { font-size:11px; }
 
   function active() {
     return items.filter(function(it) {
-      return it.mode === 'predefined'
-        ? (it.predefined && it.predefined.nickname)
-        : (it.holder && it.holder.nickname);
+      if (it.mode === 'predefined') {
+        // Mostra se tem predefinido OU se foi roubado (holder com count > predef)
+        return (it.predefined && it.predefined.nickname) || (it.holder && it.holder.nickname);
+      }
+      return it.holder && it.holder.nickname;
     });
   }
 
   function card(it) {
     var nick, av, cnt;
-    if (it.mode === 'predefined') { nick = it.predefined.nickname; av = it.predefined.avatar || ''; cnt = it.predefined.count; }
-    else { nick = it.holder.nickname; av = it.holder.avatar || ''; cnt = it.holder.count; }
+    if (it.mode === 'predefined') {
+      // Se foi roubado (holder com count > predef.count), mostra o holder
+      var predefCount = (it.predefined && it.predefined.count) || 0;
+      if (it.holder && it.holder.count > predefCount) {
+        nick = it.holder.nickname; av = it.holder.avatar || ''; cnt = it.holder.count;
+      } else {
+        nick = it.predefined.nickname; av = it.predefined.avatar || ''; cnt = it.predefined.count;
+      }
+    } else {
+      nick = it.holder.nickname; av = it.holder.avatar || ''; cnt = it.holder.count;
+    }
     var src = proxyImg(av);
     // Placeholder sempre visível atrás (CSS position:absolute).
     // Se a foto carregar, fica na frente e cobre o placeholder. Sem onerror.
