@@ -47,6 +47,8 @@ app.get('/jar-glass.png', (req, res) => res.sendFile(__dirname + '/jar-glass.png
 const ACCOUNTS_FILE = path.join(__dirname, 'accounts.json');
 let accounts = {};           // in-memory cache
 let accountsCol = null;      // MongoDB collection (null = use file)
+let roomsCol = null;         // MongoDB collection for room state (combo carousel, etc.)
+const persistedRooms = {};   // cache: roomId → persisted state from Mongo
 
 // Load from file as initial cache / fallback
 try { accounts = JSON.parse(fs.readFileSync(ACCOUNTS_FILE, 'utf-8')); } catch(e) { accounts = {}; }
@@ -68,7 +70,12 @@ async function connectMongo() {
     // Load all accounts into memory cache
     const docs = await accountsCol.find({}).toArray();
     docs.forEach(doc => { accounts[doc._id] = doc; });
-    console.log(`[DB] MongoDB connected — ${docs.length} account(s) loaded`);
+
+    // Load persisted room state (combo carousel, etc.)
+    roomsCol = db.collection('rooms');
+    const roomDocs = await roomsCol.find({}).toArray();
+    roomDocs.forEach(doc => { persistedRooms[doc._id] = doc; });
+    console.log(`[DB] MongoDB connected — ${docs.length} account(s), ${roomDocs.length} room(s) loaded`);
   } catch(e) {
     console.error('[DB] MongoDB connection failed, using file fallback:', e.message);
     accountsCol = null;
@@ -87,6 +94,28 @@ async function saveAccount(key, data) {
 
 async function getAccount(key) {
   return accounts[key] || null;
+}
+
+// Persiste estado específico de sala no Mongo (com debounce por sala+chave)
+const _persistTimers = {};
+function persistRoomState(roomId, key, value) {
+  if (!roomsCol) return;
+  const t = `${roomId}_${key}`;
+  if (_persistTimers[t]) clearTimeout(_persistTimers[t]);
+  _persistTimers[t] = setTimeout(async () => {
+    try {
+      const update = { [key]: value, updatedAt: Date.now() };
+      await roomsCol.updateOne(
+        { _id: roomId },
+        { $set: update },
+        { upsert: true }
+      );
+      if (!persistedRooms[roomId]) persistedRooms[roomId] = { _id: roomId };
+      persistedRooms[roomId][key] = value;
+    } catch(e) {
+      console.error('[DB] persistRoomState error:', e.message);
+    }
+  }, 800); // debounce 800ms para evitar muitas escritas
 }
 
 function hashPass(password, salt) {
@@ -561,6 +590,16 @@ function getRoom(roomId) {
       topGiftConfig: { label: 'Maior Presente', labelColor: '#ffffff', nameColor: '#FFD700', valueColor: '#ffffff' },
       topComboConfig: { label: 'Maior Combo', labelColor: '#ffffff', nameColor: '#FFD700', comboColor: '#ff6464' }
     };
+    // Restaurar estado persistido do Mongo (carrossel sobrevive reinício do servidor)
+    const saved = persistedRooms[roomId];
+    if (saved) {
+      if (saved.comboCarousel) {
+        rooms[roomId].comboCarousel = Object.assign(rooms[roomId].comboCarousel, saved.comboCarousel);
+      }
+      if (saved.galeria) {
+        rooms[roomId].galeria = Object.assign(rooms[roomId].galeria, saved.galeria);
+      }
+    }
   }
   return rooms[roomId];
 }
@@ -1386,6 +1425,7 @@ wss.on('connection', (ws) => {
         room.galeria.customColor   = msg.customColor   || '';
         room.galeria.completeColor = msg.completeColor || '#ffd700';
         room.galeria.showTopName   = !!msg.showTopName;
+        persistRoomState(roomId, 'galeria', room.galeria);
         const ev = JSON.stringify({ type: 'config', ...room.galeria });
         room.sseClients.galeria.forEach(c => { try { c.write(`data: ${ev}\n\n`); } catch(e){} });
       }
@@ -1393,6 +1433,7 @@ wss.on('connection', (ws) => {
       // Galeria progress
       if (msg.type === 'galeria-progress') {
         room.galeria.progress = msg.progress || {};
+        persistRoomState(roomId, 'galeria', room.galeria);
         const ev = JSON.stringify({ type: 'progress', progress: room.galeria.progress, giftName: msg.giftName });
         room.sseClients.galeria.forEach(c => { try { c.write(`data: ${ev}\n\n`); } catch(e){} });
       }
@@ -1400,6 +1441,7 @@ wss.on('connection', (ws) => {
       // Galeria reset
       if (msg.type === 'galeria-reset') {
         room.galeria.progress = {};
+        persistRoomState(roomId, 'galeria', room.galeria);
         const ev = JSON.stringify({ type: 'config', ...room.galeria });
         room.sseClients.galeria.forEach(c => { try { c.write(`data: ${ev}\n\n`); } catch(e){} });
       }
@@ -1418,6 +1460,7 @@ wss.on('connection', (ws) => {
         room.comboCarousel.theme = msg.theme || 'roxo';
         room.comboCarousel.verbColor = msg.verbColor || '';
         room.comboCarousel.countColor = msg.countColor || '';
+        persistRoomState(roomId, 'comboCarousel', room.comboCarousel);
         const ev = JSON.stringify({ type: 'config', items: room.comboCarousel.items, theme: room.comboCarousel.theme, verbColor: room.comboCarousel.verbColor, countColor: room.comboCarousel.countColor });
         room.sseClients.comboCarousel.forEach(c => { try { c.write(`data: ${ev}\n\n`); } catch(e){} });
       }
@@ -1441,6 +1484,7 @@ wss.on('connection', (ws) => {
           }
         });
         if (changed) {
+          persistRoomState(roomId, 'comboCarousel', room.comboCarousel);
           const ev = JSON.stringify({ type: 'config', items: room.comboCarousel.items, theme: room.comboCarousel.theme || 'roxo', verbColor: room.comboCarousel.verbColor || '', countColor: room.comboCarousel.countColor || '' });
           room.sseClients.comboCarousel.forEach(c => { try { c.write(`data: ${ev}\n\n`); } catch(e){} });
         }
@@ -1474,6 +1518,7 @@ wss.on('connection', (ws) => {
       // Carrossel de Combo — reset holders automáticos
       if (msg.type === 'combo-carousel-reset') {
         room.comboCarousel.items.forEach(item => { if (item.mode === 'auto') item.holder = null; });
+        persistRoomState(roomId, 'comboCarousel', room.comboCarousel);
         const ev = JSON.stringify({ type: 'config', items: room.comboCarousel.items, theme: room.comboCarousel.theme || 'roxo', verbColor: room.comboCarousel.verbColor || '', countColor: room.comboCarousel.countColor || '' });
         room.sseClients.comboCarousel.forEach(c => { try { c.write(`data: ${ev}\n\n`); } catch(e){} });
       }
