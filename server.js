@@ -161,7 +161,7 @@ app.post('/api/login', express.json(), async (req, res) => {
   if (hwid && !acc.hwid) acc.hwid = hwid; // salva HWID na primeira vez que logar com app atualizado
   await saveAccount(key, acc);
   const status = getSubscriptionStatus(acc);
-  res.json({ ok: true, token: acc.token, username: acc.username, subscription: status, trialEnds: acc.trialEnds, subscriptionEnd: acc.subscriptionEnd });
+  res.json({ ok: true, token: acc.token, username: acc.username, email: acc.email, subscription: status, trialEnds: acc.trialEnds, subscriptionEnd: acc.subscriptionEnd, createdAt: acc.createdAt });
 });
 
 // Validate token (auto-login)
@@ -171,7 +171,7 @@ app.post('/api/validate-token', express.json(), async (req, res) => {
   const acc = await getAccount(key);
   if (!acc || acc.token !== token) return res.json({ ok: false, error: 'Sessão expirada' });
   const status = getSubscriptionStatus(acc);
-  res.json({ ok: true, username: acc.username, subscription: status, trialEnds: acc.trialEnds, subscriptionEnd: acc.subscriptionEnd });
+  res.json({ ok: true, username: acc.username, email: acc.email, subscription: status, trialEnds: acc.trialEnds, subscriptionEnd: acc.subscriptionEnd, createdAt: acc.createdAt });
 });
 
 // Health check endpoint
