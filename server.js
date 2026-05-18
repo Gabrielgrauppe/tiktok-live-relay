@@ -4803,6 +4803,24 @@ function getTopScoreHTML(roomId) {
   .card.t-ice .value-txt{font-family:'Orbitron',sans-serif;color:#00ccff;text-shadow:0 0 24px rgba(0,200,255,0.7),0 0 50px rgba(80,200,255,0.4);}
   .card.t-ice .bottom-deco{color:#7ecfff;}
 
+  /* ROSA */
+  .card.t-rosa{background:linear-gradient(160deg,#1a0612,#3d0a28,#1a0612);border-color:#ff69b4;outline-color:rgba(255,105,180,0.25);box-shadow:0 0 0 1px #500724,0 12px 50px rgba(0,0,0,0.95),0 0 30px rgba(255,105,180,0.18),inset 0 0 80px rgba(80,10,40,0.1);}
+  .card.t-rosa::before{display:none;}
+  .card.t-rosa .top-bar{background:linear-gradient(90deg,#100410,#2a0820,#3d0a28,#2a0820,#100410);border-bottom-color:#ff69b4;}
+  .card.t-rosa .top-bar::before,.card.t-rosa .top-bar::after{color:rgba(255,105,180,0.5);}
+  .card.t-rosa .title-txt{font-family:'Poppins',sans-serif;color:#ff69b4;text-shadow:0 0 18px rgba(255,105,180,0.85),0 0 40px rgba(236,72,153,0.45),1px 1px 3px #000;letter-spacing:4px;}
+  .card.t-rosa .desc-txt{font-family:'Poppins',sans-serif;color:rgba(255,182,213,0.7);}
+  .card.t-rosa .corner{color:rgba(255,105,180,0.4);}
+  .card.t-rosa .avatar-crown{filter:drop-shadow(0 0 6px rgba(255,105,180,0.9)) drop-shadow(0 0 16px rgba(236,72,153,0.6));}
+  .card.t-rosa .avatar-ring{border-color:#ff69b4;box-shadow:0 0 0 2px rgba(255,105,180,0.3),0 0 0 7px rgba(255,105,180,0.07),0 0 24px rgba(255,105,180,0.4);}
+  .card.t-rosa .name-txt{font-family:'Poppins',sans-serif;color:#ff69b4;text-shadow:0 0 12px rgba(255,105,180,0.55),1px 1px 4px #000;}
+  .card.t-rosa .div-line{background:linear-gradient(90deg,transparent,#ff69b4,transparent);}
+  .card.t-rosa .div-star{color:#ff69b4;font-family:'Poppins',sans-serif;}
+  .card.t-rosa .value-box{background:linear-gradient(180deg,rgba(255,105,180,0.05),rgba(236,72,153,0.12));border-color:rgba(255,105,180,0.3);}
+  .card.t-rosa .subtitle-txt{font-family:'Poppins',sans-serif;color:rgba(255,182,213,0.7);}
+  .card.t-rosa .value-txt{font-family:'Poppins',sans-serif;color:#ec4899;text-shadow:0 0 24px rgba(236,72,153,0.7),0 0 50px rgba(255,105,180,0.4);}
+  .card.t-rosa .bottom-deco{color:#ff69b4;}
+
   /* ROXO */
   .card.t-roxo{background:linear-gradient(160deg,#0d0520,#180838,#0d0520);border-color:#9b5de5;outline-color:rgba(155,93,229,0.2);box-shadow:0 0 0 1px #2a0a50,0 12px 50px rgba(0,0,0,0.95),0 0 30px rgba(155,93,229,0.15),inset 0 0 80px rgba(50,10,80,0.08);}
   .card.t-roxo::before{display:none;}
@@ -5984,6 +6002,10 @@ function getAlertSceneHTML(roomId, scene) {
   .t-ice #alert-avatar { border: 3px solid rgba(150,220,255,0.8); background: rgba(10,50,90,0.5); }
   .t-ice #alert-nickname { font-family: 'Rajdhani', sans-serif; font-size: 21px; color: #b0e0ff; text-shadow: 0 0 14px rgba(150,220,255,0.75); }
   .t-ice #alert-message  { font-family: 'Rajdhani', sans-serif; font-size: 15px; color: #e0f4ff; }
+  .t-rosa { background: linear-gradient(160deg, rgba(60,15,40,0.92) 0%, rgba(95,20,55,0.92) 100%); border: 2px solid rgba(255,105,180,0.55); box-shadow: 0 0 28px rgba(255,105,180,0.4), inset 0 0 20px rgba(255,182,213,0.08); }
+  .t-rosa #alert-avatar { border: 3px solid rgba(255,105,180,0.85); background: rgba(80,20,55,0.5); box-shadow: 0 0 14px rgba(255,105,180,0.4); }
+  .t-rosa #alert-nickname { font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 20px; color: #ff69b4; text-shadow: 0 0 14px rgba(255,105,180,0.75); }
+  .t-rosa #alert-message  { font-family: 'Poppins', sans-serif; font-size: 14px; color: #ffd1e7; }
   .t-clean { background: transparent; border: none; box-shadow: none; padding: 8px 4px; }
   .t-clean #alert-avatar { border: 3px solid rgba(255,255,255,0.85); box-shadow: 0 2px 12px rgba(0,0,0,0.7); }
   .t-clean #alert-nickname { font-family: 'Segoe UI', sans-serif; font-size: 20px; color: #fff; text-shadow: 0 2px 8px rgba(0,0,0,0.95), 0 0 20px rgba(0,0,0,0.8); }
@@ -6012,7 +6034,7 @@ function getAlertSceneHTML(roomId, scene) {
   var giftCountEl = document.getElementById('alert-gift-count');
   var currentTheme = 'roxo';
   var hideTimer = null;
-  var THEMES = ['roxo','neon','medieval','retro','fire','ice','clean'];
+  var THEMES = ['roxo','neon','medieval','retro','fire','ice','rosa','clean'];
   function applyTheme(t) {
     if (THEMES.indexOf(t) === -1) t = 'roxo';
     currentTheme = t;
@@ -6093,6 +6115,8 @@ function getDesejoOverlayHTML(roomId) {
   .t-fire #dw-title { font-family:'Russo One',sans-serif; } .t-fire #dw-counter { font-family:'Russo One',sans-serif; } .t-fire #dw-complete { font-family:'Russo One',sans-serif; color:#ffd700; } .t-fire #dw-img { filter: drop-shadow(0 0 12px rgba(255,120,0,0.6)); }
   .t-ice { background:linear-gradient(160deg,rgba(5,18,38,0.93),rgba(10,38,78,0.93)); border:2px solid rgba(150,220,255,0.65); box-shadow:0 0 26px rgba(100,200,255,0.35),inset 0 0 20px rgba(200,240,255,0.06); }
   .t-ice #dw-title { font-family:'Rajdhani',sans-serif; font-size:17px; } .t-ice #dw-counter { font-family:'Rajdhani',sans-serif; font-size:44px; } .t-ice #dw-complete { font-family:'Rajdhani',sans-serif; color:#b0e0ff; } .t-ice #dw-img { filter: drop-shadow(0 0 10px rgba(150,220,255,0.5)); }
+  .t-rosa { background:linear-gradient(160deg,rgba(60,15,40,0.92),rgba(95,20,55,0.92)); border:2px solid rgba(255,105,180,0.55); box-shadow:0 0 28px rgba(255,105,180,0.4),inset 0 0 20px rgba(255,182,213,0.08); }
+  .t-rosa #dw-title { font-family:'Poppins',sans-serif; font-weight:700; color:#ff69b4; } .t-rosa #dw-counter { font-family:'Poppins',sans-serif; font-weight:900; color:#ec4899; text-shadow:0 0 12px rgba(236,72,153,0.6); } .t-rosa #dw-complete { font-family:'Poppins',sans-serif; color:#ff69b4; } .t-rosa #dw-img { filter: drop-shadow(0 0 12px rgba(255,105,180,0.55)); }
   .t-clean { background:transparent; border:none; box-shadow:none; }
   .t-clean #dw-title { font-family:'Segoe UI',sans-serif; text-shadow:0 2px 8px rgba(0,0,0,0.95); } .t-clean #dw-counter { font-family:'Segoe UI',sans-serif; text-shadow:0 2px 10px rgba(0,0,0,0.95); } .t-clean #dw-complete { font-family:'Segoe UI',sans-serif; } .t-clean #dw-img { filter: drop-shadow(0 4px 12px rgba(0,0,0,0.8)); }
   .t-custom { border:2px solid rgba(255,255,255,0.3); }
@@ -6116,7 +6140,7 @@ function getDesejoOverlayHTML(roomId) {
   var imgEl = document.getElementById('dw-img');
   var counterEl = document.getElementById('dw-counter');
   var completeEl = document.getElementById('dw-complete');
-  var THEMES = ['neon','roxo','medieval','retro','fire','ice','clean','custom'];
+  var THEMES = ['neon','roxo','medieval','retro','fire','ice','rosa','clean','custom'];
   var state = { name:'Desejo do Streamer', giftImage:'', target:1, current:0, theme:'neon', customColor:'', nameColor:'#ffffff', countColor:'#ffd700' };
   function applyState(s) {
     state = s;
@@ -6352,7 +6376,7 @@ body { background:transparent; overflow:hidden; width:100vw; height:100vh; }
     { name:'Leon and Lion', target:1, image:'https://p16-webcast.tiktokcdn.com/img/maliva/webcast-va/a291aedacf27d22c3fd2d83575d2bee9~tplv-obj.webp' },
     { name:'TikTok Universe', target:1, image:'https://p16-webcast.tiktokcdn.com/img/maliva/webcast-va/8f471afbcebfda3841a6cc515e381f58~tplv-obj.webp' }
   ];
-  var THEMES = ['neon','roxo','medieval','retro','fire','ice','clean','custom'];
+  var THEMES = ['neon','roxo','medieval','retro','fire','ice','rosa','clean','custom'];
   var state = { league:'D', style:'padrao', title:'Galeria de Presentes', progress:{}, theme:'neon', titleColor:'#ffffff', nameColor:'#00d4ff', counterColor:'#ffd700', customColor:'', completeColor:'#ffd700', showTopName:false };
   var currIdx = 0;
   var timer = null;
