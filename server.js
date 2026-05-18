@@ -472,8 +472,34 @@ app.post('/api/check-subscription', express.json(), async (req, res) => {
     subscriptionEnd: acc.subscriptionEnd,
     createdAt: acc.createdAt,
     username: acc.username,
-    email: acc.email
+    email: acc.email,
+    hasMpSubscription: !!acc.mpSubscriptionId
   });
+});
+
+// Cancelar assinatura do MercadoPago
+app.post('/api/cancel-subscription', express.json(), async (req, res) => {
+  const { username, token } = req.body || {};
+  const key = (username || '').toLowerCase().trim();
+  const acc = await getAccount(key);
+  if (!acc || acc.token !== token) return res.json({ ok: false, error: 'Sessão inválida' });
+  if (!acc.mpSubscriptionId) return res.json({ ok: false, error: 'Você não possui assinatura ativa no MercadoPago' });
+  if (!MP_ACCESS_TOKEN) return res.json({ ok: false, error: 'MercadoPago não configurado no servidor' });
+
+  try {
+    const result = await mpRequest('PUT', `/preapproval/${acc.mpSubscriptionId}`, { status: 'cancelled' });
+    if (result.status === 'cancelled' || (result.id && result.status)) {
+      console.log(`[MP] Cancelamento solicitado para ${key} (${acc.mpSubscriptionId}) — status: ${result.status}`);
+      // Marca conta como pendente, mas mantém o acesso até o fim do período
+      // (o webhook do MP vai confirmar quando o período acabar)
+      await saveAccount(key, acc);
+      return res.json({ ok: true, message: 'Assinatura cancelada com sucesso. Você continua tendo acesso até o fim do período já pago.', subscriptionEnd: acc.subscriptionEnd });
+    }
+    return res.json({ ok: false, error: result.message || 'Erro ao cancelar no MercadoPago' });
+  } catch(e) {
+    console.error('[MP] Erro ao cancelar:', e.message);
+    return res.json({ ok: false, error: 'Erro ao processar cancelamento: ' + e.message });
+  }
 });
 
 // MercadoPago webhook — called when payment status changes
