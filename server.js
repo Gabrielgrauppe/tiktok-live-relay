@@ -7076,16 +7076,6 @@ body { background:transparent; width:100vw; height:100vh; overflow:hidden; }
   var statusEl = document.getElementById('status');
   var pulseEl = document.getElementById('pulse');
 
-  // AudioContext — modo mais robusto pra OBS Browser Source com "Controlar áudio via OBS"
-  var audioCtx = null;
-  function getAudioCtx() {
-    if (!audioCtx) {
-      try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
-      catch(e) { console.error('AudioContext não suportado:', e); }
-    }
-    return audioCtx;
-  }
-
   function showPulse() {
     pulseEl.classList.remove('active');
     void pulseEl.offsetWidth;
@@ -7093,43 +7083,14 @@ body { background:transparent; width:100vw; height:100vh; overflow:hidden; }
     setTimeout(function(){ pulseEl.classList.remove('active'); }, 500);
   }
 
-  // Toca áudio via AudioContext (mais compatível com OBS) com fallback pra Audio Element
   function playSound(mediaUrl, volume) {
     showPulse();
     var vol = Math.max(0, Math.min(1, (volume || 80) / 100));
-
-    var ctx = getAudioCtx();
-    if (ctx) {
-      // Método 1: AudioContext (mais robusto em modo "Controlar via OBS")
-      fetch(mediaUrl)
-        .then(function(r){ return r.arrayBuffer(); })
-        .then(function(buf){ return ctx.decodeAudioData(buf); })
-        .then(function(decoded){
-          var src = ctx.createBufferSource();
-          src.buffer = decoded;
-          var gain = ctx.createGain();
-          gain.gain.value = vol;
-          src.connect(gain);
-          gain.connect(ctx.destination);
-          if (ctx.state === 'suspended') ctx.resume();
-          src.start(0);
-        })
-        .catch(function(e){
-          console.warn('AudioContext falhou, tentando Audio Element:', e);
-          fallbackAudio(mediaUrl, vol);
-        });
-    } else {
-      fallbackAudio(mediaUrl, vol);
-    }
-  }
-
-  function fallbackAudio(mediaUrl, vol) {
     try {
       var audio = new Audio(mediaUrl);
       audio.volume = vol;
-      audio.crossOrigin = 'anonymous';
-      audio.play().catch(function(e){ console.error('Erro fallback:', e); });
-    } catch(e) { console.error('Erro Audio Element:', e); }
+      audio.play().catch(function(e){ console.error('Erro ao tocar:', e); });
+    } catch(e) { console.error('Erro Audio:', e); }
   }
 
   function connect() {
@@ -7137,8 +7098,6 @@ body { background:transparent; width:100vw; height:100vh; overflow:hidden; }
     es.onopen = function() {
       statusEl.textContent = '🎵 Figurinhas (online)';
       statusEl.style.opacity = '0.4';
-      // Pré-aquecer AudioContext na conexão (não precisa de user gesture aqui)
-      getAudioCtx();
     };
     es.onmessage = function(e) {
       try {
