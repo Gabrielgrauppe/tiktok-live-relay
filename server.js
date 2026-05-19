@@ -588,7 +588,8 @@ function getRoom(roomId) {
         galeria: [],
         comboCarousel: [],
         translator: [],
-        translatorMicControl: []
+        translatorMicControl: [],
+        figurinhas: []
       },
       coinsRanking: {},
       likesRanking: {},
@@ -813,6 +814,11 @@ app.get('/overlay/:roomId/combo-carousel', (req, res) => {
 app.get('/overlay/:roomId/translator', (req, res) => {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.send(getTranslatorOverlayHTML(req.params.roomId));
+});
+
+app.get('/overlay/:roomId/figurinhas', (req, res) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(getFigurinhasOverlayHTML(req.params.roomId));
 });
 
 // Página do microfone (Chrome) — para Web Speech API que não funciona no Electron
@@ -1092,6 +1098,15 @@ app.get('/sse/:roomId/translator', (req, res) => {
   res.write(`data: ${JSON.stringify({ type: 'state', ...room.translator })}\n\n`);
   room.sseClients.translator.push(res);
   req.on('close', () => { room.sseClients.translator = room.sseClients.translator.filter(c => c !== res); });
+});
+
+// Figurinhas (áudio de stickers) SSE
+app.get('/sse/:roomId/figurinhas', (req, res) => {
+  const room = getRoom(req.params.roomId);
+  res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
+  res.write('data: {"type":"connected"}\n\n');
+  room.sseClients.figurinhas.push(res);
+  req.on('close', () => { room.sseClients.figurinhas = room.sseClients.figurinhas.filter(c => c !== res); });
 });
 
 // Canal de controle da página do microfone (recebe toggle via tecla de atalho)
@@ -1540,6 +1555,15 @@ wss.on('connection', (ws) => {
         if (msg.duration != null) room.translator.duration = msg.duration;
         const ev = JSON.stringify({ type: 'state', ...room.translator });
         room.sseClients.translator.forEach(c => { try { c.write(`data: ${ev}\n\n`); } catch(e){} });
+      }
+      // Figurinhas — tocar áudio no overlay (usa mediaStore via HTTP)
+      if (msg.type === 'figurinha-play') {
+        const ev = JSON.stringify({
+          type: 'play',
+          mediaUrl: '/media/' + msg.mediaId,
+          volume: msg.volume || 80
+        });
+        room.sseClients.figurinhas.forEach(c => { try { c.write(`data: ${ev}\n\n`); } catch(e){} });
       }
       // Tradutor de voz — comando de toggle da página do microfone (vindo da tecla de atalho)
       if (msg.type === 'translator-mic-toggle') {
@@ -7029,6 +7053,49 @@ body {
       } catch(err) {}
     };
     es.onerror = function() { es.close(); setTimeout(connect, 3000); };
+  }
+  connect();
+</script>
+</body></html>`;
+}
+
+function getFigurinhasOverlayHTML(roomId) {
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<style>
+* { margin:0; padding:0; }
+body { background:transparent; width:100vw; height:100vh; overflow:hidden; }
+#status { position:fixed; bottom:6px; left:6px; padding:4px 8px; background:rgba(0,0,0,0.6); color:#fff; font-family:Arial,sans-serif; font-size:10px; border-radius:4px; opacity:0.5; }
+</style></head>
+<body>
+<div id="status">🎵 Figurinhas (conectando...)</div>
+<script>
+  var statusEl = document.getElementById('status');
+
+  function playSound(mediaUrl, volume) {
+    try {
+      var audio = new Audio(mediaUrl);
+      audio.volume = Math.max(0, Math.min(1, (volume || 80) / 100));
+      audio.play().catch(function(e){ console.error('Erro ao tocar:', e); });
+    } catch(e) { console.error('Erro ao tocar áudio:', e); }
+  }
+
+  function connect() {
+    var es = new EventSource('/sse/${roomId}/figurinhas');
+    es.onopen = function() {
+      statusEl.textContent = '🎵 Figurinhas (online)';
+      statusEl.style.opacity = '0.4';
+    };
+    es.onmessage = function(e) {
+      try {
+        var d = JSON.parse(e.data);
+        if (d.type === 'play') playSound(d.mediaUrl, d.volume);
+      } catch(err) { console.error('Erro SSE:', err); }
+    };
+    es.onerror = function() {
+      statusEl.textContent = '🎵 Reconectando...';
+      es.close();
+      setTimeout(connect, 3000);
+    };
   }
   connect();
 </script>
